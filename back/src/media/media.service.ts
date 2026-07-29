@@ -1,0 +1,99 @@
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { StorageService } from './storage/storage.service';
+import { buildKey } from './storage/media.helper';
+import { UploadImageDto } from './dto/upload-image.dto';
+import { SearchMediaDto } from './dto/search.media.dto';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class MediaService {
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) { }
+
+  private async safeDelete(key: string) {
+    const deleted = await this.storageService.delete(key);
+    if (!deleted) {
+      console.error(`[MediaService] فایل یتیم روی S3: ${key}`);
+    }
+  }
+
+  async uploadImage(file: Express.Multer.File, dto: UploadImageDto) {
+    if (!file) throw new BadRequestException('فایلی آپلود نشده است');
+    const { alt, isMain, productId, sortOrder = 0 } = dto;
+    const key = buildKey(file.mimetype, file.originalname);
+    try {
+      await this.storageService.upload(key, file.buffer, file.mimetype);
+    } catch (err) {
+      console.error(err);
+      throw new BadRequestException('خطا در آپلود فایل');
+    }
+
+    let mediaRecord;
+    try {
+      mediaRecord = await this.prisma.productImage.create({
+        data: {
+          alt,
+          url: key,
+          isMain,
+          productId,
+          sortOrder: Number(sortOrder)
+        },
+      });
+    } catch (error) {
+      await this.safeDelete(key);
+      throw error;
+    }
+    return mediaRecord;
+  }
+
+  async deleteMedia(id: string) {
+    const media = await this.prisma.productImage.findUnique({ where: { url: id } });
+
+    if (!media) throw new NotFoundException('فایل پیدا نشد');
+
+    await this.prisma.productImage.delete({ where: { url: id } });
+
+    const deleted = await this.storageService.delete(media.url);
+    if (!deleted) {
+      console.error(`[MediaService] حذف از S3 ناموفق: ${media.url}`);
+    }
+
+    return { success: true, message: 'فایل حذف شد' };
+  }
+
+  async getAllMedia(query: SearchMediaDto) {
+    const { page = 1, order = 'desc', limit = 10, isMain, productId, url } = query;
+    const where: any = {
+      ...(isMain && { isMain: Number(isMain) }),
+      ...(productId && { productId: Number(productId) }),
+      ...(url && { url: url }),
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const take = Number(limit);
+
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.productImage.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: order || 'desc' },
+      }),
+      this.prisma.productImage.count({ where }),
+    ]);
+    const np = Math.ceil(count / Number(limit)) > Number(page) ? Number(page) + 1 : 0
+    return {
+      data,
+      total: count,
+      nextPage: np,
+      prevPage: Number(page) - 1
+    };
+  }
+}
