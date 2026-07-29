@@ -126,7 +126,7 @@ export interface ProductType {
   // روابط (در صورت include شدن)
   seller?: User;
   category?: Category;
-  images: ProductImage[];
+  images: ProductImage[] | [];
   reviews?: Review[];
   cartItems?: CartItem[];
   orderItems?: OrderItem[];
@@ -1174,8 +1174,8 @@ export const authApi = {
 
 export const productsApi = {
   list: (params?: any) => api.get<{ products: Product[]; total: number; pages: number }>('/products', params),
-  getBySlug: (slug: string) => api.get<Product & { related: Product[] }>(`/products/${slug}`),
-  getById: (id: string) => api.get<Product & { related: Product[] }>(`/products/${id}`),
+  getBySlug: (slug: string) => api.get<ProductType & { related: ProductType[] }>(`/products/${slug}`),
+  getById: (id: string) => api.get<ProductType & { related: ProductType[] }>(`/products/${id}`),
   create: (data: FormData) => api.upload<Product>('/products', data),
   update: (id: string, data: FormData) => api.upload<Product>(`/products/${id}`, data),
   delete: (id: string) => api.delete<{ message: string }>(`/products/${id}`),

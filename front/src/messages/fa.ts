@@ -39,6 +39,7 @@ const fa = {
     total: 'جمع کل',
     filter: 'فیلتر',
     sort: 'مرتب\u200Cسازی',
+    lan: 'fa-IR'
   },
 
   nav: {
@@ -351,6 +352,7 @@ const fa = {
   },
 
   chat: {
+    auth_warning: 'برای مشاهده پیام‌ها، لطفاً وارد شوید',
     title: 'پیام\u200Cها',
     empty: 'پیامی وجود ندارد',
     start_chat: 'شروع گفتگو',
@@ -363,6 +365,9 @@ const fa = {
     products: 'محصولات',
     no_conversations: 'هنوز گفتگویی ندارید',
     click_product: 'روی هر محصول کلیک کنید و دکمه گفتگو را بزنید',
+    help_text_title: 'گفتگو با فروشندگان درباره محصولات',
+    help_have_chat: 'یک گفتگو را از لیست انتخاب کنید',
+    help_havent_chat: 'به صفحه محصولات بروید و روی دکمه گفتگو کلیک کنید'
   },
 
   profile: {

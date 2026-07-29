@@ -32,8 +32,8 @@ export default function ImgTag({
     <figure className={figureClass || "w-full relative"}>
       {src ?
         <Image
-          width={width || 100}
-          height={height || 100}
+          width={width || 1080}
+          height={height || 1080}
           loading="lazy"
           onClick={onClick}
           // placeholder="blur"
@@ -46,8 +46,8 @@ export default function ImgTag({
         />
         :
         <Image
-          width={width || 100}
-          height={height || 100}
+          width={width || 1080}
+          height={height || 1080}
           loading="lazy"
           onClick={onClick}
           // placeholder="blur"

@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { motion } from 'framer-motion';
-import { Heart, ArrowLeft, ShoppingCart, Trash2, RefreshCw } from 'lucide-react';
+import { Heart, ArrowLeft, ShoppingCart, Trash2, RefreshCw, HeartOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useWishlist } from '@/lib/use-wishlist';
 import { useCart } from '@/lib/use-cart';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import ImgTag from '@/components/ImgTag';
+import CustomButton from '@/components/CustomButton';
 
 export default function WishlistPage() {
   const { isAuthenticated } = useAuth();
@@ -29,7 +31,7 @@ export default function WishlistPage() {
   // Safe accessor for item properties
   const imgSrc = (item: any) => item.image || '/placeholder-product.png';
   const itemTitle = (item: any) => item.title || 'محصول بدون نام';
-  const formatPrice = (price: number | undefined | null) => 
+  const formatPrice = (price: number | undefined | null) =>
     (price ?? 0).toLocaleString('fa-IR');
 
   return (
@@ -50,7 +52,7 @@ export default function WishlistPage() {
             )}
           </div>
         </div>
-        
+
         <p className="text-muted-foreground mb-8">{wishlistItems.length} محصول در لیست علاقه‌مندی‌ها</p>
 
         {wishlistItems.length > 0 ? (
@@ -59,11 +61,13 @@ export default function WishlistPage() {
               <motion.div key={item.id as string} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="bg-card border border-border rounded-2xl overflow-hidden group hover:shadow-lg transition-all">
                 <Link href={`/products/${item.id}`} className="block relative">
-                  <img src={imgSrc(item)} alt={itemTitle(item)} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500 bg-muted" />
-                  <button onClick={(e) => { e.preventDefault(); handleRemove(item.id as string); }}
-                    className="absolute top-3 left-3 p-2 rounded-xl bg-white/90 dark:bg-black/60 text-red-500 hover:bg-red-50 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <ImgTag src={imgSrc(item)} alt={itemTitle(item)} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500 bg-muted" />
+                  <CustomButton onClick={(e) => { e.preventDefault(); handleRemove(item.id as string); }}
+                    className="absolute top-3 left-3 p-2 rounded-xl bg-white/90 dark:bg-black/60 text-red-500 hover:bg-red-50 transition-colors"
+                    iconStart={<HeartOff className="w-4 h-4" />}
+                    color='icon'
+                    isPending={loading}
+                  />
                 </Link>
                 <div className="p-4">
                   <Link href={`/products/${item.id}`}>

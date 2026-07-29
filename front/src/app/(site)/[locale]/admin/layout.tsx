@@ -7,7 +7,9 @@ import {
   Bell, History, PackageCheck,
   Ribbon,
   ShoppingCart,
-  ImageUp
+  ImageUp,
+  Headset,
+  MessagesSquare
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -32,13 +34,14 @@ const FULL_MENU = [
   { href: '/admin/reports', label: 'گزارشات', icon: BarChart3, permission: 'reports' },
   { href: '/admin/net-profit', label: 'سود خالص', icon: DollarSign, permission: 'dashboard' },
   { href: '/admin/carts', label: 'سبد خرید', icon: ShoppingCart, permission: 'dashboard', superAdminOnly: true },
-  { href: '/admin/tickets', label: 'تیکت‌ها', icon: MessageSquare, permission: 'tickets' },
+  { href: '/admin/tickets', label: 'تیکت‌ها', icon: Headset, permission: 'tickets' },
   { href: '/admin/notifications', label: 'اعلان‌ها', icon: Bell, permission: 'notifications' },
   { href: '/admin/trust-metrics', label: 'معیارهای اعتماد', icon: TrendingUp, permission: 'sellers' },
   { href: '/admin/seller-reviews', label: 'نظرات فروشندگان', icon: Star, permission: 'reviews' },
   { href: '/admin/activity-log', label: 'گزارش فعالیت', icon: History, permission: 'activity' },
   { href: '/admin/colleagues', label: 'همکاران', icon: UserPlus, permission: null, superAdminOnly: true },
   { href: '/admin/brand', label: 'برند', icon: Ribbon, permission: null },
+  { href: '/admin/chats', label: 'چت ها', icon: MessagesSquare, permission: 'settings' },
   { href: '/admin/media', label: 'رسانه ها', icon: ImageUp, permission: 'settings' },
   { href: '/admin/settings', label: 'تنظیمات', icon: Settings, permission: 'settings' },
 ];

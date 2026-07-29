@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { motion } from 'framer-motion';
-import { User, ShoppingBag, Heart, Wallet, ClipboardList, Settings, LogOut, Store, TrendingUp, Package, ArrowRight, Edit, BellRing, MapPinHouse } from 'lucide-react';
+import { User, ShoppingBag, Heart, Wallet, ClipboardList, Settings, LogOut, Store, TrendingUp, Package, ArrowRight, Edit, BellRing, MapPinHouse, ShoppingCart, MessageSquare, Headset, MessagesSquare } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -30,10 +30,13 @@ export default function ProfilePage() {
     );
   }
   const menuItems = [
-    { href: '/orders', icon: ShoppingBag, label: 'سفارشات من', desc: 'مشاهده و پیگیری سفارشات' },
-    { href: '/wishlist', icon: Heart, label: 'علاقه‌مندی‌ها', desc: 'محصولات ذخیره شده' },
-    { href: '/addresses', icon: MapPinHouse, label: 'آدرس های من', desc: 'مشاهده تمام آدرس های ثبت شده' },
-    { href: '/profile/saved-searches', icon: BellRing, label: 'جستجوهای ذخیره شده', desc: 'هشدار کاهش قیمت' },
+    { href: '/profile/orders', icon: ShoppingBag, label: 'سفارشات من', desc: 'مشاهده و پیگیری سفارشات' },
+    { href: '/profile/wishlist', icon: Heart, label: 'علاقه‌مندی‌ها', desc: 'محصولات ذخیره شده' },
+    { href: '/profile/addresses', icon: MapPinHouse, label: 'آدرس های من', desc: 'مشاهده تمام آدرس های ثبت شده' },
+    { href: '/profile/tickets', icon: Headset, label: 'تیکت پشتیبانی', desc: 'برای ارتباط با پشتیبانی تیکت خود را ثبت کنید' },
+    { href: '/profile/cart', icon: ShoppingCart, label: 'سبد خرید', desc: 'مشاهده تمام محصولات در سبد خرید' },
+    { href: '/profile/chat', icon: MessagesSquare, label: 'پیام ها', desc: 'مشاهده تمام فروشندگانی که به آن ها پیام داده اید' },
+    { href: '/profile/saved-searches', icon: BellRing, label: 'محصولات ذخیره شده', desc: 'هشدار کاهش قیمت' },
     { href: '/profile/setting', icon: Settings, label: 'تنظیمات حساب', desc: 'ویرایش اطلاعات شخصی' },
   ];
 

@@ -8,16 +8,16 @@ import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { productsApi, reviewsApi, wishlistApi, type Product, type Review } from '@/lib/api';
+import { productsApi, ProductType, reviewsApi, wishlistApi, type Product, type Review } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/lib/chat-context';
 import { useAuth } from '@/lib/auth-context';
 import toast from 'react-hot-toast';
 
 import { useCart } from '@/lib/use-cart';
+import ImgTag from '@/components/ImgTag';
 
-const getImageUrl = (img: { url: string } | string): string =>
-  typeof img === 'string' ? img : img?.url || '';
+const getImageUrl = (img: { url: string } | string): string => typeof img === 'string' ? img : img?.url || '';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,9 +36,9 @@ export default function ProductDetailPage() {
   const { isAuthenticated } = useAuth();
   const { addToCart: addToCartHook } = useCart();
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductType | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [related, setRelated] = useState<Product[]>([]);
+  const [related, setRelated] = useState<ProductType[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -46,6 +46,8 @@ export default function ProductDetailPage() {
     const fetchProduct = async () => {
       try {
         const data = await productsApi.getById(id);
+        console.log(data);
+
         setProduct(data);
         setRelated((data as any).related || []);
         // Fetch reviews
@@ -74,18 +76,18 @@ export default function ProductDetailPage() {
 
   const addToCart = () => {
     if (!product) return;
-    const imageUrl = getImageUrl(product.images?.[0] as any) || product.image || '';
+    const imageUrl = getImageUrl(product.images?.[0] as any) || product.images[0].url || '';
     addToCartHook(product.id, qty, {
       id: product.id,
       title: product.title,
-      price: product.price,
-      discountPrice: product.discountPrice,
+      price: product.variants[0].price,
+      discountPrice: product.variants[0].discount?.value,
       image: imageUrl,
       images: product.images,
       rating: product.rating,
       reviewCount: product.reviewCount,
-      isNew: product.isNew,
-      tags: product.tags,
+      isNew: product.isFeatured,
+      tags: ['test', 'tag'],
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
@@ -94,7 +96,7 @@ export default function ProductDetailPage() {
   if (loading) return <div className="max-w-7xl mx-auto px-4 py-8"><Skeleton /></div>;
   if (!product) return <div className="text-center py-32"><h1 className="text-2xl font-bold">محصول یافت نشد</h1><Link href="/products" className="btn-primary mt-4 inline-flex">بازگشت به محصولات</Link></div>;
 
-  const price = product.discountPrice ?? product.price;
+  const price = product.variants[0].discount?.value ?? product.variants[0].price;
   const disc = 45
 
   return (
@@ -117,11 +119,11 @@ export default function ProductDetailPage() {
             onMouseLeave={() => setZoomed(false)}
             onMouseMove={handleMouseMove}
           >
-            <img
-              src={getImageUrl(product.images[activeImg] as any) || product.image}
+            <ImgTag
+              src={getImageUrl(product.images[activeImg] as any) || product.images[0]?.url}
               alt={product.title}
               className={cn('w-full h-full object-cover transition-transform duration-200', zoomed && 'scale-150')}
-              style={zoomed ? { transformOrigin: `${mousePos.x}% ${mousePos.y}%` } : undefined}
+            // style={zoomed ? { transformOrigin: `${mousePos.x}% ${mousePos.y}%` } : undefined}
             />
           </div>
           {product.images.length > 1 && (
@@ -141,11 +143,11 @@ export default function ProductDetailPage() {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="flex flex-col gap-5">
           {/* Tags */}
           <div className="flex gap-2 flex-wrap">
-            {product.isNew && <Badge variant="success">جدید</Badge>}
-            {(product.tags || []).map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
-            {(product.stock ?? 0) > 0 ? <Badge variant="outline" className="text-emerald-600 border-emerald-300">✓ موجود</Badge> : <Badge variant="destructive">ناموجود</Badge>}
+            {product.isFeatured && <Badge variant="default">جدید</Badge>}
+            {['test', 'tag'].map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
+            {(product.variants.length ?? 0) > 0 ? <Badge variant="outline" className="text-emerald-600 border-emerald-300">✓ موجود</Badge> : <Badge variant="destructive">ناموجود</Badge>}
           </div>
-
+          
           <h1 className="text-2xl lg:text-3xl font-black leading-tight">{product.title}</h1>
           <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
@@ -160,16 +162,16 @@ export default function ProductDetailPage() {
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-black text-primary">{price.toLocaleString()}</span>
             <span className="text-sm text-muted-foreground">تومان</span>
-            {product.discountPrice && (
+            {product.variants[0].discountId && (
               <>
-                <span className="text-lg text-muted-foreground line-through">{product.price.toLocaleString()}</span>
+                <span className="text-lg text-muted-foreground line-through">{product.variants[0].price.toLocaleString()}</span>
                 <Badge variant="destructive">{disc}٪ تخفیف</Badge>
               </>
             )}
           </div>
 
           {/* Colors */}
-          {product.colors && product.colors.length > 0 && (
+          {/* {product.colors && product.colors.length > 0 && (
             <div>
               <h3 className="font-bold text-sm mb-2">رنگ: <span className="text-primary">{selectedColor || 'انتخاب کنید'}</span></h3>
               <div className="flex gap-2">
@@ -181,17 +183,17 @@ export default function ProductDetailPage() {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Specs */}
-          <div className="bg-muted/50 rounded-2xl p-4 border border-border">
+          {/* <div className="bg-muted/50 rounded-2xl p-4 border border-border">
             <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Package className="w-4 h-4 text-primary" /> مشخصات فنی</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {Object.entries(product.specs || {}).slice(0, 4).map(([k, v]) => (
+              {Object.entries(product.productTable || {}).slice(0, 4).map(([k, v]) => (
                 <div key={k} className="flex gap-2"><span className="text-muted-foreground">{k}:</span> <span className="font-semibold">{v}</span></div>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Chat with Seller Button — always visible */}
           <button
@@ -204,7 +206,7 @@ export default function ProductDetailPage() {
               openChat({
                 id: product.id,
                 title: product.title,
-                image: getImageUrl(product.images?.[0] as any) || product.image || '',
+                image: getImageUrl(product.images?.[0] as any) || product.variants[0].image || '',
                 sellerId: (product as any).sellerId || '',
                 sellerName: ((product as any).seller?.storeName || (product as any).seller?.username || 'فروشنده'),
               });
@@ -232,7 +234,7 @@ export default function ProductDetailPage() {
               <span className="px-4 font-bold text-lg min-w-[3rem] text-center">{qty}</span>
               <button onClick={() => setQty(qty + 1)} className="p-3 hover:bg-muted transition-colors rounded-l-xl"><Plus className="w-4 h-4" /></button>
             </div>
-            <Button size="lg" onClick={addToCart} disabled={product.stock === 0} className={cn('flex-1', added && '!bg-emerald-500')}>
+            <Button size="lg" onClick={addToCart} disabled={product.variants[0].quantity === 0} className={cn('flex-1', added && '!bg-emerald-500')}>
               {added ? <><Check className="w-5 h-5" /> افزوده شد</> : 'افزودن به سبد خرید'}
             </Button>
             <Button
@@ -353,8 +355,8 @@ export default function ProductDetailPage() {
                 {activeConversation.messages.map(msg => (
                   <div key={msg.id} className={`flex ${msg.senderId === 'current_user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${msg.senderId === 'current_user'
-                        ? 'bg-primary text-primary-foreground rounded-br-md'
-                        : 'bg-muted rounded-bl-md'
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-muted rounded-bl-md'
                       }`}>
                       <p className="text-sm">{msg.text}</p>
                       <p className={`text-[10px] mt-1 ${msg.senderId === 'current_user' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>

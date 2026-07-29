@@ -758,8 +758,6 @@ export class AdminService {
         // variants: undefined, // اگر نمی‌خوای همه Variantها برگردن
       };
     });
-    console.log(data,
-      pagination(total, page, limit),);
 
     return {
       data,

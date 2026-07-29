@@ -39,6 +39,7 @@ const en = {
     total: 'Total',
     filter: 'Filter',
     sort: 'Sort',
+    lan: 'en-US'
   },
 
   nav: {
@@ -351,6 +352,7 @@ const en = {
   },
 
   chat: {
+    auth_warning: 'Please login to view messages',
     title: 'Messages',
     empty: 'No messages',
     start_chat: 'Start Chat',
@@ -363,6 +365,9 @@ const en = {
     products: 'Products',
     no_conversations: 'No conversations yet',
     click_product: 'Click on any product and tap the chat button',
+    help_text_title: 'Chat with sellers about products',
+    help_have_chat: 'Select a conversation from the list',
+    help_havent_chat: 'Go to products and click the chat button',
   },
 
   profile: {

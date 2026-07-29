@@ -156,18 +156,18 @@ export default function Navbar() {
           <div className="flex items-center gap-0.5 sm:gap-1 ms-auto">
             <LanguageSwitcher />
             <ThemeToggle />
-
-            <Link href="/wishlist" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 hidden sm:block relative" aria-label={tCommon('wishlist')}>
-              <Heart className="w-5 h-5 text-muted-foreground hover:text-red-500 transition-colors" />
-              {wishlistCount > 0 && (
+            {isAuthenticated && (
+              <Link href="/profile/wishlist" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 hidden sm:block relative" aria-label={tCommon('wishlist')}>
+                <Heart className={cn("w-5 h-5 text-muted-foreground hover:text-red-500 transition-colors", wishlistCount > 0 && "text-red-500")} />
+                {/* {wishlistCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
                   {wishlistCount > 99 ? '99+' : wishlistCount}
                 </span>
-              )}
-            </Link>
-
+              )} */}
+              </Link>
+            )}
             {isAuthenticated && (
-              <Link href="/chat" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 relative" aria-label={tChat('title')}>
+              <Link href="/profile/chat" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 relative" aria-label={tChat('title')}>
                 <MessageSquare className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-scale-in shadow-sm">
@@ -176,7 +176,7 @@ export default function Navbar() {
                 )}
               </Link>
             )}
-            {user && <Link href="/cart" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 relative" aria-label={tCommon('cart')}>
+            {user && <Link href="/profile/cart" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 relative" aria-label={tCommon('cart')}>
               <ShoppingCart className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
               {Number(cartData?.totalItems) > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center animate-scale-in shadow-sm">
@@ -213,8 +213,8 @@ export default function Navbar() {
                         { href: '/profile', icon: User, label: tCommon('profile') },
                         { href: '/profile/orders', icon: Package, label: tCommon('orders') },
                         { href: '/profile/saved-searches', icon: BellRing, label: 'جستجوهای من' },
-                        { href: '/chat', icon: MessageSquare, label: tChat('title') },
-                        { href: '/wishlist', icon: Heart, label: tCommon('wishlist'), mobile: true },
+                        { href: '/profile/chat', icon: MessageSquare, label: tChat('title') },
+                        { href: '/profile/wishlist', icon: Heart, label: tCommon('wishlist'), mobile: true },
                       ].map(item => (
                         <Link key={item.href} href={item.href} onClick={() => setUserMenuOpen(false)}
                           className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted text-sm transition-colors', item.mobile && 'sm:hidden')}>

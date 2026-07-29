@@ -53,7 +53,7 @@ export class ProductsService {
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
-      select: {
+        select: {
           title: true,
           titleEn: true,
           slug: true,
@@ -96,8 +96,12 @@ export class ProductsService {
       include: {
         images: { orderBy: { sortOrder: 'asc' } },
         category: true,
+        variants: true,
         seller: { select: { id: true, username: true, storeName: true, storeLogo: true, storeDescription: true } },
-        reviews: { include: { user: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } } }, orderBy: { createdAt: 'desc' }, take: 10 },
+        reviews: {
+          include: { user: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } } },
+          orderBy: { createdAt: 'desc' }, take: 10
+        },
       },
     });
     if (!product) throw new NotFoundException('محصول یافت نشد');
@@ -110,7 +114,12 @@ export class ProductsService {
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { images: { orderBy: { sortOrder: 'asc' } }, category: true, seller: { select: { id: true, storeName: true } } },
+      include: {
+        variants: true,
+        images: { orderBy: { sortOrder: 'asc' } },
+        category: true,
+        seller: { select: { id: true, storeName: true } }
+      },
     });
     if (!product) throw new NotFoundException('محصول یافت نشد');
     return product;
