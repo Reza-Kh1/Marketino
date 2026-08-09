@@ -26,8 +26,12 @@ export class CreateProductDto {
     example: { headers: ['ویژگی', 'مقدار'], rows: [['رنگ', 'مشکی']] },
   })
   @IsOptional()
-  @IsObject() // چک می‌کند که ورودی یک Object معتبر باشد
+  @IsObject()
   productTable?: Prisma.InputJsonValue;
+
+  @IsOptional()
+  @IsObject()
+  productTableEn?: Prisma.InputJsonValue;
 
   @ApiProperty({ description: 'وضعیت محصول' })
   @IsOptional()
@@ -48,9 +52,6 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   descriptionEn?: string;
-
-  // Note: price, discountPrice, discountStart, discountEnd, quantity, sku
-  // have been moved to ProductVariant model. Use CreateVariantDto for variant-level pricing.
 
   @ApiPropertyOptional({ description: 'برند' })
   @IsOptional()

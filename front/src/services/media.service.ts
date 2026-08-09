@@ -1,3 +1,4 @@
+import { PaginationType, ProductImage } from "@/lib/api";
 import { apiClient, api } from "@/lib/api-client";
 
 const BASE_URL = "/media";
@@ -7,23 +8,22 @@ export interface MediaTypeDto {
     sortOrder: number
     isMain: boolean
     productId?: number
+    useCase?: MediaUseCase
 }
 
-export interface MediaEntity {
-    id: string;
-    url: string;
-    alt: string | null;
-    sortOrder: number;
-    isMain: boolean;
-    createdAt: Date;
-    productId: string | null;
+export enum MediaUseCase {
+    AVATAR = 'AVATAR',
+    PRODUCT = 'PRODUCT',
+    POST = 'POST',
+    ATTACHMENT = 'ATTACHMENT',
+    THUMBNAIL = 'THUMBNAIL',
+    WATERMARK = 'WATERMARK',
+    REPORTS = 'REPORTS',
+    MAINS = 'MAINS'
 }
-
 export interface MediaAllEntity {
-    data: MediaEntity[]
-    total: number,
-    nextPage: number,
-    prevPage: number
+    data: ProductImage[]
+    pagination: PaginationType
 }
 
 export interface SearchMediaEntity {
@@ -37,7 +37,13 @@ export interface SearchMediaEntity {
 
 export const mediaService = {
     list: (filetr: SearchMediaEntity) => {
-        return apiClient.get<MediaAllEntity[]>(BASE_URL);
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filetr || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();        
+        return apiClient.get<MediaAllEntity>(`${BASE_URL}?${queryString}`);
     },
     create: (data: MediaTypeDto) => {
         return apiClient.post<MediaTypeDto>(BASE_URL, data);

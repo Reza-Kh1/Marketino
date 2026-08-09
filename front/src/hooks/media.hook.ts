@@ -1,4 +1,4 @@
-import { mediaService, MediaAllEntity, MediaEntity, MediaTypeDto, SearchMediaEntity } from "@/services/media.service";
+import { mediaService, MediaAllEntity, MediaTypeDto, SearchMediaEntity } from "@/services/media.service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -11,7 +11,7 @@ const MEDIA_KEYS = {
 } as const;
 
 export function useMedias(filter: SearchMediaEntity) {
-    return useQuery<MediaAllEntity[] | []>({
+    return useQuery<MediaAllEntity>({
         queryKey: MEDIA_KEYS.listWithFilters(filter),
         queryFn: () => mediaService.list(filter),
         staleTime: 10 * 60 * 1000,

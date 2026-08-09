@@ -43,7 +43,7 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.register(dto);
-    res.cookie('token', result.token, {
+    res.cookie('token-marketino', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -62,7 +62,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    res.cookie('token', result.token, {
+    res.cookie('token-marketino', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -78,7 +78,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'خروج کاربر' })
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('token', {
+    res.clearCookie('token-marketino', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -166,7 +166,7 @@ export class AuthController {
   @ApiBody({ type: VerifyEmailOtpDto })
   async verifyEmailOTP(@Body() dto: VerifyEmailOtpDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.verifyEmailOTP(dto);
-    res.cookie('token', result.token, {
+    res.cookie('token-marketino', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -185,7 +185,7 @@ export class AuthController {
   @ApiBody({ type: VerifyPhoneOtpDto })
   async verifyPhoneOTP(@Body() dto: VerifyPhoneOtpDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.verifyPhoneOTP(dto);
-    res.cookie('token', result.token, {
+    res.cookie('token-marketino', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -204,7 +204,7 @@ export class AuthController {
   @ApiBody({ type: RegisterSellerOtpDto })
   async registerSellerOTP(@Body() dto: RegisterSellerOtpDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.registerSellerOTP(dto);
-    res.cookie('token', result.token, {
+    res.cookie('token-marketino', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -237,7 +237,7 @@ export class AuthController {
     const user = req.user as any;
     const token = this.authService['generateToken'](user);
 
-    res.cookie('token', token, {
+    res.cookie('token-marketino', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

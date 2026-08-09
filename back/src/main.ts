@@ -13,7 +13,6 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-
   // ============================================
   // تنظیمات CORS - اجازه دسترسی از فرانت Next.js
   // ============================================

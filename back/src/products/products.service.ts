@@ -75,7 +75,7 @@ export class ProductsService {
           brandId: true,
           brand: true,
           images: { take: 1, orderBy: { sortOrder: 'asc' } },
-          category: true,
+          category: { select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true, } },
           seller: { select: { id: true, storeName: true, storeLogo: true } },
           variants: { select: { id: true, name: true, sku: true, price: true, quantity: true } },
         },
@@ -95,8 +95,14 @@ export class ProductsService {
       where: { OR: [{ slug }, { slugEn: slug }] },
       include: {
         images: { orderBy: { sortOrder: 'asc' } },
-        category: true,
-        variants: true,
+        category: {
+          select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true, }
+        },
+        variants: {
+          include: {
+            discount: true
+          }
+        },
         seller: { select: { id: true, username: true, storeName: true, storeLogo: true, storeDescription: true } },
         reviews: {
           include: { user: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } } },
@@ -112,13 +118,23 @@ export class ProductsService {
    * دریافت یک محصول با id
    */
   async findOne(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
+    const product = await this.prisma.product.findFirst({
+      where: { OR: [{ id }] },
       include: {
-        variants: true,
         images: { orderBy: { sortOrder: 'asc' } },
-        category: true,
-        seller: { select: { id: true, storeName: true } }
+        category: {
+          select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true, }
+        },
+        variants: {
+          include: {
+            discount: true
+          }
+        },
+        seller: { select: { id: true, username: true, storeName: true, storeLogo: true, storeDescription: true } },
+        reviews: {
+          include: { user: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } } },
+          orderBy: { createdAt: 'desc' }, take: 10
+        },
       },
     });
     if (!product) throw new NotFoundException('محصول یافت نشد');
@@ -160,7 +176,6 @@ export class ProductsService {
     const product = await this.findOne(id);
     const { images, ...rest } = dto;
     const data: any = { ...rest };
-
     if (dto.title && dto.title !== product.title) {
       data.slug = this.generateSlug(dto.title);
     }
@@ -265,8 +280,6 @@ export class ProductsService {
    * به‌روزرسانی Variant
    */
   async updateVariant(variantId: string, dto: CreateVariantDto) {
-    const updateData: any = { ...dto };
-
     const updated = await this.prisma.productVariant.update({
       where: { id: variantId },
       data: {

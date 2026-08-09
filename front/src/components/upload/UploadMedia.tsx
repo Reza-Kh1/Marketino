@@ -18,7 +18,6 @@ import ImgTag from "../ImgTag";
 import DialogDelete from "../DialogDelete";
 import { useDeleteMedia } from "@/hooks/media.hook";
 import { file } from "zod";
-import { MediaEntity } from "@/services/media.service";
 // import ImgTag from "../ImgTag/ImgTag";
 
 export interface FileProgress {
@@ -46,20 +45,17 @@ type UploadMediaType = {
     helperText?: string
     limit?: number
     boxUploader?: boolean
+    isEdit?: boolean
     valueEdit?: string[] | [] | undefined
 }
 
-export default function UploadMedia({ type, limit = 1, setUrlMedias, title, helperText, boxUploader = false, valueEdit }: UploadMediaType) {
+export default function UploadMedia({ type, limit = 1, setUrlMedias, title, helperText, boxUploader = false, valueEdit, isEdit = true }: UploadMediaType) {
     const [files, setFiles] = useState<FileProgress[]>([]);
     const [isDragActive, setIsDragActive] = useState(false);
     const [editingFile, setEditingFile] = useState<FileProgress | null>(null);
     const [typeFile, setTypeFile] = useState<'image' | 'files' | null>(null);
     const [checkLimit, setCheckLimit] = useState(false)
-    const [deleteModal, setDeleteModal] = useState({
-        open: false,
-        key: '',
-        fileId: ''
-    })
+    const [deleteModal, setDeleteModal] = useState({ open: false, key: '', fileId: '' })
     const { mutate: useMutetDeleteMedia, isPending: isPendingDelete } = useDeleteMedia({ onSuccess: () => removeFile(deleteModal.fileId) });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
@@ -82,7 +78,6 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
             typeInput = "image/*,video/*,audio/*,application/pdf,application/zip";
             break;
     }
-
     const removeFile = (id: string) => {
         setFiles(prev => {
             const updated = prev.filter(f => f.id !== id);
@@ -91,7 +86,7 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
             );
             setCheckLimit(
                 updated.filter(f => f.status === "completed").length >= limit
-            );            
+            );
             return updated;
         });
         setDeleteModal({
@@ -492,27 +487,30 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                                             </TooltipCustom>
                                         </>
                                         : <>
-                                            <SelectCustom
-                                                children={[
-                                                    { name: 'آواتار', id: 'AVATAR' },
-                                                    { name: 'پروژه', id: 'PROJECT' },
-                                                    { name: 'پست', id: 'POST' },
-                                                    { name: 'اسناد', id: 'ATTACHMENT' },
-                                                    { name: 'پیش نمایش ویدئو', id: 'THUMBNAIL' },
-                                                    { name: 'لوگو', id: 'WATERMARK' },
-                                                ]}
-                                                setValue={(selectedId: string) => {
-                                                    setFiles((prev) =>
-                                                        prev.map((f) => (f.id === item.id ? { ...f, useCase: selectedId } : f))
-                                                    );
-                                                }}
-                                                placeHolder="انتخاب نوع"
-                                                value={item.useCase || "ATTACHMENT"}
-                                            />
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 cursor-pointer text-zinc-400 hover:text-orange-300" onClick={() => { setEditingFile(item), setTypeFile(item.type === 'image' ? 'image' : 'files') }}>
-                                                <Pencil className="w-3.5 h-3.5" />
-                                            </Button>
+                                            {isEdit && <>
+                                                <SelectCustom
+                                                    children={[
+                                                        { name: 'آواتار', id: 'AVATAR' },
+                                                        { name: 'پروژه', id: 'PROJECT' },
+                                                        { name: 'پست', id: 'POST' },
+                                                        { name: 'اسناد', id: 'ATTACHMENT' },
+                                                        { name: 'پیش نمایش ویدئو', id: 'THUMBNAIL' },
+                                                        { name: 'لوگو', id: 'WATERMARK' },
+                                                    ]}
+                                                    setValue={(selectedId: string) => {
+                                                        setFiles((prev) =>
+                                                            prev.map((f) => (f.id === item.id ? { ...f, useCase: selectedId } : f))
+                                                        );
+                                                    }}
+                                                    placeHolder="انتخاب نوع"
+                                                    value={item.useCase || "ATTACHMENT"}
+                                                />
+                                                <Button type="button" size="icon" variant="ghost" className="h-7 w-7 cursor-pointer text-zinc-400 hover:text-orange-300" onClick={() => { setEditingFile(item), setTypeFile(item.type === 'image' ? 'image' : 'files') }}>
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </>}
                                             <Button
+                                                type="button"
                                                 size="icon"
                                                 variant="ghost"
                                                 className="h-7 w-7 text-zinc-500 hover:text-red-400 cursor-pointer"
@@ -522,6 +520,7 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                                             </Button>
                                             {!checkLimit &&
                                                 <Button
+                                                    type="button"
                                                     size="icon"
                                                     variant="ghost"
                                                     className="h-7 w-7 text-zinc-500 hover:text-blue-500 cursor-pointer"

@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/lib/utils";
 import Image, { StaticImageData } from "next/image";
 import React, { useState } from "react";
 const ImageError = "/error-image.webp";
@@ -26,7 +27,7 @@ export default function ImgTag({
 }: ImageType) {
   const [load, setLoad] = useState<boolean>(true);
   const [error, setError] = useState<string | StaticImageData | null>(null)
-  const classImage = className ? className : classPlus ? `${classPlus} rounded-md shadow-md  table mx-auto` : "rounded-md shadow-md w-full h-auto table mx-auto object-fill"
+  const classImage = cn(className || "rounded-md shadow-md w-full h-auto table mx-auto object-fill", classPlus)
   const url = customSrc || process.env.NEXT_PUBLIC_MEDIA_DOMAIN + src
   return (
     <figure className={figureClass || "w-full relative"}>

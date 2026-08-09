@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ImageUseCase } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SearchMediaDto {
@@ -17,6 +18,10 @@ export class SearchMediaDto {
         description: 'تعداد نمایش عکس در صفحات',
     })
     limit?: string
+
+    @ApiProperty({ description: 'فیلتر بر اساس وضعیت', enum: ['ALL', ...Object.values(ImageUseCase)] })
+    @IsOptional()
+    useCase?: ImageUseCase | "ALL";
 
     @IsOptional()
     @IsString()

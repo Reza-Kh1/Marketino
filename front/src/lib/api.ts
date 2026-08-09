@@ -8,6 +8,7 @@
  */
 
 import { BrandType } from "@/services/brand.service";
+import { MediaUseCase } from "@/services/media.service";
 
 const MOCK_MODE = false;
 
@@ -193,10 +194,14 @@ export interface AllCartsType {
 export interface ProductImage {
   id: string;
   url: string;
-  alt?: string;
-  isMain: boolean;
+  alt: string;
+  useCase: MediaUseCase
   sortOrder: number;
-  createdAt: Date
+  isMain: boolean;
+  createdAt: string; // یا Date
+  productId: string | null;
+  reportsId: string | null;
+  ticketMessageId: string | null;
 }
 
 export interface Category {
@@ -1406,15 +1411,6 @@ export const bannersApi = {
   create: (data: any) => api.post<Banner>('/admin/banners', data),
   update: (id: string, data: any) => api.put<Banner>(`/admin/banners/${id}`, data),
   delete: (id: string) => api.delete<{ message: string }>(`/admin/banners/${id}`),
-};
-
-/* ============================================================
- * 🎫 TICKETS API
- * ============================================================ */
-export const ticketsApi = {
-  list: () => api.get<{ tickets: SupportTicket[]; total: number }>('/admin/tickets'),
-  reply: (id: string, message: string) => api.post<TicketReply>(`/admin/tickets/${id}/reply`, { message }),
-  updateStatus: (id: string, status: string) => api.patch<SupportTicket>(`/admin/tickets/${id}/status`, { status }),
 };
 
 /* ============================================================

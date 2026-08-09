@@ -240,7 +240,72 @@ const en = {
     cancel_order: 'Cancel Order',
     detail_order: 'Show Order',
   },
+  Countdown: {
+    remainingTime: "Time Remaining:",
+    days: "Days",
+    hours: "Hours",
+    minutes: "Mins",
+    seconds: "Secs",
+    expired: "Offer Has Expired!"
+  },
+  report: {
+    title: 'Report Violation',
+    description: 'If you observe any violation, issue, or inappropriate behavior, please report it through this form. Your identity will remain confidential.',
+    toast: {
+      createSuccess: "Report submitted successfully",
+      createError: "An error occurred while submitting the report",
+      updateSuccess: "Report status updated successfully",
+      updateError: "An error occurred while updating the report status"
+    },
+    reportType: {
+      fake: { name: 'fake', label: 'Counterfeit Product' },
+      price: { name: 'price', label: 'Price Gouging' },
+      notdelivered: { name: 'notdelivered', label: 'Non-Delivery of Goods' },
+      defective: { name: 'defective', label: 'Defective Product' },
+      wronginfo: { name: 'wronginfo', label: 'Incorrect Information' },
+      misconduct: { name: 'misconduct', label: 'Inappropriate Seller Conduct' },
+      spam: { name: 'spam', label: 'Spam or Advertising' },
+      other: { name: 'other', label: 'Other' },
+    },
 
+    reportTypeName: 'Violation Type *',
+
+    alertDiv: {
+      title: 'Note',
+      text: 'False reporting or misuse of this form may have legal consequences. If you wish, you can provide your phone number in the description section for us to contact you. Your contact information will remain confidential for follow-up purposes.'
+    },
+
+    button: {
+      name: 'Submit Report',
+      loading: 'Submitting...'
+    },
+
+    inputs: {
+      orderCode: {
+        label: 'Order Number',
+        placeHolder: 'Optional'
+      },
+      nameSeller: {
+        label: 'Seller Name',
+        placeHolder: 'Optional'
+      },
+      content: {
+        label: 'Violation Description',
+        placeHolder: 'Please explain what happened...',
+        helpText: 'Detailed explanations help us address the issue more quickly'
+      },
+      image: {
+        label: 'Upload Image or Screenshot (Optional)',
+        placeHolder: 'Formats: jpg, png - Maximum 5 MB'
+      }
+    },
+
+    errors: {
+      title_required: 'Please select a violation type',
+      content_min: 'Violation description must be at least 10 characters',
+      content_required: 'Violation description is required'
+    }
+  },
   seller: {
     dashboard_title: 'Seller Panel',
     dashboard_desc: 'Manage your store, products, and orders',

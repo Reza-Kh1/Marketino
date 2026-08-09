@@ -9,12 +9,15 @@ import { buildKey } from './storage/media.helper';
 import { UploadImageDto } from './dto/upload-image.dto';
 import { SearchMediaDto } from './dto/search.media.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import pagination from '@/common/utils/pagination';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MediaService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
+    private configService: ConfigService,
   ) { }
 
   private async safeDelete(key: string) {
@@ -69,15 +72,16 @@ export class MediaService {
   }
 
   async getAllMedia(query: SearchMediaDto) {
-    const { page = 1, order = 'desc', limit = 10, isMain, productId, url } = query;
+    const { page = 1, order = 'desc', limit, isMain, productId, url, useCase } = query;
     const where: any = {
-      ...(isMain && { isMain: Number(isMain) }),
-      ...(productId && { productId: Number(productId) }),
+      ...((isMain && isMain !== 'All') && { isMain: isMain === "true" ? true : false }),
+      ...(productId && { productId: productId }),
       ...(url && { url: url }),
+      ...((useCase !== "ALL" && useCase) && { useCase: useCase })
     }
-
-    const skip = (Number(page) - 1) * Number(limit);
-    const take = Number(limit);
+    const limitPage = Number(limit) || this.configService.get('limit.medias')
+    const skip = (Number(page) - 1) * Number(limitPage);
+    const take = Number(limitPage);
 
     const [data, count] = await this.prisma.$transaction([
       this.prisma.productImage.findMany({
@@ -88,12 +92,9 @@ export class MediaService {
       }),
       this.prisma.productImage.count({ where }),
     ]);
-    const np = Math.ceil(count / Number(limit)) > Number(page) ? Number(page) + 1 : 0
     return {
       data,
-      total: count,
-      nextPage: np,
-      prevPage: Number(page) - 1
+      pagination: pagination(count, Number(page), Number(limitPage)),
     };
   }
 }

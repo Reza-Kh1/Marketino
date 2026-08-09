@@ -39,7 +39,8 @@ interface MotionWrapperProps {
     once?: boolean;                   // فقط یک بار اجرا بشه
     triggerOnScroll?: boolean;       // با اسکرول اجرا بشه
     threshold?: number;              // چقدر از المان شما باید دیده بشه تا انیمیشن اجرا بشه از 0 تا 1
-    staggerChildren?: number;        // تاخیر بین بچه‌ها
+    staggerChildren?: number;
+    classNameDiv?: string   // تاخیر بین بچه‌ها
 }
 
 // 📚 دیکشنری انیمیشن‌های آماده
@@ -212,6 +213,7 @@ export default function MotionWrapper({
     triggerOnScroll = false,
     threshold = 0.2,
     staggerChildren = 0,
+    classNameDiv
 }: MotionWrapperProps) {
     const ref = useRef(null);
     const shouldReduceMotion = useReducedMotion();
@@ -244,7 +246,7 @@ export default function MotionWrapper({
             variants={motionVariants}
         >
             {React.Children.map(children, (child) => (
-                <motion.div variants={{
+                <motion.div className={classNameDiv} variants={{
                     hidden: animation.initial || {},
                     visible: animation.animate || {}
                 }}>

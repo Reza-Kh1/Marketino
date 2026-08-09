@@ -1,6 +1,7 @@
 import { apiClient, api } from "@/lib/api-client";
 import { CategorysTypes } from "./category.service";
 import { TableData } from "@/components/inputs/ProductTable";
+import { ProductImage } from "@/lib/api";
 
 const BASE_URL = "/products";
 const VARIANT_URL = "variants";
@@ -30,16 +31,6 @@ export interface FormVariantDTO {
     attributesEn: Record<string, any> | null;
     image: string | null;
     discountId: string | null;
-    productId: string;
-}
-
-export interface ProductImage {
-    id: string;
-    url: string;
-    alt: string | null;
-    sortOrder: number;
-    isMain: boolean;
-    createdAt: string;
     productId: string;
 }
 
@@ -129,7 +120,6 @@ export const ProductService = {
     list: () => {
         return apiClient.get<ProductEntity[]>(BASE_URL);
     },
-
     getBySlug: (slug: string) => {
         return apiClient.get<ProductEntity>(`${BASE_URL}/${slug}`);
     },

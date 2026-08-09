@@ -23,7 +23,6 @@ import { WalletModule } from './wallet/wallet.module';
 import { DiscountsModule } from './discounts/discounts.module';
 import { SellerModule } from './seller/seller.module';
 import { AdminModule } from './admin/admin.module';
-// import { UploadModule } from './upload/upload.module'; // کامنت: از ماژول media استفاده می‌شود
 import { MediaModule } from './media/media.module';
 import { AiModule } from './ai/ai.module';
 import { ShopsModule } from './shops/shops.module';
@@ -31,6 +30,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BrandsModule } from './brand/brand.module';
 import { ConfigModules } from './common/config/config.module';
+import { ReportModule } from './report/report.module';
+import { TicketModule } from './tickets/ticket.module';
+import { QnaModule } from './qna/qna.module';
 
 @Module({
   imports: [
@@ -55,12 +57,14 @@ import { ConfigModules } from './common/config/config.module';
     SellerModule,
     AdminModule,
     ConfigModules,
-    // UploadModule, // کامنت: از MediaModule استفاده می‌شود
     MediaModule,
     AiModule,
     ShopsModule,
     AddressesModule,
-    BrandsModule
+    BrandsModule,
+    ReportModule,
+    TicketModule,
+    QnaModule
   ],
   controllers: [AppController],
   providers: [AppService],

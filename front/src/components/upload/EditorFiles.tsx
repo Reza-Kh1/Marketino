@@ -4,11 +4,9 @@ import { FileProgress } from './UploadMedia'
 
 import MotionWrapper from '../motion/MotionWrapper'
 import { CheckCircle2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import ImgTag from '../ImgTag'
 import InputForm from '../inputs/InputForm'
 import CustomButton from '../CustomButton'
-import PendingApi from '../PendingApi'
 import { Minus, Plus } from "lucide-react";
 
 interface EditorFilesType {

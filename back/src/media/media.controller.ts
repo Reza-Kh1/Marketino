@@ -17,7 +17,6 @@ import { Roles } from '@/common/decorators/roles.decorator';
 @ApiTags('Media')
 @Controller('media')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) { }
 

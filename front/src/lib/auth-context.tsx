@@ -11,7 +11,7 @@ import type { User } from '@/lib/api';
 import { authApi, setAuthToken } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useRouter } from '@/i18n/navigation';
-
+import Cookies from 'js-cookie';
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -52,14 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 🔄 Try to restore session from token on mount
   useEffect(() => {
     const restoreSession = async () => {
+      const nameCookie = process.env.NEXT_PUBLIC_TOKEN_COOKIE || 'token-marketino'
       try {
         // Only try if we have a stored token
         const storedToken = typeof window !== 'undefined' ? localStorage.getItem('bazarche_auth_token') : null;
-        if (!storedToken) {
+        const token = Cookies.get(nameCookie)
+        if (!token && !storedToken) {
           setState(s => ({ ...s, isLoading: false }));
           return;
         }
-        const res = await authApi.me();
+        const res = await authApi.me();        
         if (res && res.user) {
           setState({
             user: res.user,
@@ -71,9 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
           return;
         }
-      } catch {
-        // Token expired or invalid — clear it
-        setAuthToken(null);
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const isUnauthorized = status === 401 || err?.message?.includes('Unauthorized');
+        if (isUnauthorized) {
+          await authApi.logout()
+          setAuthToken(null);
+        }
       }
       setState(s => ({ ...s, isLoading: false }));
     };

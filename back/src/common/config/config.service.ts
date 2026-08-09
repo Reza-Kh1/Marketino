@@ -16,6 +16,10 @@ const configServices = () => ({
     reviews: process.env.ALL_REVIEWS || 10,
     medias: process.env.ALL_MEDIAS || 10,
     carts: process.env.ALL_CARTS || 10,
+    chatsTicket: process.env.ALL_CHATS_TICKET || 10,
+    ticket: process.env.ALL_TICKET || 10,
+    report: process.env.ALL_REPORT || 10,
+    qna: process.env.ALL_QNA || 10,
   }
 });
 

@@ -1,7 +1,3 @@
-// Prisma Schema - Marketplace Backend
-// Database: PostgreSQL
-// تمام مدل‌های دیتابیس بازارچه آنلاین
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,9 +7,729 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// Enums
-// ============================================
+model User {
+  id                   String              @id @default(uuid())
+  username             String              @unique
+  email                String              @unique
+  password             String?
+  firstName            String?             @map("first_name")
+  lastName             String?             @map("last_name")
+  phone                String?
+  avatar               String?
+  role                 UserRole            @default(buyer)
+  isSuperAdmin         Boolean             @default(false) @map("is_super_admin")
+  permissions          String?
+  createdBy            String?             @map("created_by")
+  sellerStatus         SellerStatus?       @map("seller_status")
+  sellerReason         String?             @map("seller_reason")
+  businessType         String?             @map("business_type")
+  commissionRate       Float               @default(0) @map("commission_rate")
+  storeName            String?             @map("store_name")
+  storeLogo            String?             @map("store_logo")
+  storeDescription     String?             @map("store_description")
+  storeDescriptionEn   String?             @map("store_description_en")
+  isActive             Boolean             @default(true) @map("is_active")
+  isVerified           Boolean             @default(false) @map("is_verified")
+  emailVerified        Boolean             @default(false) @map("email_verified")
+  hasSetPassword       Boolean             @default(true) @map("has_set_password")
+  googleId             String?             @unique @map("google_id")
+  language             String              @default("fa")
+  lastLogin            DateTime?           @map("last_login")
+  resetToken           String?             @map("reset_token")
+  resetExpires         DateTime?           @map("reset_expires")
+  verifyToken          String?             @map("verify_token")
+  verifyExpires        DateTime?           @map("verify_expires")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  addresses            Address[]
+  blogPosts            BlogPost[]
+  cartItems            CartItem[]
+  compareItems         CompareItem[]
+  buyerConversations   Conversation[]      @relation("ConversationBuyer")
+  sellerConversations  Conversation[]      @relation("ConversationSeller")
+  discountCodes        DiscountCode[]      @relation("DiscountCodeCreator")
+  sellerDiscounts      DiscountCode[]
+  receivedMessages     Message[]           @relation("ReceivedMessages")
+  sentMessages         Message[]           @relation("SentMessages")
+  notifications        Notification[]
+  sellerOrderItems     OrderItem[]
+  orders               Order[]
+  products             Product[]
+  reviews              Review[]
+  sellerRating         SellerRating?
+  sellerReviews        SellerReview[]      @relation("SellerReviews")
+  sellerReviewReceived SellerReview[]      @relation("SellerReviewed")
+  ticketMessages       TicketMessage[]
+  ticket               Ticket[]
+  creator              User?               @relation("AdminCreatedBy", fields: [createdBy], references: [id])
+  createdAdmins        User[]              @relation("AdminCreatedBy")
+  walletTransactions   WalletTransaction[]
+  wishlistItems        WishlistItem[]
+  qnas                 Qna[]
+
+  @@map("users")
+}
+
+model Category {
+  id                String     @id @default(uuid())
+  name              String
+  nameEn            String?    @map("name_en")
+  slug              String     @unique
+  slugEn            String?    @unique @map("slug_en")
+  description       String?
+  descriptionEn     String?    @map("description_en")
+  parentId          String?    @map("parent_id")
+  icon              String?
+  image             String?
+  sortOrder         Int        @default(0) @map("sort_order")
+  isActive          Boolean    @default(true) @map("is_active")
+  metaTitle         String?    @map("meta_title")
+  metaTitleEn       String?    @map("meta_title_en")
+  metaDescription   String?    @map("meta_description")
+  metaDescriptionEn String?    @map("meta_description_en")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  parent            Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children          Category[] @relation("CategoryTree")
+  products          Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id          String    @id @default(uuid())
+  name        String
+  nameEn      String?
+  slug        String    @unique
+  logo        String?
+  description String?
+  products    Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id                String           @id @default(uuid())
+  title             String
+  titleEn           String?          @map("title_en")
+  slug              String           @unique
+  slugEn            String?          @unique @map("slug_en")
+  description       String
+  descriptionEn     String?          @map("description_en")
+  weight            Float?
+  dimensions        String?
+  condition         ProductCondition @default(new)
+  status            ProductStatus    @default(pending)
+  isFeatured        Boolean          @default(false) @map("is_featured")
+  isDigital         Boolean          @default(false) @map("is_digital")
+  digitalFile       String?          @map("digital_file")
+  viewCount         Int              @default(0) @map("view_count")
+  saleCount         Int              @default(0) @map("sale_count")
+  rating            Float            @default(0)
+  reviewCount       Int              @default(0) @map("review_count")
+  metaTitle         String?          @map("meta_title")
+  metaTitleEn       String?          @map("meta_title_en")
+  metaDescription   String?          @map("meta_description")
+  metaDescriptionEn String?          @map("meta_description_en")
+  productTable      Json?            @map("product_table")
+  productTableEn    Json?            @map("product_table_en")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  sellerId          String           @map("seller_id")
+  categoryId        String           @map("category_id")
+  brandId           String?          @map("brand_id")
+  cartItems         CartItem[]
+  compareItems      CompareItem[]
+  conversations     Conversation[]
+  orderItems        OrderItem[]
+  images            ProductImage[]
+  variants          ProductVariant[]
+  brand             Brand?           @relation(fields: [brandId], references: [id])
+  category          Category         @relation(fields: [categoryId], references: [id])
+  seller            User             @relation(fields: [sellerId], references: [id])
+  reviews           Review[]
+  wishlistItems     WishlistItem[]
+  qnas              Qna[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+model ProductVariant {
+  id           String        @id @default(uuid())
+  name         String
+  nameEn       String?
+  sku          String?       @unique
+  price        Float?
+  quantity     Int           @default(0)
+  colorId      String?
+  image        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  discountId   String?       @map("discount_id")
+  productId    String        @map("product_id")
+  attributes   Json?
+  attributesEn Json?
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  discount     DiscountCode? @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  color        Color?        @relation(fields: [colorId], references: [id], onDelete: Cascade)
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model Color {
+  id              String           @id @default(uuid())
+  name            String           @map("name")
+  nameEn          String           @map("name_en")
+  hexCode         String           @map("hex_code")
+  slug            String           @map("slug")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  productVariants ProductVariant[]
+}
+
+model ProductImage {
+  id              String         @id @default(uuid())
+  url             String         @unique
+  alt             String?
+  useCase         ImageUseCase   @default(PRODUCT) @map("use_case")
+  sortOrder       Int            @default(0) @map("sort_order")
+  isMain          Boolean        @default(false) @map("is_main")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  productId       String?        @map("product_id")
+  reportsId       String?
+  ticketMessageId String?
+  product         Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reports         Reports?       @relation(fields: [reportsId], references: [id])
+  ticketMessage   TicketMessage? @relation(fields: [ticketMessageId], references: [id])
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model CartItem {
+  id        String         @id @default(uuid())
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  userId    String         @map("user_id")
+  productId String         @map("product_id")
+  variantId String         @map("variant_id")
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  title      String?
+  fullName   String   @map("full_name")
+  phone      String
+  province   String
+  city       String
+  address    String
+  postalCode String?  @map("postal_code")
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Order {
+  id               String          @id @default(uuid())
+  orderNumber      String          @unique @map("order_number")
+  status           OrderStatus     @default(pending)
+  paymentStatus    PaymentStatus   @default(pending) @map("payment_status")
+  paymentMethod    PaymentMethod?  @map("payment_method")
+  paymentRef       String?         @map("payment_ref")
+  subtotal         Float
+  shippingCost     Float           @default(0) @map("shipping_cost")
+  discountAmount   Float           @default(0) @map("discount_amount")
+  commissionAmount Float           @default(0) @map("commission_amount")
+  total            Float
+  shippingAddress  String?         @map("shipping_address")
+  shippingCity     String?         @map("shipping_city")
+  shippingProvince String?         @map("shipping_province")
+  shippingPostal   String?         @map("shipping_postal")
+  shippingPhone    String?         @map("shipping_phone")
+  shippingName     String?         @map("shipping_name")
+  trackingCode     String?         @map("tracking_code")
+  notes            String?
+  sellerNotes      String?         @map("seller_notes")
+  cancelledAt      DateTime?       @map("cancelled_at")
+  deliveredAt      DateTime?       @map("delivered_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  userId           String          @map("user_id")
+  addressId        String?         @map("address_id")
+  discountId       String?         @map("discount_id")
+  invoice          Invoice?
+  items            OrderItem[]
+  address          Address?        @relation(fields: [addressId], references: [id])
+  discount         DiscountCode?   @relation(fields: [discountId], references: [id])
+  user             User            @relation(fields: [userId], references: [id])
+  payments         Payment[]
+  refund           Refund?
+  ticket           Ticket?
+  trackingEvents   TrackingEvent[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String         @id @default(uuid())
+  title       String
+  price       Float
+  quantity    Int
+  total       Float
+  image       String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  orderId     String         @map("order_id")
+  productId   String         @map("product_id")
+  sellerId    String         @map("seller_id")
+  sku         String
+  variantName String
+  variantId   String         @map("variant_id")
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product        @relation(fields: [productId], references: [id])
+  seller      User           @relation(fields: [sellerId], references: [id])
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([sellerId])
+  @@map("order_items")
+}
+
+model Payment {
+  id           String        @id @default(uuid())
+  amount       Float
+  method       PaymentMethod
+  status       PaymentStatus @default(pending)
+  gatewayRef   String?       @map("gateway_ref")
+  authority    String?
+  errorMessage String?       @map("error_message")
+  paidAt       DateTime?     @map("paid_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  orderId      String        @map("order_id")
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique @map("invoice_number")
+  amount        Float
+  status        InvoiceStatus @default(pending)
+  paidAt        DateTime?     @map("paid_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  orderId       String        @unique @map("order_id")
+  order         Order         @relation(fields: [orderId], references: [id])
+
+  @@map("invoices")
+}
+
+model Refund {
+  id          String        @id @default(uuid())
+  amount      Float
+  reason      String
+  status      InvoiceStatus @default(pending)
+  processedAt DateTime?     @map("processed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  orderId     String        @unique @map("order_id")
+  order       Order         @relation(fields: [orderId], references: [id])
+
+  @@map("refunds")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  rating     Int
+  title      String?
+  body       String
+  isApproved Boolean  @default(true) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  userId     String   @map("user_id")
+  productId  String   @map("product_id")
+  orderId    String?  @map("order_id")
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model SellerReview {
+  id         String   @id @default(uuid())
+  rating     Int
+  body       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  reviewerId String   @map("reviewer_id")
+  sellerId   String   @map("seller_id")
+  reviewer   User     @relation("SellerReviews", fields: [reviewerId], references: [id])
+  seller     User     @relation("SellerReviewed", fields: [sellerId], references: [id])
+
+  @@index([sellerId])
+  @@map("seller_reviews")
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String   @map("user_id")
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+model CompareItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String   @map("user_id")
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("compare_items")
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  subject       String?
+  lastMessage   String?   @map("last_message")
+  lastMessageAt DateTime? @map("last_message_at")
+  isRead        Boolean   @default(false) @map("is_read")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  productId     String?   @map("product_id")
+  buyerId       String    @map("buyer_id")
+  sellerId      String    @map("seller_id")
+  buyer         User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
+  product       Product?  @relation(fields: [productId], references: [id])
+  seller        User      @relation("ConversationSeller", fields: [sellerId], references: [id])
+  messages      Message[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  text           String
+  isRead         Boolean      @default(false) @map("is_read")
+  readAt         DateTime?    @map("read_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  receiverId     String       @map("receiver_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("messages")
+}
+
+model Notification {
+  id            String           @id @default(uuid())
+  type          NotificationType
+  title         String
+  body          String
+  link          String?
+  referenceType String?          @map("reference_type")
+  referenceId   String?          @map("reference_id")
+  isRead        Boolean          @default(false) @map("is_read")
+  readAt        DateTime?        @map("read_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  userId        String           @map("user_id")
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model WalletTransaction {
+  id            String                  @id @default(uuid())
+  type          WalletTransactionType
+  amount        Float
+  balanceBefore Float                   @map("balance_before")
+  balanceAfter  Float                   @map("balance_after")
+  description   String?
+  status        WalletTransactionStatus @default(completed)
+  reference     String?
+  createdAt     DateTime                @default(now()) @map("created_at")
+  userId        String                  @map("user_id")
+  user          User                    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@map("wallet_transactions")
+}
+
+model DiscountCode {
+  id              String              @id @default(uuid())
+  code            String              @unique
+  type            DiscountType        @default(percentage)
+  value           Float
+  minOrderAmount  Float               @default(0) @map("min_order_amount")
+  maxDiscount     Float?              @map("max_discount")
+  usageLimit      Int                 @default(0) @map("usage_limit")
+  usedCount       Int                 @default(0) @map("used_count")
+  perUserLimit    Int                 @default(0) @map("per_user_limit")
+  startsAt        DateTime            @map("starts_at")
+  endsAt          DateTime            @map("ends_at")
+  isActive        Boolean             @default(true) @map("is_active")
+  description     String?
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  creatorId       String?             @map("creator_id")
+  sellerId        String?             @map("seller_id")
+  usages          DiscountCodeUsage[]
+  creator         User?               @relation("DiscountCodeCreator", fields: [creatorId], references: [id])
+  seller          User?               @relation(fields: [sellerId], references: [id])
+  orders          Order[]
+  productVariants ProductVariant[]
+
+  @@map("discount_codes")
+}
+
+model DiscountCodeUsage {
+  id             String       @id @default(uuid())
+  createdAt      DateTime     @default(now()) @map("created_at")
+  discountCodeId String       @map("discount_code_id")
+  userId         String       @map("user_id")
+  orderId        String       @map("order_id")
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+
+  @@index([discountCodeId])
+  @@index([userId])
+  @@map("discount_code_usages")
+}
+
+model ShippingMethod {
+  id            String   @id @default(uuid())
+  name          String
+  nameEn        String?  @map("name_en")
+  description   String?
+  cost          Float    @default(0)
+  freeThreshold Float?   @map("free_threshold")
+  estimatedDays String?  @map("estimated_days")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("shipping_methods")
+}
+
+model BlogPost {
+  id                String         @id @default(uuid())
+  title             String
+  titleEn           String?        @map("title_en")
+  slug              String         @unique
+  slugEn            String?        @unique @map("slug_en")
+  excerpt           String?
+  excerptEn         String?        @map("excerpt_en")
+  content           String
+  contentEn         String?        @map("content_en")
+  image             String?
+  tags              String?
+  status            BlogPostStatus @default(draft)
+  publishedAt       DateTime?      @map("published_at")
+  viewCount         Int            @default(0) @map("view_count")
+  metaTitle         String?        @map("meta_title")
+  metaTitleEn       String?        @map("meta_title_en")
+  metaDescription   String?        @map("meta_description")
+  metaDescriptionEn String?        @map("meta_description_en")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  authorId          String         @map("author_id")
+  author            User           @relation(fields: [authorId], references: [id])
+
+  @@index([status])
+  @@index([publishedAt])
+  @@map("blog_posts")
+}
+
+model Banner {
+  id         String         @id @default(uuid())
+  title      String
+  titleEn    String?        @map("title_en")
+  subtitle   String?
+  subtitleEn String?        @map("subtitle_en")
+  image      String
+  link       String?
+  position   BannerPosition @default(home_top)
+  isActive   Boolean        @default(true) @map("is_active")
+  sortOrder  Int            @default(0) @map("sort_order")
+  startsAt   DateTime?      @map("starts_at")
+  endsAt     DateTime?      @map("ends_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@map("banners")
+}
+
+model SiteSetting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+  type  String @default("string")
+
+  @@map("site_settings")
+}
+
+model OtpCode {
+  id        String     @id @default(uuid())
+  contact   String
+  code      String
+  type      OtpType
+  purpose   OtpPurpose @default(auth)
+  used      Boolean    @default(false)
+  expiresAt DateTime   @map("expires_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@index([contact])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+model TrackingEvent {
+  id          String         @id @default(uuid())
+  status      TrackingStatus
+  location    String?
+  description String
+  createdAt   DateTime       @default(now()) @map("created_at")
+  orderId     String         @map("order_id")
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("tracking_events")
+}
+
+model SellerRating {
+  id             String   @id @default(uuid())
+  avgRating      Float    @default(0) @map("avg_rating")
+  totalReviews   Int      @default(0) @map("total_reviews")
+  responseRate   Float    @default(100) @map("response_rate")
+  responseTime   Float    @default(0) @map("response_time")
+  onTimeDelivery Float    @default(100) @map("on_time_delivery")
+  productQuality Float    @default(5) @map("product_quality")
+  communication  Float    @default(5) @map("communication")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  sellerId       String   @unique @map("seller_id")
+  seller         User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("seller_ratings")
+}
+
+model Ticket {
+  id             String          @id @default(uuid())
+  status         TicketStatus    @default(PENDING)
+  priority       TicketPriority
+  title          String
+  trackingCode   String
+  isUserRead     Boolean         @default(false)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  userId         String          @map("user_id")
+  orderId        String?         @unique @map("order_id") // ✅ unique می‌ماند
+  ticketMessages TicketMessage[]
+  order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String         @id @default(cuid())
+  content   String
+  ticketId  String
+  senderId  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  images    ProductImage[]
+  sender    User           @relation(fields: [senderId], references: [id])
+  ticket    Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("ticket_messages")
+}
+
+model Reports {
+  id           String         @id @default(uuid())
+  nameSeller   String?
+  content      String
+  title        String
+  orderCode    String?
+  trackingCode String?
+  status       ReportsStatus  @default(PENDING)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  images       ProductImage[]
+
+  @@index([status])
+  @@map("reports")
+}
+
+model Qna {
+  id        String         @id @default(uuid())
+  content   String
+  role      UserRole       @default(buyer)
+  status    ReviewApproval @default(pending)
+  userId    String
+  parentId  String?
+  productId String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  parent  Qna?    @relation("QnaReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Qna[]   @relation("QnaReplies")
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([parentId])
+  @@index([status])
+  @@index([createdAt])
+}
 
 enum UserRole {
   buyer
@@ -131,10 +847,10 @@ enum InvoiceStatus {
 }
 
 enum TicketStatus {
-  PENDING // در انتظار بررسی
-  WAITING // منتظر پاسخ کاربر
-  RESOLVED // حل شده
-  CLOSED // بسته شده
+  PENDING
+  WAITING
+  RESOLVED
+  CLOSED
 }
 
 enum TicketPriority {
@@ -146,878 +862,18 @@ enum TicketPriority {
 }
 
 enum ReportsStatus {
-  PENDING // در انتظار بررسی
-  RESOLVED // حل شده
-  CLOSED // بسته شده
+  PENDING
+  RESOLVED
+  CLOSED
 }
 
-// ============================================
-// مدل کاربر - User Model
-// ============================================
-model User {
-  id                 String        @id @default(uuid())
-  username           String        @unique
-  email              String        @unique
-  password           String? // null for Google OAuth users
-  firstName          String?       @map("first_name")
-  lastName           String?       @map("last_name")
-  phone              String?
-  avatar             String? // URL to avatar image
-  role               UserRole      @default(buyer)
-  isSuperAdmin       Boolean       @default(false) @map("is_super_admin") // only the boss
-  permissions        String? // JSON array of permission keys for colleagues
-  createdBy          String?       @map("created_by") // who created this admin (boss's ID for colleagues)
-  sellerStatus       SellerStatus? @map("seller_status")
-  sellerReason       String?       @map("seller_reason") // admin reason for approval/rejection
-  businessType       String?       @map("business_type") // individual, company, etc.
-  commissionRate     Float         @default(0) @map("commission_rate") // seller commission rate
-  storeName          String?       @map("store_name")
-  storeLogo          String?       @map("store_logo")
-  storeDescription   String?       @map("store_description")
-  storeDescriptionEn String?       @map("store_description_en")
-  isActive           Boolean       @default(true) @map("is_active")
-  isVerified         Boolean       @default(false) @map("is_verified")
-  emailVerified      Boolean       @default(false) @map("email_verified")
-  hasSetPassword     Boolean       @default(true) @map("has_set_password")
-  googleId           String?       @unique @map("google_id")
-  language           String        @default("fa")
-  lastLogin          DateTime?     @map("last_login")
-  resetToken         String?       @map("reset_token")
-  resetExpires       DateTime?     @map("reset_expires")
-  verifyToken        String?       @map("verify_token")
-  verifyExpires      DateTime?     @map("verify_expires")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  createdAdmins        User[]              @relation("AdminCreatedBy")
-  creator              User?               @relation("AdminCreatedBy", fields: [createdBy], references: [id])
-  products             Product[]
-  orders               Order[]
-  reviews              Review[]
-  sellerReviews        SellerReview[]      @relation("SellerReviews")
-  sellerReviewReceived SellerReview[]      @relation("SellerReviewed")
-  cartItems            CartItem[]
-  wishlistItems        WishlistItem[]
-  compareItems         CompareItem[]
-  sentMessages         Message[]           @relation("SentMessages")
-  receivedMessages     Message[]           @relation("ReceivedMessages")
-  buyerConversations   Conversation[]      @relation("ConversationBuyer")
-  sellerConversations  Conversation[]      @relation("ConversationSeller")
-  notifications        Notification[]
-  walletTransactions   WalletTransaction[]
-  discountCodes        DiscountCode[]      @relation("DiscountCodeCreator")
-  sellerDiscounts      DiscountCode[]
-  blogPosts            BlogPost[]
-  sellerOrderItems     OrderItem[]
-  sellerRating         SellerRating?
-  addresses            Address[]
-  ticket               Ticket?
-  ticketMessages       TicketMessage[]
-
-  @@map("users")
-}
-
-// ============================================
-// مدل دسته‌بندی - Category Model
-// ============================================
-model Category {
-  id                String   @id @default(uuid())
-  name              String
-  nameEn            String?  @map("name_en")
-  slug              String   @unique
-  slugEn            String?  @unique @map("slug_en")
-  description       String?
-  descriptionEn     String?  @map("description_en")
-  parentId          String?  @map("parent_id")
-  icon              String? // icon name or class
-  image             String? // category banner image URL
-  sortOrder         Int      @default(0) @map("sort_order")
-  isActive          Boolean  @default(true) @map("is_active")
-  metaTitle         String?  @map("meta_title")
-  metaTitleEn       String?  @map("meta_title_en")
-  metaDescription   String?  @map("meta_description")
-  metaDescriptionEn String?  @map("meta_description_en")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryTree")
-  products Product[]
-
-  @@map("categories")
-}
-
-model Brand {
-  id          String    @id @default(uuid())
-  name        String
-  nameEn      String?
-  slug        String    @unique
-  logo        String?
-  description String?
-  products    Product[]
-
-  @@map("brands")
-}
-
-// ============================================
-// مدل محصول - Product Model
-// ============================================
-model Product {
-  id                String           @id @default(uuid())
-  title             String
-  titleEn           String?          @map("title_en")
-  slug              String           @unique
-  slugEn            String?          @unique @map("slug_en")
-  description       String
-  descriptionEn     String?          @map("description_en")
-  weight            Float? // weight in grams
-  dimensions        String? // e.g. "20x15x10"
-  condition         ProductCondition @default(new)
-  status            ProductStatus    @default(pending)
-  isFeatured        Boolean          @default(false) @map("is_featured")
-  isDigital         Boolean          @default(false) @map("is_digital")
-  digitalFile       String?          @map("digital_file") // path to digital file
-  viewCount         Int              @default(0) @map("view_count")
-  saleCount         Int              @default(0) @map("sale_count")
-  rating            Float            @default(0)
-  reviewCount       Int              @default(0) @map("review_count")
-  metaTitle         String?          @map("meta_title")
-  metaTitleEn       String?          @map("meta_title_en")
-  metaDescription   String?          @map("meta_description")
-  metaDescriptionEn String?          @map("meta_description_en")
-  productTable      Json?            @map("product_table")
-  productTableEn    Json?            @map("product_table_en")
-  brandId           String?          @map("brand_id")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-
-  // Foreign keys
-  sellerId   String @map("seller_id")
-  categoryId String @map("category_id")
-
-  // Relations
-  seller        User             @relation(fields: [sellerId], references: [id])
-  category      Category         @relation(fields: [categoryId], references: [id])
-  images        ProductImage[]
-  reviews       Review[]
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
-  wishlistItems WishlistItem[]
-  compareItems  CompareItem[]
-  conversations Conversation[]
-  variants      ProductVariant[]
-  brand         Brand?           @relation(fields: [brandId], references: [id])
-
-  @@index([sellerId])
-  @@index([categoryId])
-  @@index([status])
-  @@index([isFeatured])
-  @@map("products")
-}
-
-// ============================================
-// مدل تنوع محصول - ProductVariant Model
-// (رنگ، سایز و ...)
-// ============================================
-model ProductVariant {
-  id           String   @id @default(uuid())
-  name         String // e.g. "Red - XL"
-  nameEn       String? // e.g. "Red - XL"
-  sku          String?  @unique
-  price        Float? // overrides product price if set
-  quantity     Int      @default(0)
-  attributes   Json? // JSON e.g. {"color":"red","size":"XL"}
-  attributesEn Json? // JSON e.g. {"color":"red","size":"XL"}
-  image        String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  discountId String?       @map("discount_id")
-  productId  String        @map("product_id")
-  product    Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  discount   DiscountCode? @relation(fields: [discountId], references: [id], onDelete: Cascade)
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-
-  @@index([productId])
-  @@map("product_variants")
-}
-
-// ============================================
-// مدل تصویر محصول - ProductImage Model
-// ============================================
-model ProductImage {
-  id        String   @id @default(uuid())
-  url       String   @unique
-  alt       String? // alt text
-  sortOrder Int      @default(0) @map("sort_order")
-  isMain    Boolean  @default(false) @map("is_main")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Foreign key
-  productId String? @map("product_id")
-
-  // Relation
-  product         Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  ticketMessage   TicketMessage? @relation(fields: [ticketMessageId], references: [id])
-  ticketMessageId String?
-  reports         Reports?       @relation(fields: [reportsId], references: [id])
-  reportsId       String?
-
-  @@index([productId])
-  @@map("product_images")
-}
-
-// ============================================
-// مدل سبد خرید - CartItem Model
-// ============================================
-model CartItem {
-  id        String   @id @default(uuid())
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Foreign keys
-  userId    String @map("user_id")
-  productId String @map("product_id")
-  variantId String @map("variant_id")
-
-  // Relations
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId])
-  @@index([userId])
-  @@map("cart_items")
-}
-
-// ============================================
-// مدل آدرس - Address Model
-// ============================================
-model Address {
-  id         String   @id @default(uuid())
-  title      String? // e.g. "خانه", "محل کار"
-  fullName   String   @map("full_name")
-  phone      String
-  province   String
-  city       String
-  address    String
-  postalCode String?  @map("postal_code")
-  isDefault  Boolean  @default(false) @map("is_default")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  // Foreign key
-  userId String @map("user_id")
-
-  // Relation
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[]
-
-  @@index([userId])
-  @@map("addresses")
-}
-
-// ============================================
-// مدل سفارش - Order Model
-// ============================================
-model Order {
-  id               String         @id @default(uuid())
-  orderNumber      String         @unique @map("order_number")
-  status           OrderStatus    @default(pending)
-  paymentStatus    PaymentStatus  @default(pending) @map("payment_status")
-  paymentMethod    PaymentMethod? @map("payment_method")
-  paymentRef       String?        @map("payment_ref") // payment gateway reference
-  subtotal         Float // total without shipping & discount
-  shippingCost     Float          @default(0) @map("shipping_cost")
-  discountAmount   Float          @default(0) @map("discount_amount")
-  commissionAmount Float          @default(0) @map("commission_amount") // platform commission
-  total            Float // final total
-  // snapshot of the address at the time of order
-  shippingAddress  String?        @map("shipping_address")
-  shippingCity     String?        @map("shipping_city")
-  shippingProvince String?        @map("shipping_province")
-  shippingPostal   String?        @map("shipping_postal")
-  shippingPhone    String?        @map("shipping_phone")
-  shippingName     String?        @map("shipping_name")
-  trackingCode     String?        @map("tracking_code")
-  notes            String? // customer notes
-  sellerNotes      String?        @map("seller_notes")
-  cancelledAt      DateTime?      @map("cancelled_at")
-  deliveredAt      DateTime?      @map("delivered_at")
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
-
-  // Foreign keys
-  userId     String  @map("user_id")
-  addressId  String? @map("address_id") // reference to the original address, if it still exists
-  discountId String? @map("discount_id")
-
-  // Relations
-  user           User            @relation(fields: [userId], references: [id])
-  address        Address?        @relation(fields: [addressId], references: [id])
-  discount       DiscountCode?   @relation(fields: [discountId], references: [id])
-  items          OrderItem[]
-  trackingEvents TrackingEvent[]
-  invoice        Invoice?
-  payments       Payment[]
-  refund         Refund?
-  ticket         Ticket?
-
-  @@index([userId])
-  @@index([status])
-  @@index([orderNumber])
-  @@map("orders")
-}
-
-// ============================================
-// مدل آیتم سفارش - OrderItem Model
-// ============================================
-model OrderItem {
-  id          String   @id @default(uuid())
-  sku         String
-  variantName String
-  title       String // snapshot of product title
-  price       Float // price at time of order
-  quantity    Int
-  total       Float // price * quantity
-  image       String? // product image snapshot
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  // Foreign keys
-  orderId   String @map("order_id")
-  productId String @map("product_id")
-  sellerId  String @map("seller_id")
-  variantId String @map("variant_id")
-
-  // Relations
-  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product        @relation(fields: [productId], references: [id])
-  seller  User           @relation(fields: [sellerId], references: [id])
-  variant ProductVariant @relation(fields: [variantId], references: [id])
-
-  @@index([orderId])
-  @@index([sellerId])
-  @@map("order_items")
-}
-
-// ============================================
-// مدل پرداخت - Payment Model
-// (پشتیبانی از چند تلاش پرداخت برای یک سفارش)
-// ============================================
-model Payment {
-  id           String        @id @default(uuid())
-  amount       Float
-  method       PaymentMethod
-  status       PaymentStatus @default(pending)
-  gatewayRef   String?       @map("gateway_ref")
-  authority    String? // zarinpal authority code etc.
-  errorMessage String?       @map("error_message")
-  paidAt       DateTime?     @map("paid_at")
-  createdAt    DateTime      @default(now()) @map("created_at")
-
-  // Foreign key
-  orderId String @map("order_id")
-
-  // Relation
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-  @@map("payments")
-}
-
-// ============================================
-// مدل فاکتور - Invoice Model
-// ============================================
-model Invoice {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique @map("invoice_number")
-  amount        Float
-  status        InvoiceStatus @default(pending)
-  paidAt        DateTime?     @map("paid_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-
-  // Foreign key
-  orderId String @unique @map("order_id")
-
-  // Relation
-  order Order @relation(fields: [orderId], references: [id])
-
-  @@map("invoices")
-}
-
-// ============================================
-// مدل مرجوعی - Refund Model
-// ============================================
-model Refund {
-  id          String        @id @default(uuid())
-  amount      Float
-  reason      String
-  status      InvoiceStatus @default(pending) // pending, paid(=processed), cancelled
-  processedAt DateTime?     @map("processed_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
-
-  // Foreign key
-  orderId String @unique @map("order_id")
-
-  // Relation
-  order Order @relation(fields: [orderId], references: [id])
-
-  @@map("refunds")
-}
-
-// ============================================
-// مدل نظر/دیدگاه - Review Model
-// ============================================
-model Review {
-  id         String   @id @default(uuid())
-  rating     Int // 1-5 stars
-  title      String?
-  body       String
-  isApproved Boolean  @default(true) @map("is_approved")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  // Foreign keys
-  userId    String  @map("user_id")
-  productId String  @map("product_id")
-  orderId   String? @map("order_id")
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([userId])
-  @@map("reviews")
-}
-
-// ============================================
-// مدل نظر فروشنده - SellerReview Model
-// ============================================
-model SellerReview {
-  id        String   @id @default(uuid())
-  rating    Int // 1-5
-  body      String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Foreign keys
-  reviewerId String @map("reviewer_id")
-  sellerId   String @map("seller_id")
-
-  // Relations
-  reviewer User @relation("SellerReviews", fields: [reviewerId], references: [id])
-  seller   User @relation("SellerReviewed", fields: [sellerId], references: [id])
-
-  @@index([sellerId])
-  @@map("seller_reviews")
-}
-
-// ============================================
-// مدل لیست علاقه‌مندی - WishlistItem Model
-// ============================================
-model WishlistItem {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Foreign keys
-  userId    String @map("user_id")
-  productId String @map("product_id")
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId])
-  @@map("wishlist_items")
-}
-
-// ============================================
-// مدل مقایسه - CompareItem Model
-// ============================================
-model CompareItem {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Foreign keys
-  userId    String @map("user_id")
-  productId String @map("product_id")
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId])
-  @@map("compare_items")
-}
-
-// ============================================
-// مدل گفتگو - Conversation Model
-// ============================================
-model Conversation {
-  id            String    @id @default(uuid())
-  subject       String? // usually product title
-  lastMessage   String?   @map("last_message")
-  lastMessageAt DateTime? @map("last_message_at")
-  isRead        Boolean   @default(false) @map("is_read")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  // Foreign keys
-  productId String? @map("product_id")
-  buyerId   String  @map("buyer_id")
-  sellerId  String  @map("seller_id")
-
-  // Relations
-  product  Product?  @relation(fields: [productId], references: [id])
-  buyer    User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
-  seller   User      @relation("ConversationSeller", fields: [sellerId], references: [id])
-  messages Message[]
-
-  @@index([buyerId])
-  @@index([sellerId])
-  @@map("conversations")
-}
-
-// ============================================
-// مدل پیام - Message Model
-// ============================================
-model Message {
-  id        String    @id @default(uuid())
-  text      String
-  isRead    Boolean   @default(false) @map("is_read")
-  readAt    DateTime? @map("read_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  // Foreign keys
-  conversationId String @map("conversation_id")
-  senderId       String @map("sender_id")
-  receiverId     String @map("receiver_id")
-
-  // Relations
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
-  receiver     User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
-
-  @@index([conversationId])
-  @@index([senderId])
-  @@index([receiverId])
-  @@map("messages")
-}
-
-// ============================================
-// مدل اطلاع‌رسانی - Notification Model
-// ============================================
-model Notification {
-  id            String           @id @default(uuid())
-  type          NotificationType
-  title         String
-  body          String
-  link          String? // deep link URL
-  referenceType String?          @map("reference_type")
-  referenceId   String?          @map("reference_id")
-  isRead        Boolean          @default(false) @map("is_read")
-  readAt        DateTime?        @map("read_at")
-  createdAt     DateTime         @default(now()) @map("created_at")
-
-  // Foreign key
-  userId String @map("user_id")
-
-  // Relation
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-  @@map("notifications")
-}
-
-// ============================================
-// مدل تراکنش کیف پول - WalletTransaction Model
-// ============================================
-model WalletTransaction {
-  id            String                  @id @default(uuid())
-  type          WalletTransactionType
-  amount        Float // positive = credit, negative = debit
-  balanceBefore Float                   @map("balance_before")
-  balanceAfter  Float                   @map("balance_after")
-  description   String?
-  status        WalletTransactionStatus @default(completed)
-  reference     String? // payment ref or order number
-  createdAt     DateTime                @default(now()) @map("created_at")
-
-  // Foreign key
-  userId String @map("user_id")
-
-  // Relation
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([type])
-  @@map("wallet_transactions")
-}
-
-// ============================================
-// مدل کد تخفیف - DiscountCode Model
-// ============================================
-model DiscountCode {
-  id             String       @id @default(uuid())
-  code           String       @unique
-  type           DiscountType @default(percentage)
-  value          Float // percentage amount or fixed Toman amount
-  minOrderAmount Float        @default(0) @map("min_order_amount") // minimum order to apply
-  maxDiscount    Float?       @map("max_discount") // max discount cap
-  usageLimit     Int          @default(0) @map("usage_limit") // 0 = unlimited
-  usedCount      Int          @default(0) @map("used_count")
-  perUserLimit   Int          @default(0) @map("per_user_limit") // 0 = unlimited
-  startsAt       DateTime     @map("starts_at")
-  endsAt         DateTime     @map("ends_at")
-  isActive       Boolean      @default(true) @map("is_active")
-  description    String?
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-
-  // Foreign keys
-  creatorId String? @map("creator_id") // admin or seller who created it
-  sellerId  String? @map("seller_id") // if seller-specific discount
-
-  // Relations
-  creator         User?               @relation("DiscountCodeCreator", fields: [creatorId], references: [id])
-  seller          User?               @relation(fields: [sellerId], references: [id])
-  orders          Order[]
-  usages          DiscountCodeUsage[]
-  productVariants ProductVariant[]
-
-  @@map("discount_codes")
-}
-
-// ============================================
-// مدل استفاده از کد تخفیف - DiscountCodeUsage Model
-// (برای اعمال محدودیت استفاده به ازای هر کاربر)
-// ============================================
-model DiscountCodeUsage {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Foreign keys
-  discountCodeId String @map("discount_code_id")
-  userId         String @map("user_id")
-  orderId        String @map("order_id")
-
-  // Relation
-  discountCode DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
-
-  @@index([discountCodeId])
-  @@index([userId])
-  @@map("discount_code_usages")
-}
-
-// ============================================
-// مدل روش ارسال - ShippingMethod Model
-// ============================================
-model ShippingMethod {
-  id            String   @id @default(uuid())
-  name          String
-  nameEn        String?  @map("name_en")
-  description   String?
-  cost          Float    @default(0)
-  freeThreshold Float?   @map("free_threshold") // free shipping above this amount
-  estimatedDays String?  @map("estimated_days") // e.g. "3-5"
-  isActive      Boolean  @default(true) @map("is_active")
-  sortOrder     Int      @default(0) @map("sort_order")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@map("shipping_methods")
-}
-
-// ============================================
-// مدل پست وبلاگ - BlogPost Model
-// ============================================
-model BlogPost {
-  id                String         @id @default(uuid())
-  title             String
-  titleEn           String?        @map("title_en")
-  slug              String         @unique
-  slugEn            String?        @unique @map("slug_en")
-  excerpt           String?
-  excerptEn         String?        @map("excerpt_en")
-  content           String
-  contentEn         String?        @map("content_en")
-  image             String? // cover image URL
-  tags              String? // comma-separated
-  status            BlogPostStatus @default(draft)
-  publishedAt       DateTime?      @map("published_at")
-  viewCount         Int            @default(0) @map("view_count")
-  metaTitle         String?        @map("meta_title")
-  metaTitleEn       String?        @map("meta_title_en")
-  metaDescription   String?        @map("meta_description")
-  metaDescriptionEn String?        @map("meta_description_en")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-
-  // Foreign key
-  authorId String @map("author_id")
-
-  // Relation
-  author User @relation(fields: [authorId], references: [id])
-
-  @@index([status])
-  @@index([publishedAt])
-  @@map("blog_posts")
-}
-
-// ============================================
-// مدل بنر - Banner Model
-// ============================================
-model Banner {
-  id         String         @id @default(uuid())
-  title      String
-  titleEn    String?        @map("title_en")
-  subtitle   String?
-  subtitleEn String?        @map("subtitle_en")
-  image      String // image URL
-  link       String? // click destination
-  position   BannerPosition @default(home_top)
-  isActive   Boolean        @default(true) @map("is_active")
-  sortOrder  Int            @default(0) @map("sort_order")
-  startsAt   DateTime?      @map("starts_at")
-  endsAt     DateTime?      @map("ends_at")
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @updatedAt @map("updated_at")
-
-  @@map("banners")
-}
-
-// ============================================
-// مدل تنظیمات سایت - SiteSetting Model
-// ============================================
-model SiteSetting {
-  id    String @id @default(uuid())
-  key   String @unique
-  value String
-  type  String @default("string") // string, number, boolean, json
-
-  @@map("site_settings")
-}
-
-// ============================================
-// مدل کد OTP - OtpCode Model
-// ============================================
-model OtpCode {
-  id        String     @id @default(uuid())
-  contact   String // email or phone
-  code      String
-  type      OtpType
-  purpose   OtpPurpose @default(auth)
-  used      Boolean    @default(false)
-  expiresAt DateTime   @map("expires_at")
-  createdAt DateTime   @default(now()) @map("created_at")
-
-  @@index([contact])
-  @@index([expiresAt])
-  @@map("otp_codes")
-}
-
-// ============================================
-// مدل رویداد رهگیری - TrackingEvent Model
-// ============================================
-model TrackingEvent {
-  id          String         @id @default(uuid())
-  status      TrackingStatus
-  location    String?
-  description String
-  createdAt   DateTime       @default(now()) @map("created_at")
-
-  // Foreign key
-  orderId String @map("order_id")
-
-  // Relation
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-  @@index([createdAt])
-  @@map("tracking_events")
-}
-
-// ============================================
-// مدل رتبه‌بندی فروشنده - SellerRating Model
-// ============================================
-model SellerRating {
-  id             String   @id @default(uuid())
-  avgRating      Float    @default(0) @map("avg_rating")
-  totalReviews   Int      @default(0) @map("total_reviews")
-  responseRate   Float    @default(100) @map("response_rate") // درصد پاسخگویی
-  responseTime   Float    @default(0) @map("response_time") // متوسط زمان پاسخ (ساعت)
-  onTimeDelivery Float    @default(100) @map("on_time_delivery") // درصد تحویل به موقع
-  productQuality Float    @default(5) @map("product_quality") // کیفیت محصولات
-  communication  Float    @default(5) @map("communication") // ارتباط با مشتری
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  // Foreign key
-  sellerId String @unique @map("seller_id")
-
-  // Relation
-  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-
-  @@map("seller_ratings")
-}
-
-model Ticket {
-  id           String         @id @default(uuid())
-  status       TicketStatus   @default(PENDING)
-  priority     TicketPriority
-  title        String
-  trackingCode String
-  isUserRead   Boolean        @default(false)
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-
-  userId  String  @unique @map("user_id")
-  orderId String? @unique @map("order_id")
-
-  order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ticketMessages TicketMessage[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([priority])
-  @@map("tickets")
-}
-
-model TicketMessage {
-  id       String         @id @default(cuid())
-  content  String         @db.Text
-  images   ProductImage[]
-  ticketId String
-  ticket   Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  senderId String
-  sender   User           @relation(fields: [senderId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([ticketId])
-  @@index([senderId])
-  @@index([createdAt])
-  @@map("ticket_messages")
-}
-
-model Reports {
-  id           String         @id @default(uuid())
-  status       ReportsStatus  @default(PENDING)
-  images       ProductImage[]
-  nameSeller   String
-  content      String         @db.Text
-  trackingCode String?
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@map("reports")
+enum ImageUseCase {
+  AVATAR
+  PRODUCT
+  POST
+  ATTACHMENT
+  THUMBNAIL
+  WATERMARK
+  REPORTS
+  MAINS
 }

@@ -73,8 +73,8 @@ const fa = {
     have_account: 'قبلاً ثبت\u200Cنام کرده\u200Cاید؟',
     no_account: 'حساب کاربری ندارید؟',
     login_link: 'ورود',
-    register_as_buyer: 'ثبت\u200Cنام خریدار',
-    register_as_seller: 'ثبت\u200Cنام فروشنده',
+    register_as_buyer: 'ثبت\u200C نام',
+    register_as_seller: '\u200C فروشنده شوید',
     or_login_with_otp: 'یا ورود با کد یکبار مصرف',
     or_register_with_otp: 'یا ثبت\u200Cنام با کد یکبار مصرف',
     email_verification: 'تأیید ایمیل',
@@ -240,7 +240,67 @@ const fa = {
     cancel_order: 'لغو سفارش',
     detail_order: 'مشاهده سفارش',
   },
-
+  Countdown: {
+    remainingTime: "زمان باقی‌مانده",
+    days: "روز",
+    hours: "ساعت",
+    minutes: "دقیقه",
+    seconds: "ثانیه",
+    expired: "مهلت پیشنهاد به پایان رسید!"
+  },
+  report: {
+    title: 'گزارش تخلف',
+    description: 'در صورت مشاهده هرگونه تخلف، مشکل یا رفتار نامناسب، از طریق این فرم گزارش دهید. هویت شما محفوظ خواهد ماند.',
+    toast: {
+      createSuccess: "گزارش با موفقیت ثبت شد",
+      createError: "خطایی در ثبت گزارش رخ داد",
+      updateSuccess: "وضعیت گزارش با موفقیت بروزرسانی شد",
+      updateError: "خطایی در بروزرسانی وضعیت گزارش رخ داد"
+    },
+    reportType: {
+      fake: { name: 'fake', label: 'کالای تقلبی' },
+      price: { name: 'price', label: 'گران‌فروشی' },
+      notdelivered: { name: 'notdelivered', label: 'عدم ارسال کالا' },
+      defective: { name: 'defective', label: 'کالای معیوب' },
+      wronginfo: { name: 'wronginfo', label: 'اطلاعات نادرست' },
+      misconduct: { name: 'misconduct', label: 'برخورد نامناسب فروشنده' },
+      spam: { name: 'spam', label: 'هرزنامه یا تبلیغات' },
+      other: { name: 'other', label: 'سایر' },
+    },
+    reportTypeName: 'نوع تخلف *',
+    alertDiv: {
+      title: 'توجه',
+      text: 'گزارش نادرست یا سوءاستفاده از این فرم پیگرد قانونی دارد. در صورت تمایل شماره تماس خود را میتوانید در بخش توضیحات برام ما ارسال کنید. اطلاعات تماس شما برای پیگیری محفوظ می‌ماند.'
+    },
+    button: {
+      name: 'ثبت گزارش',
+      loading: 'در حال ثبت...'
+    },
+    inputs: {
+      orderCode: {
+        label: 'شماره سفارش',
+        placeHolder: 'اختیاری'
+      },
+      nameSeller: {
+        label: 'نام فروشنده',
+        placeHolder: 'اختیاری'
+      },
+      content: {
+        label: 'شرح تخلف',
+        placeHolder: 'لطفاً توضیح دهید چه اتفاقی افتاده است...',
+        helpText: 'توضیحات دقیق به ما کمک می‌کند سریع‌تر به مشکل رسیدگی کنیم'
+      },
+      image: {
+        label: 'آپلود تصویر یا اسکرین‌شات (اختیاری)',
+        placeHolder: 'فرمت‌های jpg, png - حداکثر ۵ مگابایت'
+      }
+    },
+    errors: {
+      title_required: "نوع تخلف را انتخاب کنید",
+      content_min: "شرح تخلف باید حداقل ۱۰ کاراکتر باشد",
+      content_required: "شرح تخلف الزامی است"
+    }
+  },
   seller: {
     dashboard_title: 'پنل فروشنده',
     dashboard_desc: 'مدیریت فروشگاه، محصولات و سفارشات',

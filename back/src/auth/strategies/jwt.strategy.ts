@@ -15,8 +15,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromExtractors([
         // اولویت اول: cookie به نام token
         (req: Request) => {
-          if (req.cookies && req.cookies.token) {
-            return req.cookies.token;
+          if (req.cookies && req.cookies['token-marketino']) {
+            return req.cookies['token-marketino'];
           }
           return null;
         },

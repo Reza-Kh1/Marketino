@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import MotionWrapper from '../motion/MotionWrapper';
 import AdminRichEditor from '../inputs/AdminRichEditor';
 import UploadMedia from '../upload/UploadMedia';
-import { MediaEntity } from '@/services/media.service';
 import { ProductEntity, VariantType } from '@/services/product.service';
 import { ProductFormData, productSchema } from '@/schemas/product.schema';
 import { useForm } from 'react-hook-form';
@@ -115,6 +114,8 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
         productTable: tableValue || null,
         productTableEn: tableValueEn || null
       } as any
+      console.log(body);
+
       if (isEdit && product?.id) {
         updateProduct({ id: product?.id, data: body })
       } else {
@@ -134,6 +135,7 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
   const onError = (err: any) => {
     console.log(err);
   }
+  console.log(product);
 
   return (
     <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
@@ -207,7 +209,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
             />
           </div>
           <VariantSelector productId={product?.id} variantData={variantData} />
-          {/* Specifications */}
         </div>
 
         {/* Sidebar */}
@@ -240,39 +241,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
             value={categoryId}
             label='دسته‌بندی'
           />
-          {/* Price */}
-          {/* <div className="card p-4 space-y-4">
-            <InputForm
-              label='قیمت (تومان) '
-              required
-              register={register}
-              name='price'
-              type='number'
-              placeholder="مثال: 21990000"
-            />
-            <InputForm
-              register={register}
-              label='قیمت با تخفیف (اختیاری)'
-              name='discountPrice'
-              type='number'
-              placeholder="مثال: 19900000"
-            />
-            <FormDatePicker
-              name="discountStart"
-              control={control}
-              label="تاریخ شروع تخفیف"
-              placeholder="تاریخ را انتخاب کنید"
-              includeTime={true} // فعال‌سازی انتخاب ساعت و دقیقه
-            />
-            <FormDatePicker
-              name="discountEnd"
-              control={control}
-              label="تاریخ پایان تخفیف"
-              placeholder="تاریخ را انتخاب کنید"
-              includeTime={true} // فعال‌سازی انتخاب ساعت و دقیقه
-            />
-          </div> */}
-          {/* Quantity & Brand */}
           <div className="card p-4 space-y-4">
             <SelectCustom
               children={brandsData || []}
@@ -295,13 +263,26 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
               type='number'
               placeholder="مثال: 58 "
             />
-            {/* <InputForm
-              label='موجودی'
-              register={register}
-              name='quantity'
-              type='number'
-              placeholder="تعداد موجودی"
-            /> */}
+            {
+              product?.slug && (
+                <InputForm
+                  label='اسلاگ'
+                  name='slug'
+                  value={product?.slug}
+                  disabled
+                />
+              )
+            }
+            {
+              product?.seller?.storeName && (
+                <InputForm
+                  label='نام فروشنده'
+                  name='storeName'
+                  value={product?.seller?.storeName}
+                  disabled
+                />
+              )
+            }
           </div>
 
           {/* Tags & Featured */}
@@ -376,7 +357,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
                   />
                 </div>
               </div>
-
             </MotionWrapper>
             <ProductTable
               english

@@ -78,7 +78,10 @@ api.interceptors.response.use(
 
         // Unauthorized
         if (status === 401) {
-            window.location.href = "/login";
+            localStorage.removeItem('bazarche_auth_token');
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
         }
 
         // Forbidden
