@@ -6,10 +6,11 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { UserRole } from '@prisma/client';
+import { Prisma, ProductCondition, ProductStatus, UserRole } from '@prisma/client';
 import pagination from '@/common/utils/pagination';
 import { ConfigService } from '@nestjs/config';
 import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto';
+import { ProductSearchDto } from './dto/product.search.dto';
 
 @Injectable()
 export class AdminService {
@@ -652,25 +653,77 @@ export class AdminService {
    * 📦 PRODUCTS MANAGEMENT (ADMIN)
    * ============================================================ */
 
-  async getProducts(params: { page?: number; status?: string; q?: string }) {
-    const page = params.page || 1;
-    const limit = Number(this.configService.get('limit.product'));
-    const skip = (page - 1) * limit;
+  async getProducts(params: ProductSearchDto) {
+    const { brandId, categoryId, condition, featured, limit, sort, page = 1, search, sellerId, status, discountId, maxPrice, minPrice } = params;
 
-    const where: any = {};
-    if (params.status === 'featured') where.isFeatured = true
-    if (params.status !== 'featured' && params.status) where.status = params.status;
-    if (params.q) {
-      where.OR = [
-        { title: { contains: params.q } },
-        { description: { contains: params.q } },
-      ];
-    }
+    const limitPage = Number(limit) || Number(this.configService.get('limit.product') || 10);
+    const skip = (Number(page) - 1) * limitPage;
+    // ۱. ساخت شرط‌های فیلتر (Where)
+    const where: Prisma.ProductWhereInput = {
+      ...(brandId && { brandId }),
+      ...(categoryId && { categoryId }),
+      ...(sellerId && { sellerId }),
+      ...((condition && condition !== 'all') && { condition: condition as ProductCondition }),
+      ...((status && status !== 'all') && { status: status as ProductStatus }),
+      ...((featured && featured === 'true') && { isFeatured: true }),
+      ...((discountId && discountId === 'true') ? {
+        discountPercent: {
+          not: null,
+          notIn: ['', '0'],
+        }
+      } : {
+        variants: { some: { discountId }, }
+      }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { titleEn: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          { descriptionEn: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+      ...((minPrice !== undefined || maxPrice !== undefined) && {
+        minPrice: {
+          ...(minPrice !== undefined && { gte: Number(minPrice) }),
+          ...(maxPrice !== undefined && { lte: Number(maxPrice) }),
+        },
+      }),
+    };
+    let orderBy: Prisma.ProductOrderByWithRelationInput = { updatedAt: 'desc' };
 
+    if (sort) {
+      switch (sort) {
+        case 'saleCount-up':
+          orderBy = { saleCount: 'desc' };
+          break;
+        case 'saleCount-down':
+          orderBy = { saleCount: 'asc' };
+          break;
+        case 'rating-up':
+          orderBy = { rating: 'desc' };
+          break;
+        case 'rating-down':
+          orderBy = { rating: 'asc' };
+          break;
+        case 'reviewCount-up':
+          orderBy = { reviewCount: 'desc' };
+          break;
+        case 'reviewCount-down':
+          orderBy = { reviewCount: 'asc' };
+          break;
+        case 'updatedAt':
+          orderBy = { updatedAt: 'asc' };
+          break;
+        default:
+          orderBy = { updatedAt: 'desc' };
+          break;
+      }
+    }    
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
         select: {
+          id: true,
           title: true,
           titleEn: true,
           slug: true,
@@ -682,41 +735,41 @@ export class AdminService {
           status: true,
           createdAt: true,
           updatedAt: true,
-          id: true,
           isFeatured: true,
           viewCount: true,
           saleCount: true,
           rating: true,
           reviewCount: true,
           sellerId: true,
+          originalPrice: true,
+          minPrice: true,
+          discountPercent: true,
           images: {
-            take: 1, orderBy: { sortOrder: 'asc' }, select: {
-              alt: true,
+            take: 1,
+            orderBy: { sortOrder: 'asc' },
+            select: {
               id: true,
+              alt: true,
               url: true,
-            }
+            },
           },
           category: {
             select: {
+              id: true,
               name: true,
               nameEn: true,
               slug: true,
               slugEn: true,
-              id: true,
               parentId: true,
-            }
+            },
           },
           seller: { select: { id: true, storeName: true } },
 
           variants: {
             where: {
-              quantity: {
-                gt: 0,
-              },
+              quantity: { gt: 0 },
             },
-            orderBy: {
-              price: 'asc',
-            },
+            orderBy: { price: 'asc' },
             select: {
               id: true,
               name: true,
@@ -736,32 +789,35 @@ export class AdminService {
             },
           },
         },
-        skip, take: limit,
-        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitPage,
+        orderBy,
       }),
       this.prisma.product.count({ where }),
     ]);
-    const now = new Date();
 
-    const data = products.map(product => {
+    const now = new Date();
+    const data = products.map((product) => {
       const displayVariant =
-        product.variants.find(v =>
-          v.discount &&
-          v.discount.isActive &&
-          (!v.discount.startsAt || v.discount.startsAt <= now) &&
-          (!v.discount.endsAt || v.discount.endsAt >= now)
-        ) ?? product.variants[0] ?? null;
+        product.variants.find(
+          (v) =>
+            v.discount &&
+            v.discount.isActive &&
+            (!v.discount.startsAt || new Date(v.discount.startsAt) <= now) &&
+            (!v.discount.endsAt || new Date(v.discount.endsAt) >= now)
+        ) ??
+        product.variants[0] ??
+        null;
 
       return {
         ...product,
-        variants: [displayVariant],
-        // variants: undefined, // اگر نمی‌خوای همه Variantها برگردن
+        variants: displayVariant ? [displayVariant] : [],
       };
     });
 
     return {
       data,
-      pagination: pagination(total, page, limit),
+      pagination: pagination(total, Number(page), limitPage),
     };
   }
 
@@ -898,6 +954,15 @@ export class AdminService {
   /* ============================================================
    * 🏪 SELLERS LIST (ADMIN)
    * ============================================================ */
+
+  async getSellerList() {
+    const sellers = await this.prisma.user.findMany({
+      where: {},
+      select: { id: true, username: true, storeName: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return sellers;
+  }
 
   async getSellers(params: { page?: number; status?: string }) {
     const page = params.page || 1;

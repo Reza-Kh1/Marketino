@@ -24,6 +24,7 @@ export default function page() {
     });
 
     const { data: dataBrand, isFetching } = useBrandAdmin()
+    
     const { mutate: CreateMutate, isSuccess: CreateSuccess, isPending: CreatePending } = useCreateBrand()
     const { mutate: DeleteMutate, isSuccess: DeleteSuccess, isPending: DeletePending } = useDeleteBrand()
     const { mutate: UpdateMutate, isSuccess: UpdateSuccess, isPending: UpdatePending } = useUpdateBrand()

@@ -9,7 +9,7 @@ import SelectCustom from '../inputs/SelectCustom'
 import AutocompleteCustom from '../inputs/AutoCompleteCustom'
 import InputForm from '../inputs/InputForm'
 import CustomButton from '../CustomButton'
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Search, X } from 'lucide-react'
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, DollarSign, Search, X } from 'lucide-react'
 
 type SearchBoxType = {
     placeHolder?: string
@@ -30,16 +30,18 @@ type SearchBoxType = {
         className?: string
         options: { name: string, id: string }[]
     }[]
-    isCity?: boolean
+    isOrder?: boolean
     inputs?: { name: string, placeholder: string, label: string, type?: string }[]
+    isPrice?: boolean
 }
 
 export default function SearchBox({
     placeHolder,
     inputs,
     selects,
-    isCity = false,
-    autocomplete
+    isOrder = true,
+    autocomplete,
+    isPrice = false
 }: SearchBoxType) {
     const router = useRouter();
     const pathname = usePathname();
@@ -50,6 +52,8 @@ export default function SearchBox({
             search: searchParams.get('search') || '',
             limit: searchParams.get('limit') || '',
             order: searchParams.get('order') || 'desc',
+            minPrice: searchParams.get('minPrice') || '',
+            maxPrice: searchParams.get('maxPrice') || '',
         };
 
         inputs?.forEach(input => {
@@ -77,10 +81,21 @@ export default function SearchBox({
 
     const orderValue = watch('order');
     const searchValue = watch('search');
+    const minPrice = watch('minPrice');
+    const maxPrice = watch('maxPrice');
     const allFormValues = watch();
+    const MAX_LIMIT = 500000000;
+    const minPercent = (minPrice / MAX_LIMIT) * 100;
+    const maxPercent = (maxPrice / MAX_LIMIT) * 100;
     const handleSearchSubmit = (data: any) => {
         const params = new URLSearchParams();
         Object.entries(data).forEach(([key, value]) => {
+            if (key === 'minPrice' || key === 'maxPrice') {
+                const numVal = Number(value);
+                if (!numVal || numVal <= 0) {
+                    return;
+                }
+            }
             if (Array.isArray(value)) {
                 if (value.length > 0) {
                     params.set(key, value.join(','));
@@ -200,18 +215,90 @@ export default function SearchBox({
                                         classDiv=''
                                     />
                                 </MotionWrapper>
-                                <MotionWrapper delay={0.2} duration={0.8} preset='slideUpBlur'>
-                                    <SelectCustom
-                                        label='مرتب سازی'
-                                        placeHolder='جدید ترین'
-                                        setValue={(val: string) => setValue('order', val)}
-                                        value={orderValue}
-                                        children={[
-                                            { name: 'قدیمی ترین', id: 'asc' },
-                                            { name: 'جدید ترین', id: 'desc' },
-                                        ]}
-                                    />
-                                </MotionWrapper>
+                                {isOrder && (
+                                    <MotionWrapper delay={0.2} duration={0.8} preset='slideUpBlur'>
+                                        <SelectCustom
+                                            label='مرتب سازی'
+                                            placeHolder='جدید ترین'
+                                            setValue={(val: string) => setValue('order', val)}
+                                            value={orderValue}
+                                            children={[
+                                                { name: 'قدیمی ترین', id: 'asc' },
+                                                { name: 'جدید ترین', id: 'desc' },
+                                            ]}
+                                        />
+                                    </MotionWrapper>
+                                )}
+                                {isPrice &&
+                                    <MotionWrapper delay={0.2} duration={0.8} preset='slideUpBlur' className='col-span-2'>
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <InputForm
+                                                name="up-price"
+                                                label="از قیمت"
+                                                max={MAX_LIMIT}
+                                                value={minPrice.toLocaleString('en-US')}
+                                                iconEnd={<DollarSign />}
+                                                onChange={({ target }) => {
+                                                    let value = target.value.replace(/[^0-9]/g, '');
+                                                    if (value !== '') {
+                                                        const num = Number(value);
+                                                        setValue('minPrice', num === 0 ? 0 : num);
+                                                    } else {
+                                                        setValue('minPrice', 0);
+                                                    }
+                                                }}
+                                            />
+                                            <InputForm
+                                                name="up-price"
+                                                label="تا قیمت"
+                                                max={MAX_LIMIT}
+                                                value={maxPrice.toLocaleString('en-US')}
+                                                iconEnd={<DollarSign />}
+                                                onChange={({ target }) => {
+                                                    let value = target.value.replace(/[^0-9]/g, '');
+                                                    if (value !== '') {
+                                                        const num = Number(value);
+                                                        setValue('maxPrice', num === 0 ? 0 : num);
+                                                    } else {
+                                                        setValue('maxPrice', 0);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="relative w-full pt-4 pb-2">
+                                            <div className="absolute top-1/2 -translate-y-1/2 w-full h-2 bg-slate-800 rounded-lg"></div>
+                                            <div
+                                                className="absolute top-1/2 -translate-y-1/2 h-2 bg-linear-to-r from-cyan-700 to-blue-800 rounded-lg shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+                                                style={{
+                                                    insetInlineStart: `${minPercent}%`,
+                                                    insetInlineEnd: `${100 - maxPercent}%`,
+                                                }}
+                                            />
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={MAX_LIMIT}
+                                                value={minPrice}
+                                                onChange={(e) => {
+                                                    const value = Math.min(Number(e.target.value), maxPrice - 100);
+                                                    setValue('minPrice', Math.max(0, value));
+                                                }}
+                                                className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_#06b6d4] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer"
+                                            />
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={MAX_LIMIT}
+                                                value={maxPrice}
+                                                onChange={(e) => {
+                                                    const value = Math.max(Number(e.target.value), minPrice + 100);
+                                                    setValue('maxPrice', Math.min(MAX_LIMIT, value));
+                                                }}
+                                                className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_#3b82f6] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer"
+                                            />
+                                        </div>
+                                    </MotionWrapper>
+                                }
                                 <div className='w-full mt-2 col-span-4'>
                                     <MotionWrapper delay={0.5} preset='scale' className=''>
                                         <CustomButton

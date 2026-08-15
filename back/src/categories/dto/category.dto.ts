@@ -2,7 +2,7 @@
  * Category DTOs - اشیاء انتقال داده دسته‌بندی
  */
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, Min, MaxLength, isBoolean, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, MaxLength, isBoolean, IsBoolean, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateCategoryDto {
@@ -16,16 +16,6 @@ export class CreateCategoryDto {
   @IsString()
   @MaxLength(200)
   nameEn?: string;
-
-  @ApiPropertyOptional({ description: 'توضیحات فارسی' })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional({ description: 'توضیحات انگلیسی' })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
 
   @ApiPropertyOptional({ description: 'شناسه والد (برای ساختار درختی)' })
   @IsOptional()

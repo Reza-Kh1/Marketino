@@ -11,8 +11,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { CreateVariantDto } from './dto/variant.dto';
-
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
@@ -116,51 +114,5 @@ export class ProductsController {
   @ApiOperation({ summary: 'تغییر وضعیت ویژه محصول' })
   async toggleFeature(@Param('id') id: string) {
     return this.productsService.toggleFeature(id);
-  }
-
-  /**
-   * 🆕 ایجاد Variant برای محصول
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
-  @Post('/variants')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'ایجاد تنوع محصول (رنگ، سایز و ...)' })
-  async createVariant(@Body() dto: CreateVariantDto) {
-    return this.productsService.createVariant(dto);
-  }
-
-  /**
-   * 🆕 دریافت لیست Variantهای محصول
-   */
-  @Public()
-  @Get(':id/variants')
-  @ApiOperation({ summary: 'لیست تنوع‌های محصول' })
-  async getVariants(@Param('id') id: string) {
-    return this.productsService.getVariants(id);
-  }
-
-  /**
-   * 🆕 به‌روزرسانی Variant
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
-  @Put('variants/:variantId')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'ویرایش تنوع محصول' })
-  async updateVariant(@Param('variantId') variantId: string, @Body() dto: CreateVariantDto) {
-    return this.productsService.updateVariant(variantId, dto);
-  }
-
-  /**
-   * 🆕 حذف Variant
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
-  @Delete('variants/:variantId')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'حذف تنوع محصول' })
-  async deleteVariant(@Param('variantId') variantId: string) {
-    return this.productsService.deleteVariant(variantId);
   }
 }

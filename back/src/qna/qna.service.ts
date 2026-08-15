@@ -26,7 +26,7 @@ export class QnaService {
     await this.prisma.qna.create({
       data: {
         content: dto.content, productId: dto.productId, parentId: dto.parentId ?? null,
-        userId, role, status: ReviewApproval.pending
+        userId, role, status: role === "admin" ? ReviewApproval.approved : ReviewApproval.pending
       },
     });
     return { success: true }
@@ -73,7 +73,7 @@ export class QnaService {
           parent: {
             select: { content: true, role: true, userId: true, }
           },
-product:{select:{id:true,title:true,titleEn:true}}
+          product: { select: { id: true, title: true, titleEn: true } }
         }
       }),
       this.prisma.qna.count({ where })

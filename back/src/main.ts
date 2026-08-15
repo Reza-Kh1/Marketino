@@ -76,6 +76,7 @@ async function bootstrap() {
     .addTag('Admin', 'پنل مدیریت')
     .addTag('Seller', 'پنل فروشنده')
     .addTag('AI', 'هوش مصنوعی')
+    .addTag('Variants', 'تمام ویژگی های مرتبط به محصول')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

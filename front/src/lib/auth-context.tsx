@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err: any) {
         const status = err?.response?.status;
-        const isUnauthorized = status === 401 || err?.message?.includes('Unauthorized');
+        const isUnauthorized = status === 401 || err?.message?.includes('Unauthorized');        
         if (isUnauthorized) {
           await authApi.logout()
           setAuthToken(null);

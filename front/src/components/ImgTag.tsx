@@ -13,6 +13,8 @@ type ImageType = {
   figureClass?: string;
   customSrc?: string
   onClick?: (value: any) => void
+  priority?: boolean
+  loading?: 'lazy' | 'eager'
 };
 export default function ImgTag({
   width,
@@ -23,7 +25,9 @@ export default function ImgTag({
   classPlus,
   figureClass,
   customSrc,
-  onClick
+  onClick,
+  loading,
+  priority = false
 }: ImageType) {
   const [load, setLoad] = useState<boolean>(true);
   const [error, setError] = useState<string | StaticImageData | null>(null)
@@ -35,8 +39,9 @@ export default function ImgTag({
         <Image
           width={width || 1080}
           height={height || 1080}
-          loading="lazy"
+          loading={loading || 'lazy'}
           onClick={onClick}
+          priority={priority}
           // placeholder="blur"
           // blurDataURL="data:image/gif;base64,..."
           onLoad={() => setLoad(false)}

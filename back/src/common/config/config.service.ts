@@ -20,6 +20,7 @@ const configServices = () => ({
     ticket: process.env.ALL_TICKET || 10,
     report: process.env.ALL_REPORT || 10,
     qna: process.env.ALL_QNA || 10,
+    color: process.env.ALL_COLOR || 10
   }
 });
 

@@ -10,16 +10,16 @@ import { toggleCompare, isInCompare } from '@/components/CompareFloat';
 import { showQuickView } from '@/components/QuickViewModal';
 import { useCart, useAddToCart, useDeleteFromCart } from '@/hooks/cart.hook';
 import { useWishlist } from '@/lib/use-wishlist';
-import { ProductType } from '@/lib/api';
 import ImgTag from './ImgTag';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import CustomButton from './CustomButton';
 import { useLocale } from 'next-intl';
+import { ProductEntity } from '@/services/product.service';
 
 interface ProductCardProps {
-  product: ProductType;
+  product: ProductEntity;
   index?: number;
 }
 

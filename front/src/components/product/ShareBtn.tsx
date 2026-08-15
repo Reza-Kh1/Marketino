@@ -1,3 +1,4 @@
+'use client'
 import React, { useState } from 'react';
 import { Share2, Copy, Check, X, Send, MessageCircle, Twitter } from 'lucide-react';
 import TooltipCustom from '../TooltipCustom';

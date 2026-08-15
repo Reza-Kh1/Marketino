@@ -15,6 +15,7 @@ import { z } from "zod";
 import { zodResolver } from '@hookform/resolvers/zod';
 import CustomButton from '@/components/CustomButton';
 import { toast } from 'sonner';
+import { format } from 'date-fns-jalali';
 
 export const discountSchema = z
   .object({
@@ -102,6 +103,7 @@ export default function AdminDiscountsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
   const fetchDiscounts = useCallback(async () => {
     try {
       setLoading(true);
@@ -163,7 +165,7 @@ export default function AdminDiscountsPage() {
   }
 
   const formatDate = (d: string | Date) => {
-    try { return new Date(d).toLocaleDateString('fa-IR'); } catch { return String(d); }
+    try { return format(new Date(d), "yyyy/MM/dd - HH:mm:ss"); } catch { return String(d); }
   };
 
   const isActive = (d: DiscountCode) => {

@@ -7,7 +7,7 @@ type InputFormProps<TFormValues extends Record<string, any>> = {
     name: Path<TFormValues>;
     register?: UseFormRegister<TFormValues>;
     error?: FieldError;
-    type?: "text" | "email" | "password" | "phone" | "number" | "textarea";
+    type?: "text" | "email" | "password" | "phone" | "number" | "textarea" | "price";
     placeholder?: string;
     label?: string;
     required?: boolean;

@@ -2,6 +2,7 @@ import { apiClient, api } from "@/lib/api-client";
 import { CategorysTypes } from "./category.service";
 import { TableData } from "@/components/inputs/ProductTable";
 import { ProductImage } from "@/lib/api";
+import { BrandType } from "./brand.service";
 
 const BASE_URL = "/products";
 const VARIANT_URL = "variants";
@@ -56,10 +57,11 @@ export interface ProductEntity {
     quantity: number;
     sku: string | null;
     brandId: string | null;
+    brand: BrandType
     weight: number | null;
     dimensions: string | null;
     condition: 'new' | 'used';
-    status: 'pending' | 'approved' | 'rejected' | 'draft';
+    status: 'pending' | 'approved' | 'inactive';
     isFeatured: string;
     isDigital: string;
     digitalFile: string | null;
@@ -69,8 +71,8 @@ export interface ProductEntity {
     reviewCount: number;
     metaTitle: string | null;
     metaTitleEn: string | null;
-    metaDescription: string | null;
-    metaDescriptionEn: string | null;
+    content: string | null;
+    contentEn: string | null;
     createdAt: string;
     updatedAt: string;
     sellerId: string;
@@ -78,6 +80,9 @@ export interface ProductEntity {
     images: ProductImage[];
     category: CategorysTypes;
     seller: Seller;
+    originalPrice: number | null
+    minPrice: number | null
+    discountPercent: number | null
 }
 
 
@@ -105,18 +110,6 @@ export interface FormProductDTO {
 }
 
 export const ProductService = {
-    listVariant: (id: string) => {
-        return apiClient.get<VariantType[]>(`${BASE_URL}/${id}/${VARIANT_URL}`);
-    },
-    deleteVariant: (id: string) => {
-        return apiClient.delete<VariantType[]>(`${BASE_URL}/${VARIANT_URL}/${id}`);
-    },
-    updateVariant: (id: string, data: FormVariantDTO) => {
-        return apiClient.put<VariantType[]>(`${BASE_URL}/${VARIANT_URL}/${id}`, data);
-    },
-    createVariant: (data: FormVariantDTO) => {
-        return apiClient.post<VariantType[]>(`${BASE_URL}/${VARIANT_URL}`, data);
-    },
     list: () => {
         return apiClient.get<ProductEntity[]>(BASE_URL);
     },

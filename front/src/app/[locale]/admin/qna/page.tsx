@@ -1,14 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MessageSquare, ChevronDown, Send, AlertTriangle, Clock, AlertCircle, CheckCircle, XCircle, Eye, SendHorizontal, Trash2, Check, X } from 'lucide-react';
+import { MessageSquare, ChevronDown, Send, AlertTriangle, Clock, AlertCircle, CheckCircle, XCircle, Eye, SendHorizontal, Trash2, Check, X, Pen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAdminQnA, useDeleteQnA, useUpdateQnA } from '@/hooks/qna.hook';
+import { useAdminQnA, useCreateQnA, useDeleteQnA, useUpdateQnA } from '@/hooks/qna.hook';
 import PendingApi from '@/components/PendingApi';
 import DynamicTable from '@/components/DynamicTable';
 import { Button } from '@/components/ui/button';
 import { Link, useRouter } from '@/i18n/navigation';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, selectRowsFn } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslations } from 'next-intl';
 import DialogView from '@/components/DialogView';
@@ -18,6 +18,11 @@ import { QnAEntity, StatusQna } from '@/services/qna.service';
 import TooltipCustom from '@/components/TooltipCustom';
 import DialogDelete from '@/components/DialogDelete';
 import { Badge } from '@/components/ui/badge';
+import QNAForm from '@/components/product/QNAForm';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import MotionWrapper from '@/components/motion/MotionWrapper';
+import CustomButton from '@/components/CustomButton';
+import { toast } from 'sonner';
 
 const statusConfig = {
     pending: {
@@ -38,13 +43,19 @@ const statusConfig = {
 };
 
 export default function AdminQnAPage() {
-    const [modalMode, setModalMode] = useState<'view' | 'delete' | null>(null);
+    const [modalMode, setModalMode] = useState<'view' | 'delete' | 'answer' | null>(null);
     const [selectQnA, setSelectQnA] = useState<QnAEntity | null>(null);
+    const [answer, setAnswer] = useState<null | string>(null)
     const { mutate: deleteMutate, isPending: pendingDelete } = useDeleteQnA();
     const { mutate: updateMutate, isPending: pendingUpdate } = useUpdateQnA()
+    const { mutate: createQna, isPending: pendinCreate } = useCreateQnA()
     const { refresh } = useRouter();
     const searchParams = useSearchParams();
-
+    const closeModal = () => {
+        setModalMode(null)
+        setSelectQnA(null)
+        setAnswer(null)
+    }
     const filters = useMemo(() => {
         const limitParam = searchParams.get('limit');
         const pageParam = searchParams.get('page');
@@ -237,6 +248,16 @@ export default function AdminQnAPage() {
                             </TooltipCustom>
                         </>
                     )}
+                    <TooltipCustom placeHolder="پاسخ">
+                        <Button
+                            onClick={() => { setSelectQnA(row.original); setModalMode("answer"); }}
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-admin-destructive/20"
+                        >
+                            <Pen className="w-4 h-4" />
+                        </Button>
+                    </TooltipCustom>
                     <TooltipCustom placeHolder="مشاهده">
                         <Button
                             onClick={() => { setSelectQnA(row.original); setModalMode("view"); }}
@@ -268,7 +289,19 @@ export default function AdminQnAPage() {
             <button onClick={refresh} className="text-primary font-bold">تلاش مجدد</button>
         </div>
     );
-
+    const submitAnswer = () => {
+        if (!answer || !selectQnA?.productId || !selectQnA?.id) return toast.error('پاسخ خود را ثبت کنید')
+        const body = {
+            content: answer,
+            productId: selectQnA?.productId,
+            parentId: selectQnA?.id
+        }
+        createQna(body, {
+            onSuccess: () => {
+                closeModal()
+            }
+        })
+    }
     if (isFetching) return <PendingApi />;
 
     return (
@@ -311,7 +344,50 @@ export default function AdminQnAPage() {
                 nextPage={qnaData?.pagination?.nextPage}
                 prevPage={qnaData?.pagination?.prevPage}
             />
-
+            <Dialog onOpenChange={closeModal} open={modalMode === 'answer'}>
+                <DialogContent className={`max-w-2xl! w-full bg-admin-bg-sidebar backdrop-blur-xl border-admin-border`}>
+                    <DialogHeader>
+                        <DialogTitle className="text-admin-text-primary text-xl font-bold">
+                            <MotionWrapper delay={0.1} preset='slideUpBlur'>
+                                ثبت پاسخ جدید
+                            </MotionWrapper>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
+                        <p>{selectQnA?.content}</p>
+                    </MotionWrapper>
+                    <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                            متن پاسخ شما <span className="text-rose-500">*</span>
+                        </label>
+                        <textarea
+                            rows={4}
+                            required
+                            placeholder={"پاسخ خود را به این پرسش به صورت دقیق و راهنما بنویسید..."}
+                            value={answer || ''}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            className="w-full p-4 resize-none text-sm rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all min-h-30"
+                        />
+                    </MotionWrapper>
+                    <DialogFooter>
+                        <MotionWrapper preset='slideUpBlur' delay={0.1} className="flex w-full justify-between pt-2 gap-2">
+                            <CustomButton
+                                color="blueLow"
+                                iconEnd={<X className='w-4 h-4' />}
+                                name={'انصراف'}
+                                onClick={closeModal}
+                            />
+                            <CustomButton
+                                form="qna-form"
+                                color="white"
+                                onClick={submitAnswer}
+                                name={"ثبت و ارسال پاسخ"}
+                                iconStart={<Send className={`w-4 h-4 rotate-12`} />}
+                            />
+                        </MotionWrapper>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <DialogView
                 open={modalMode === 'view'}
                 title='جزئیات پرسش و پاسخ'
@@ -345,12 +421,12 @@ export default function AdminQnAPage() {
             />
 
             <DialogDelete
-                closeModal={() => setModalMode(null)}
+                closeModal={closeModal}
                 onDelete={() => {
                     if (selectQnA?.id) {
                         deleteMutate(selectQnA.id, {
                             onSuccess: () => {
-                                setModalMode(null);
+                                closeModal()
                             }
                         });
                     }

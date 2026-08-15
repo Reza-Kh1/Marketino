@@ -21,6 +21,7 @@ export class QnaController {
     return this.qnaService.create(userId, role, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('/product/:productId')
   @ApiOperation({ summary: 'دریافت پرسش و پاسخ‌های محصول' })
   @ApiParam({ name: 'productId', description: 'شناسه محصول' })

@@ -1,6 +1,6 @@
 'use client';
-
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
@@ -17,39 +17,11 @@ import TaskItem from '@tiptap/extension-task-item';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import CharacterCount from '@tiptap/extension-character-count';
-import ResizeImage from 'tiptap-extension-resize-image'; // 🟢 اکستنشن جدید تغییر سایز عکس
-
-import {
-    Bold,
-    Italic,
-    Underline as UnderlineIcon,
-    Strikethrough,
-    List,
-    ListOrdered,
-    ListTodo,
-    AlignLeft,
-    AlignCenter,
-    AlignRight,
-    AlignJustify,
-    Link as LinkIcon,
-    Image as ImageIcon,
-    Table as TableIcon,
-    X,
-    Check,
-    Type,
-    Video,
-    Minus,
-    Subscript as SubscriptIcon,
-    Superscript as SuperscriptIcon,
-    Highlighter,
-    Undo,
-    Redo,
-    Code as CodeIcon,
-    Quote,
-    Maximize2,
-    Minimize2, CloudUpload,
-    PlusIcon
-} from 'lucide-react';
+import ResizeImage from 'tiptap-extension-resize-image';
+import UniqueID from '@tiptap/extension-unique-id';
+import { TableOfContents, getHierarchicalIndexes } from '@tiptap/extension-table-of-contents';
+import "./editor.css"
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, ListTodo, AlignLeft, AlignCenter, AlignRight, AlignJustify, Link as LinkIcon, Image as ImageIcon, Table as TableIcon, X, Check, Type, Video, Minus, Subscript as SubscriptIcon, Superscript as SuperscriptIcon, Highlighter, Undo, Redo, Code as CodeIcon, Quote, Maximize2, Minimize2, CloudUpload, PlusIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -60,6 +32,7 @@ import { cn } from '@/lib/utils';
 import UploadMedia, { FileProgress } from '@/components/upload/UploadMedia';
 import CustomButton from '../CustomButton';
 import { Label } from '../ui/label';
+import { Details, DetailsSummary, DetailsContent } from '@tiptap/extension-details';
 interface AdminRichEditorProps {
     content?: any | null;
     onChange?: (content: any) => void;
@@ -67,7 +40,15 @@ interface AdminRichEditorProps {
     height?: string;
     editable?: boolean;
 }
-
+const headingOptions = [
+    { l: 'پاراگراف', v: 'normal' },
+    { l: 'سرتیتر ۱', v: 'h1' },
+    { l: 'سرتیتر ۲', v: 'h2' },
+    { l: 'سرتیتر ۳', v: 'h3' },
+    { l: 'سرتیتر ۴', v: 'h4' },
+    { l: 'سرتیتر ۵', v: 'h5' },
+    { l: 'سرتیتر ۶', v: 'h6' },
+];
 export default function AdminRichEditor({
     content,
     onChange,
@@ -95,6 +76,7 @@ export default function AdminRichEditor({
     const colors = ['#000000', '#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db', '#f3f4f6', '#ffffff', '#7f1d1d', '#991b1b', '#dc2626', '#ef4444', '#f87171', '#9a3412', '#c2410c', '#ea580c', '#f97316', '#fb923c', '#92400e', '#ca8a04', '#eab308', '#facc15', '#4d7c0f', '#65a30d', '#16a34a', '#22c55e', '#4ade80', '#059669', '#10b981', '#14b8a6', '#0d9488', '#0891b2', '#06b6d4', '#0ea5e9', '#38bdf8', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#4338ca', '#4f46e5', '#6366f1', '#6d28d9', '#7c3aed', '#8b5cf6', '#a855f7', '#be185d', '#db2777', '#ec4899', '#f472b6', '#be123c', '#e11d48', '#f43f5e',];
     const highlightColors = ['#fef08a', '#fde047', '#facc15', '#fdba74', '#fb923c', '#fca5a5', '#f87171', '#f9a8d4', '#f0abfc', '#ddd6fe', '#c4b5fd', '#bfdbfe', '#93c5fd', '#a5f3fc', '#bbf7d0', '#86efac', '#d9f99d', '#e5e7eb', '#cbd5e1', '#94a3b8',];
     // 🟢 تابع اصلی آپلود عکس به API شما
+
     const handleImageUpload = async (file: File): Promise<string | null> => {
         try {
             const formData = new FormData();
@@ -120,8 +102,22 @@ export default function AdminRichEditor({
     const isEditorReady = useRef(false);
 
     const editor = useEditor({
-        immediatelyRender: false, // ✅ تغییر به false تا editor کاملاً آماده شود
+        immediatelyRender: false,
         extensions: [
+            Details.configure({ persist: true, HTMLAttributes: { class: 'details-block' } }),
+            DetailsSummary,
+            DetailsContent,
+            UniqueID.configure({
+                types: ['heading', 'paragraph'],
+                attributeName: 'id',
+            }),
+            TableOfContents.configure({
+                getIndex: getHierarchicalIndexes,
+                onUpdate: (content) => {
+                    // content شامل لیست تیترهاست با id, level, textContent
+                    // می‌تونی توی state ذخیره‌اش کنی و یه TOC کنار محتوا نشون بدی
+                },
+            }),
             StarterKit.configure({
                 heading: { levels: [1, 2, 3, 4, 5, 6] },
                 bulletList: { keepMarks: true },
@@ -212,10 +208,26 @@ export default function AdminRichEditor({
             }
         },
     });
-
-
+    const editorState = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            if (!editor) return null;
+            return {
+                headingLabel:
+                    headingOptions.find((item) =>
+                        item.v === 'normal'
+                            ? editor.isActive('paragraph')
+                            : editor.isActive('heading', { level: parseInt(item.v.slice(1)) })
+                    )?.l ?? 'پاراگراف',
+                isBold: editor.isActive('bold'),
+                isItalic: editor.isActive('italic'),
+                isUnderline: editor.isActive('underline'),
+                isHighlight: editor.isActive('highlight'),
+                isLink: editor.isActive('link'),
+            };
+        },
+    });
     const initialized = useRef(false);
-
     useEffect(() => {
         if (!editor) return;
         if (initialized.current) return;
@@ -237,29 +249,55 @@ export default function AdminRichEditor({
 
 
     if (!editor) {
-        return <div className={`border border-admin-border rounded-xl bg-admin-bg-sidebar ${height} flex items-center justify-center`}><div className="animate-spin w-6 h-6 border-2 border-admin-primary border-t-transparent rounded-full" /></div>;
+        return <div className={`border border-accent rounded-xl bg-admin-bg-sidebar ${height} flex items-center justify-center`}><div className="animate-spin w-6 h-6 border-2 border-admin-primary border-t-transparent rounded-full" /></div>;
     }
 
     return (
         <div className={cn(
-            "border mt-4 border-admin-border rounded-xl overflow-hidden bg-admin-bg-sidebar transition-all duration-200 flex flex-col",
+            "border mt-4 border-accent rounded-xl overflow-hidden bg-admin-bg-sidebar transition-all duration-200 flex flex-col",
             isFullscreen && "fixed inset-0 z-20 overflow-hidden w-screen h-screen rounded-none bg-white dark:bg-background" // 🟢 استایل تمام صفحه
         )}>
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-admin-border bg-admin-bg-sidebar z-10">
+            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-accent bg-admin-bg-sidebar z-10">
                 <Popover>
-                    <PopoverTrigger asChild><Button variant="ghost" size="sm" className="h-8 px-2 text-xs"><Type className="h-4 w-4 mr-1" /><span className="hidden sm:inline">سرتیتر</span></Button></PopoverTrigger>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1">
+                            <Type className="h-4 w-4" />
+                            <span className="hidden sm:inline">{editorState?.headingLabel ?? 'پاراگراف'}</span>
+                        </Button>
+                    </PopoverTrigger>
                     <PopoverContent className="w-48" align="start">
-                        {[{ l: 'پاراگراف', v: 'normal' }, { l: 'سرتیتر ۱', v: 'h1' }, { l: 'سرتیتر ۲', v: 'h2' }, { l: 'سرتیتر ۳', v: 'h3' }, { l: 'سرتیتر ۴', v: 'h4' }, { l: 'سرتیتر ۵', v: 'h5' }, { l: 'سرتیتر ۶', v: 'h6' }].map((item) => (
-                            <Button key={item.v} variant="ghost" size="sm" className={cn('w-full justify-start', editor.isActive(item.v === 'normal' ? 'paragraph' : 'heading', { level: parseInt(item.v.slice(1)) || 1 }) && 'bg-admin-primary/20')} onClick={() => item.v === 'normal' ? editor.chain().focus().setParagraph().run() : editor.chain().focus().toggleHeading({ level: parseInt(item.v.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6 }).run()}><span className={item.v === 'h1' ? 'text-xl font-bold' : item.v === 'h2' ? 'text-lg font-semibold' : 'text-sm'}>{item.l}</span></Button>
+                        {headingOptions.map((item) => (
+                            <Button key={item.v} variant="ghost" size="sm" className={cn('w-full justify-start', editor.isActive(item.v === 'normal' ? 'paragraph' : 'heading', { level: parseInt(item.v.slice(1)) || 1 }) && 'bg-admin-primary/20')} onClick={() => item.v === 'normal' ? editor.chain().focus().setParagraph().run() : editor.chain().focus().toggleHeading({ level: parseInt(item.v.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6 }).run()}>
+                                <span className={item.v === 'h1' ? 'text-xl font-bold' : item.v === 'h2' ? 'text-lg font-semibold' : 'text-sm'}>{item.l}</span>
+                            </Button>
                         ))}
                     </PopoverContent>
                 </Popover>
-
                 <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
-                    <PopoverTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><span className="flex flex-col items-center pointer-events-none"><span className="text-xs font-bold">A</span><span className="h-0.5 w-4" style={{ backgroundColor: currentColor }} /></span></Button></PopoverTrigger>
+                    <PopoverTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><span className="flex flex-col items-center pointer-events-none"><span className="text-xs font-bold">A</span><span className="h-0.5 w-4" style={{ backgroundColor: currentColor || 'currentColor' }} /></span></Button></PopoverTrigger>
                     <PopoverContent className="w-48" align="start">
-                        <div className="space-y-2"><Label>رنگ متن</Label><div className="grid grid-cols-5 gap-1">{colors.map((c) => (<button key={c} type="button" className="w-8 h-8 rounded border" style={{ backgroundColor: c }} onClick={() => { editor.chain().focus().setColor(c).run(); setCurrentColor(c); setShowColorPicker(false); }} />))}</div><Input type="color" value={currentColor} onChange={(e) => { editor.chain().focus().setColor(e.target.value).run(); setCurrentColor(e.target.value); }} className="mt-2" /></div>
+                        <div className="space-y-2">
+                            <Label>رنگ متن</Label>
+                            <div className="grid grid-cols-5 gap-1">
+                                {colors.map((c) => (
+                                    <button key={c} type="button" className="w-8 h-8 rounded border" style={{ backgroundColor: c }} onClick={() => { editor.chain().focus().setColor(c).run(); setCurrentColor(c); setShowColorPicker(false); }} />
+                                ))}
+                            </div>
+                            <Input type="color" value={currentColor || '#000000'} onChange={(e) => { editor.chain().focus().setColor(e.target.value).run(); setCurrentColor(e.target.value); }} className="mt-2" />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs"
+                                onClick={() => {
+                                    editor.chain().focus().unsetColor().run();
+                                    setCurrentColor('');
+                                    setShowColorPicker(false);
+                                }}
+                            >
+                                حذف رنگ
+                            </Button>
+                        </div>
                     </PopoverContent>
                 </Popover>
                 <Popover open={showHighlightPicker} onOpenChange={setShowHighlightPicker}>
@@ -290,6 +328,9 @@ export default function AdminRichEditor({
                 <Separator orientation="vertical" className="h-6 mx-1" />
 
                 <Button type='button' variant="ghost" size="sm" className={cn('h-8 w-8 p-0', editor.isActive('bold') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-4 w-4" /></Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => editor.chain().focus().setDetails().run()}>
+                    <ChevronDown className="h-4 w-4" />
+                </Button>
                 <Button type='button' variant="ghost" size="sm" className={cn('h-8 w-8 p-0', editor.isActive('italic') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-4 w-4" /></Button>
                 <Button type='button' variant="ghost" size="sm" className={cn('h-8 w-8 p-0', editor.isActive('underline') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon className="h-4 w-4" /></Button>
                 <Button type='button' variant="ghost" size="sm" className={cn('h-8 w-8 p-0', editor.isActive('strike') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough className="h-4 w-4" /></Button>
@@ -369,11 +410,24 @@ export default function AdminRichEditor({
 
             {/* Editor */}
             <div className={cn("overflow-auto flex-1 bg-white dark:bg-background", isFullscreen ? "h-full" : height)}>
+                <BubbleMenu
+                    editor={editor}
+                    options={{ offset: 6, placement: 'top' }}
+                    className="flex items-center gap-0.5 rounded-lg border border-accent-foreground bg-accent p-1 shadow-lg"
+                >
+                    <span className="px-2 text-[11px] text-admin-text-muted">{editorState?.headingLabel ?? 'پاراگراف'}</span>
+                    <Separator orientation="vertical" className="h-5 mx-0.5" />
+                    <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('bold') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-3.5 w-3.5" /></Button>
+                    <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('italic') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-3.5 w-3.5" /></Button>
+                    <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('underline') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon className="h-3.5 w-3.5" /></Button>
+                    <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('highlight') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleHighlight({ color: currentHighlight }).run()}><Highlighter className="h-3.5 w-3.5" /></Button>
+                    <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('link') && 'bg-admin-primary/20')} onClick={() => { const url = window.prompt('لینک را وارد کنید', editor.getAttributes('link').href || ''); if (url === null) return; url === '' ? editor.chain().focus().unsetLink().run() : editor.chain().focus().setLink({ href: url }).run(); }}><LinkIcon className="h-3.5 w-3.5" /></Button>
+                </BubbleMenu>
                 <EditorContent editor={editor} />
             </div>
 
             {/* Status Bar */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-t border-admin-border text-xs text-admin-text-muted bg-admin-bg-sidebar">
+            <div className="flex items-center justify-between px-3 py-1.5 border-t border-accent text-xs text-admin-text-muted bg-admin-bg-sidebar">
                 <span>{editor.storage.characterCount.words()} کلمه | {editor.storage.characterCount.characters()} کاراکتر</span>
                 {isFullscreen && <span className=" text-blue/50">حالت تمام صفحه فعال است</span>}
             </div>

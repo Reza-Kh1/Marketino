@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Grid3X3, Plus, X, AlertTriangle, Edit, Trash2, SortAsc, SortDesc, FolderMinus, FolderPlus, Eye, Pencil, Check } from 'lucide-react';
-import { adminCategoriesApi, type Category } from '@/lib/api';
-import toast from 'react-hot-toast';
+import { Plus, X, AlertTriangle, Edit, Trash2, SortAsc, SortDesc, FolderMinus, FolderPlus, Eye, Pencil, Check } from 'lucide-react';
 import { useCategories, useCategoriesAdmin, useCreateCategory, useDeleteCategory, useUpdateCategory } from '@/hooks/category.hook';
 import { CategorysTypes } from '@/services/category.service';
 import { ColumnDef } from '@tanstack/react-table';
@@ -125,7 +122,7 @@ export default function AdminCategoriesPage() {
       header: 'وضعیت دسته',
       cell: ({ row }) => <span className="text-xs">{row.original?.isActive ?
         <Check className='text-green-500' />
-        : <X className='text-red-500'/>}</span>
+        : <X className='text-red-500' />}</span>
     },
     {
       accessorKey: 'sortOrder',
@@ -167,8 +164,8 @@ export default function AdminCategoriesPage() {
 
   const onSubmit = (data: any) => {
     const body = {
-      description: data.description,
-      descriptionEn: data.descriptionEn,
+      metaDescription: data.description,
+      metaDescriptionEn: data.descriptionEn,
       icon: data.icon,
       image: data.image,
       isActive: data.isActive === 'true' ? true : false,

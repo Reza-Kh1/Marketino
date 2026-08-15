@@ -11,7 +11,10 @@ import {
   Headset,
   MessagesSquare,
   Flag, MailQuestion,
-  ShieldAlert
+  ShieldAlert,
+  ArrowUpNarrowWide,
+  Paintbrush,
+  GitCompare
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -39,14 +42,17 @@ const FULL_MENU = [
   { href: '/admin/tickets', label: 'تیکت‌ها', icon: Headset, permission: 'tickets' },
   { href: '/admin/notifications', label: 'اعلان‌ها', icon: Bell, permission: 'notifications' },
   { href: '/admin/trust-metrics', label: 'معیارهای اعتماد', icon: TrendingUp, permission: 'sellers' },
-  { href: '/admin/seller-reviews', label: 'نظرات فروشندگان', icon: Star, permission: 'reviews' },
+  { href: '/admin/reviews', label: 'نظرات محصولات', icon: Star, permission: 'reviews' },
+  { href: '/admin/seller-reviews', label: 'نظرات فروشندگان', icon: ArrowUpNarrowWide, permission: 'reviews' },
   { href: '/admin/activity-log', label: 'گزارش فعالیت', icon: History, permission: 'activity' },
   { href: '/admin/colleagues', label: 'همکاران', icon: UserPlus, permission: null, superAdminOnly: true },
   { href: '/admin/report', label: 'گزارش تخلف', icon: ShieldAlert, permission: null, superAdminOnly: true },
   { href: '/admin/brand', label: 'برند', icon: Ribbon, permission: null },
   { href: '/admin/chats', label: 'چت ها', icon: MessagesSquare, permission: 'settings' },
+  { href: '/admin/colors', label: 'رنگ ها', icon: Paintbrush, permission: 'settings' },
   { href: '/admin/media', label: 'رسانه ها', icon: ImageUp, permission: 'settings' },
   { href: '/admin/qna', label: 'پرسش و پاسخ', icon: MailQuestion, },
+  { href: '/admin/variant', label: 'تنوع محصول (Variant)', icon: GitCompare, },
   { href: '/admin/settings', label: 'تنظیمات', icon: Settings, permission: 'settings' },
 ];
 

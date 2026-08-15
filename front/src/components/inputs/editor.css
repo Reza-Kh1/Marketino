@@ -1,0 +1,465 @@
+/* ==========================================================================
+   TIPTAP EDITOR & VIEWER (CLEAN & REFACTORED STYLES)
+   ========================================================================== */
+
+/* ۱. پایه و ظرف اصلی ادیتور */
+.tiptap.ProseMirror {
+  min-height: 200px;
+  outline: none;
+  padding: 1rem;
+}
+
+/* واترمارک / Placeholder */
+.tiptap.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  color: #94a3b8;
+  /* slate-400 */
+  pointer-events: none;
+  height: 0;
+}
+
+.dark .tiptap.ProseMirror p.is-editor-empty:first-child::before {
+  color: #475569;
+  /* slate-600 */
+}
+
+/* ۲. تایپوگرافی (تیترها) */
+.tiptap.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.tiptap.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+
+.tiptap.ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+
+/* ۳. لیست‌ها (رفع مشکل Tailwind Preflight) */
+.tiptap.ProseMirror ul {
+  list-style-type: disc !important;
+  padding-inline-start: 1.5rem !important;
+  margin: 0.5rem 0;
+}
+
+.tiptap.ProseMirror ol {
+  list-style-type: decimal !important;
+  padding-inline-start: 1.5rem !important;
+  margin: 0.5rem 0;
+}
+
+.tiptap.ProseMirror ul ul {
+  list-style-type: circle !important;
+}
+
+.tiptap.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+/* چک‌لیست (TaskList) */
+.tiptap.ProseMirror ul[data-type='taskList'] {
+  list-style: none !important;
+  padding-inline-start: 0.25rem !important;
+}
+
+.tiptap.ProseMirror ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.tiptap.ProseMirror ul[data-type='taskList'] li>label {
+  margin-top: 0.25rem;
+  user-select: none;
+}
+
+.tiptap.ProseMirror ul[data-type='taskList'] li>div {
+  flex: 1;
+}
+
+/* ۴. نقل‌قول (Blockquote) */
+.tiptap.ProseMirror blockquote {
+  border-inline-start: 4px solid #06b6d4;
+  /* cyan-500 */
+  padding-inline-start: 1rem;
+  margin: 1rem 0;
+  color: #475569;
+  /* slate-600 */
+}
+
+.dark .tiptap.ProseMirror blockquote {
+  color: #94a3b8;
+  /* slate-400 */
+}
+
+/* ۵. تصویر، لینک و کد */
+.tiptap.ProseMirror img {
+  max-width: 100%;
+  border-radius: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.tiptap.ProseMirror a {
+  color: #0891b2;
+  /* cyan-600 */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dark .tiptap.ProseMirror a {
+  color: #22d3ee;
+  /* cyan-400 */
+}
+
+.tiptap.ProseMirror code {
+  background: #f1f5f9;
+  /* slate-100 */
+  color: #db2777;
+  /* pink-600 */
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.875em;
+  font-family: monospace;
+}
+
+.dark .tiptap.ProseMirror code {
+  background: rgba(15, 23, 42, 0.6);
+  color: #f472b6;
+  /* pink-400 */
+}
+
+.tiptap.ProseMirror pre {
+  background: #0f172a;
+  /* slate-900 */
+  color: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.tiptap.ProseMirror pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.tiptap.ProseMirror hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 1.5rem 0;
+}
+
+.dark .tiptap.ProseMirror hr {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   ۶. جدول‌ها (اصلاح‌شده: بوردر کاملاً واضح، گوشه گرد و پس‌زمینه روز/شب)
+   ========================================================================== */
+
+/* قاب اصلی و دور تا دور جدول */
+.tiptap.ProseMirror .tableWrapper {
+  overflow: hidden;
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  border: 1px solid #94a3b8;
+  /* بوردر کاملاً واضح و مشخص (روز) */
+  background-color: #f8fafc;
+  /* پس‌زمینه مات روز */
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+.dark .tiptap.ProseMirror .tableWrapper {
+  border-color: #38bdf8;
+  /* بوردر شفاف و درخشان فیروزه‌ای/آبی (شب) */
+  background-color: #0f172a;
+  /* پس‌زمینه بنفش/آبی تیره شب */
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* ساختار جدول */
+.tiptap.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  margin: 0 !important;
+}
+
+/* سلول‌های داخلی */
+.tiptap.ProseMirror th,
+.tiptap.ProseMirror td {
+  border: 1px solid #cbd5e1;
+  /* خطوط داخلی (روز) */
+  padding: 0.75rem 0.9rem;
+  min-width: 80px;
+  position: relative;
+  vertical-align: top;
+  text-align: start;
+}
+
+.dark .tiptap.ProseMirror th,
+.dark .tiptap.ProseMirror td {
+  border-color: rgba(255, 255, 255, 0.15);
+  /* خطوط داخلی (شب) */
+}
+
+/* هدر جدول (سطر اول) */
+.tiptap.ProseMirror th {
+  background-color: #e2e8f0;
+  /* هدر تفکیک‌شده روز */
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dark .tiptap.ProseMirror th {
+  background-color: #1e293b;
+  /* هدر روشن‌تر شب */
+  color: #f8fafc;
+}
+
+/* حذف خطوط اضافه سلول‌های کناری تا با بوردر اصلی double نشوند */
+.tiptap.ProseMirror tr:first-child th,
+.tiptap.ProseMirror tr:first-child td {
+  border-top: none;
+}
+
+.tiptap.ProseMirror tr:last-child td {
+  border-bottom: none;
+}
+
+.tiptap.ProseMirror tr td:first-child,
+.tiptap.ProseMirror tr th:first-child {
+  border-start-style: none;
+}
+
+.tiptap.ProseMirror tr td:last-child,
+.tiptap.ProseMirror tr th:last-child {
+  border-end-style: none;
+}
+
+.tiptap.ProseMirror .selectedCell:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 182, 212, 0.15);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   ۷. آکاردئون (۱۰۰٪ سرورساید، المان نیتیو details + summary)
+   ========================================================================== */
+
+.tiptap.ProseMirror details,
+.tiptap.ProseMirror div[data-type='details'] {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.dark .tiptap.ProseMirror details,
+.dark .tiptap.ProseMirror div[data-type='details'] {
+  border-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.25);
+}
+
+.tiptap.ProseMirror summary,
+.tiptap.ProseMirror div[data-type='detailsSummary'] {
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  list-style: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.dark .tiptap.ProseMirror summary,
+.dark .tiptap.ProseMirror div[data-type='detailsSummary'] {
+  color: #f8fafc;
+}
+
+.tiptap.ProseMirror summary::-webkit-details-marker {
+  display: none !important;
+}
+
+.tiptap.ProseMirror summary::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 4px 0 4px;
+  border-color: #64748b transparent transparent transparent;
+  transition: transform 0.2s ease;
+}
+
+.dark .tiptap.ProseMirror summary::after {
+  border-color: #94a3b8 transparent transparent transparent;
+}
+
+.tiptap.ProseMirror details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.tiptap.ProseMirror details>div,
+.tiptap.ProseMirror div[data-type='detailsContent'] {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.dark .tiptap.ProseMirror details>div,
+.dark .tiptap.ProseMirror div[data-type='detailsContent'] {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.tiptap.ProseMirror details,
+.tiptap.ProseMirror div[data-type='details'] {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  /* گردی متوسط */
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  background-color: #ffffff;
+  /* تم روز: سفید */
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+  /* سایه ریز */
+  transition: all 0.2s ease;
+}
+
+.dark .tiptap.ProseMirror details,
+.dark .tiptap.ProseMirror div[data-type='details'] {
+  border-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(15, 23, 42, 0.5);
+  /* تم شب: آبی/بنفش تیره */
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.25);
+}
+
+/* عنوان آکاردئون (دکمه خلاصه) */
+.tiptap.ProseMirror summary,
+.tiptap.ProseMirror div[data-type='detailsSummary'] {
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  list-style: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.dark .tiptap.ProseMirror summary,
+.dark .tiptap.ProseMirror div[data-type='detailsSummary'] {
+  color: #f8fafc;
+}
+
+/* حذف فلش پیش‌فرض مرورگر safari/chrome */
+.tiptap.ProseMirror summary::-webkit-details-marker {
+  display: none !important;
+}
+
+/* آیکون فلش سفارشی */
+.tiptap.ProseMirror summary::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 4px 0 4px;
+  border-color: #64748b transparent transparent transparent;
+  transition: transform 0.2s ease;
+}
+
+.dark .tiptap.ProseMirror summary::after {
+  border-color: #94a3b8 transparent transparent transparent;
+}
+
+/* چرخش فلش هنگام باز بودن آکاردئون */
+.tiptap.ProseMirror details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+/* محتوای داخلی آکاردئون */
+.tiptap.ProseMirror details>div,
+.tiptap.ProseMirror div[data-type='detailsContent'] {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.dark .tiptap.ProseMirror details>div,
+.dark .tiptap.ProseMirror div[data-type='detailsContent'] {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+
+.tiptap.ProseMirror div[data-type='details'] {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  margin: 0.75rem 0;
+  background: var(--muted);
+}
+
+.tiptap.ProseMirror div[data-type='details']>button {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+}
+
+.tiptap.ProseMirror div[data-type='details']>button::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  /* پیکان به‌صورت پیش‌فرض رو به پایین (چون RTL هستیم، از سمت چپ می‌چرخد) */
+  border-width: 6px 5px 0 5px;
+  border-color: currentColor transparent transparent transparent;
+  transition: transform 0.15s ease;
+}
+
+.tiptap.ProseMirror div[data-type='details'].is-open>button::before {
+  transform: rotate(-90deg);
+}
+
+.tiptap.ProseMirror div[data-type='details']>div {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiptap.ProseMirror div[data-type='detailsSummary'] {
+  font-weight: 700;
+  cursor: default;
+}
+
+.tiptap.ProseMirror div[data-type='detailsContent'] {
+  display: none;
+}
+
+.tiptap.ProseMirror div[data-type='details'].is-open div[data-type='detailsContent'] {
+  display: block;
+  margin-top: 0.5rem;
+}

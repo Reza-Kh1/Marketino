@@ -35,7 +35,7 @@ export class OrdersService {
     let subtotal = 0;
     const orderItems = cartItems.map(item => {
       const price = item.variant?.price ?? 0;
-      const total = price * item.quantity;
+      const total = Number(price) * item.quantity;
       subtotal += total;
       return {
         title: item.product.title,
@@ -108,7 +108,7 @@ export class OrdersService {
           notes: dto.notes,
           paymentMethod: dto.paymentMethod || 'card',
           discountId,
-          items: { create: orderItems },
+          // items: { create: orderItems },
         },
         include: { items: true },
       });
@@ -143,7 +143,7 @@ export class OrdersService {
         await this.emailService.sendOrderConfirmationEmail(user.email, {
           orderId: orderNumber,
           customerName: user.username,
-          items: orderItems.map(i => ({ name: i.title, quantity: i.quantity, price: i.price })),
+          items: orderItems.map(i => ({ name: i.title, quantity: i.quantity, price: Number(i.price) })),
           total,
           orderDate: new Date().toLocaleDateString('fa-IR'),
         }, 'fa');

@@ -33,16 +33,23 @@ import { ConfigModules } from './common/config/config.module';
 import { ReportModule } from './report/report.module';
 import { TicketModule } from './tickets/ticket.module';
 import { QnaModule } from './qna/qna.module';
+import { ColorsModule } from './colors/colors.module';
+import { RedisModule } from './redis/redis.module';
+import { DiscountQueueModule } from './queues/discount/discount-queue.module';
+import { VariantsModule } from './variants/variants.module';
 
 @Module({
   imports: [
     // ماژول‌های برنامه
+    RedisModule,
+    DiscountQueueModule,
     PrismaModule,
     EmailModule,
     PhoneModule,
     AuthModule,
     UsersModule,
     ProductsModule,
+    VariantsModule,
     CategoriesModule,
     CartModule,
     OrdersModule,
@@ -64,7 +71,8 @@ import { QnaModule } from './qna/qna.module';
     BrandsModule,
     ReportModule,
     TicketModule,
-    QnaModule
+    QnaModule,
+    ColorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

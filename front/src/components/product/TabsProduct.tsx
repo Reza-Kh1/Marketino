@@ -2,29 +2,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, SlidersHorizontal, MessageSquare, HelpCircle, Star, CheckCircle2, MessageSquarePlus } from "lucide-react";
 import ReviewForm from "./ReviewForm";
 import QNAForm from "./QNAForm";
+import { ProductDetail } from "@/types/types";
+import TiptapRenderer from "./TiptapRender";
 
-const tabsTable = {
-    "rows": [
-        [
-            "کشور سازنده",
-            "ایتالیا"
-        ],
-        [
-            "محصول دارای گرانتی",
-            "فقط پک گلوبال"
-        ],
-        [
-            "وزن محصول",
-            "25 گرم"
-        ]
-    ],
-    "headers": [
-        "مشخصات فنی",
-        "اطلاعات"
-    ]
-}
-
-export default function TabsProduct({ product, reviews = [], questions = [] }: any) {
+export default function TabsProduct(product: ProductDetail) {
+    const { productTable, productTableEn, qnas, reviews, _count } = product
     return (
         <section className="mt-10 sm:mt-16">
             <Tabs defaultValue="desc" className="w-full dir-rtl">
@@ -33,7 +15,7 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                     <TabsTrigger
                         classCustom
                         value="desc"
-                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1"
+                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1 cursor-pointer"
                     >
                         <Sparkles className="w-4 h-4" />
                         <span>توضیحات محصول</span>
@@ -43,7 +25,7 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                     <TabsTrigger
                         classCustom
                         value="specs"
-                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1"
+                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1 cursor-pointer"
                     >
                         <SlidersHorizontal className="w-4 h-4" />
                         <span>مشخصات فنی</span>
@@ -53,20 +35,20 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                     <TabsTrigger
                         classCustom
                         value="reviews"
-                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1"
+                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1 cursor-pointer"
                     >
                         <MessageSquare className="w-4 h-4" />
-                        <span>نظرات کاربران ({reviews?.length || 0})</span>
+                        <span>نظرات کاربران ({_count?.reviews || 0})</span>
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500 shadow-[0_0_12px_#06b6d4] group-data-[state=active]:block hidden" />
                     </TabsTrigger>
 
                     <TabsTrigger
                         classCustom
                         value="qa"
-                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1"
+                        className="whitespace-nowrap text-xs sm:text-sm py-2 px-1 cursor-pointer"
                     >
                         <HelpCircle className="w-4 h-4" />
-                        <span>پرسش و پاسخ ({questions?.length || 0})</span>
+                        <span>پرسش و پاسخ ({_count?.qnas || 0})</span>
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500 shadow-[0_0_12px_#06b6d4] group-data-[state=active]:block hidden" />
                     </TabsTrigger>
                 </TabsList>
@@ -74,10 +56,7 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                 {/* 1. DESCRIPTION */}
                 <TabsContent value="desc" className="pt-6 sm:pt-8 focus-visible:outline-none">
                     <div className="space-y-4 sm:space-y-6 max-w-4xl text-slate-700 dark:text-slate-300 leading-relaxed">
-                        <p className="text-sm sm:text-base lg:text-lg leading-7 sm:leading-8">
-                            {product?.description}
-                        </p>
-
+                        <TiptapRenderer content={product.content} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 pt-2 sm:pt-4">
                             <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800">
                                 <h5 className="font-bold text-xs sm:text-sm text-cyan-600 dark:text-cyan-400 mb-1.5">استایل و تن‌خور</h5>
@@ -98,42 +77,46 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                 {/* 2. SPECIFICATIONS */}
                 <TabsContent value="specs" className="pt-6 sm:pt-8 focus-visible:outline-none">
                     <div className="max-w-4xl space-y-4">
-                        <div className="w-full overflow-x-auto rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 backdrop-blur-md shadow-sm">
-                            <table className="w-full text-xs sm:text-sm text-right border-collapse">
-                                {tabsTable.headers && tabsTable.headers.length > 0 && (
+                        {productTable && productTable.headers && productTable.headers.length > 0 ? (
+                            <div className="w-full overflow-x-auto rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 backdrop-blur-md shadow-sm">
+                                <table className="w-full text-xs sm:text-sm text-right border-collapse">
                                     <thead>
                                         <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-950/40 text-slate-700 dark:text-cyan-400 font-bold">
-                                            {tabsTable.headers.map((header: string, hIdx: number) => (
+                                            {productTable.headers.map((header: string, hIdx: number) => (
                                                 <th key={hIdx} className="p-3 sm:p-4 whitespace-nowrap">
                                                     {header}
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
-                                )}
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                                    {tabsTable.rows.map((row: string[], rIdx: number) => (
-                                        <tr
-                                            key={rIdx}
-                                            className="hover:bg-slate-50/50 dark:hover:bg-cyan-500/5 transition-colors group"
-                                        >
-                                            {row.map((cell: string, cIdx: number) => (
-                                                <td
-                                                    key={cIdx}
-                                                    className={`p-3 sm:p-4 leading-relaxed ${
-                                                        cIdx === 0
-                                                            ? "text-slate-500 dark:text-slate-400 font-medium"
-                                                            : "text-slate-800 dark:text-slate-100 font-bold"
-                                                    }`}
-                                                >
-                                                    {cell}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                                        {productTable.rows.map((row: string[], rIdx: number) => (
+                                            <tr
+                                                key={rIdx}
+                                                className="hover:bg-slate-50/50 dark:hover:bg-cyan-500/5 transition-colors group"
+                                            >
+                                                {row.map((cell: string, cIdx: number) => (
+                                                    <td
+                                                        key={cIdx}
+                                                        className={`p-3 sm:p-4 leading-relaxed ${cIdx === 0
+                                                                ? "text-slate-500 dark:text-slate-400 font-medium"
+                                                                : "text-slate-800 dark:text-slate-100 font-bold"
+                                                            }`}
+                                                    >
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-slate-400 dark:text-slate-500">
+                                <SlidersHorizontal className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                <p className="text-sm">مشخصات فنی برای این محصول ثبت نشده است.</p>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 
@@ -152,7 +135,7 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                                         <Star key={i} className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400" />
                                     ))}
                                 </div>
-                                <p className="text-[11px] sm:text-xs text-slate-400">بر اساس {reviews?.length || 0} نظر ثبت‌شده</p>
+                                <p className="text-[11px] sm:text-xs text-slate-400">بر اساس {product.reviewCount || 0} نظر ثبت‌شده</p>
                             </div>
 
                             <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-4">
@@ -176,27 +159,25 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
 
                         {/* Reviews List */}
                         <div className="lg:col-span-8 space-y-3 sm:space-y-4">
-                            {reviews.map((rev: any) => (
+                            {reviews.map((rev, index) => (
                                 <div
-                                    key={rev.id}
-                                    className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 space-y-3 sm:space-y-4 shadow-sm"
+                                    key={index++}
+                                    className="p-4 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 space-y-3 sm:space-y-4 shadow-sm"
                                 >
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-xs sm:text-sm text-cyan-400 shrink-0">
-                                                {rev.author[0]}
+                                                {rev.user?.firstName?.slice(0, 1) || ""}
                                             </div>
                                             <div>
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="font-bold text-xs sm:text-sm">{rev.author}</span>
-                                                    {rev.verifiedBuyer && (
-                                                        <span className="bg-emerald-500/10 text-emerald-500 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md font-bold flex items-center gap-1">
-                                                            <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                                            خریدار واقعی
-                                                        </span>
-                                                    )}
+                                                    <span className="font-bold text-xs sm:text-sm">{rev.user?.firstName + " " + rev.user.lastName}</span>
+                                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md font-bold flex items-center gap-1">
+                                                        <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                        خریدار واقعی
+                                                    </span>
                                                 </div>
-                                                <span className="text-[10px] sm:text-[11px] text-slate-400">{rev.date}</span>
+                                                <span className="text-[10px] sm:text-[11px] text-slate-400">{new Date(rev.updatedAt).toLocaleDateString('fa-IR')}</span>
                                             </div>
                                         </div>
 
@@ -211,20 +192,20 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                                     </div>
 
                                     <div className="text-[11px] sm:text-xs text-slate-400 flex flex-wrap items-center gap-2 sm:gap-3 bg-slate-100 dark:bg-slate-950/40 p-2 rounded-xl w-max max-w-full">
-                                        <span>رنگ: <strong className="text-slate-700 dark:text-slate-300">{rev.boughtColor}</strong></span>
+                                        <span>رنگ: <strong className="text-slate-700 dark:text-slate-300">سفید</strong></span>
                                         <span>•</span>
-                                        <span>سایز: <strong className="text-slate-700 dark:text-slate-300">{rev.boughtSize}</strong></span>
+                                        <span>سایز: <strong className="text-slate-700 dark:text-slate-300">M</strong></span>
                                     </div>
 
-                                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{rev.comment}</p>
+                                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{rev.body}</p>
 
-                                    {rev.sellerReply && (
+                                    {rev.answerReview && (
                                         <div className="p-3 sm:p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 text-xs space-y-1">
                                             <div className="font-bold text-cyan-500 flex items-center gap-1.5">
                                                 <Sparkles className="w-3.5 h-3.5" />
                                                 پاسخ فروشگاه:
                                             </div>
-                                            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{rev.sellerReply}</p>
+                                            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{rev.answerReview}</p>
                                         </div>
                                     )}
                                 </div>
@@ -237,7 +218,7 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                 {/* 4. QUESTIONS & ANSWERS */}
                 <TabsContent value="qa" className="pt-6 sm:pt-8 focus-visible:outline-none">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                        
+
                         {/* Ask Question Box */}
                         <div className="lg:col-span-4 space-y-6">
                             <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-4">
@@ -255,37 +236,40 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
                                         </p>
                                     </div>
                                 </div>
-                                <QNAForm productId={product?.id} />
+                                <QNAForm productId={product?.id} id="" />
                             </div>
                         </div>
 
                         {/* Questions List */}
                         <div className="lg:col-span-8 space-y-3 sm:space-y-4">
-                            {questions.map((q: any) => (
+                            {qnas.map((q) => (
                                 <div
                                     key={q.id}
-                                    className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 space-y-3 sm:space-y-4"
+                                    className="p-3 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 space-y-3 sm:space-y-3"
                                 >
                                     <div className="flex justify-between items-start gap-3">
                                         <div className="flex items-start gap-2 min-w-0">
                                             <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500 shrink-0 mt-0.5" />
-                                            <span className="font-bold text-xs sm:text-sm leading-relaxed">{q.question}</span>
+                                            <span className="font-bold text-xs sm:text-sm leading-relaxed">{q.content}</span>
                                         </div>
-                                        <span className="text-[10px] sm:text-[11px] text-slate-400 shrink-0">{q.date}</span>
+                                        <span className="text-[10px] sm:text-[11px] text-slate-400 shrink-0">{new Date(q.updatedAt).toLocaleDateString('fa-IR')}</span>
                                     </div>
-
-                                    {q.answer && (
-                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
-                                            <div className="font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
-                                                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                                {q.answerAuthor}:
+                                    {q.replies.length &&
+                                        q.replies.map((reply, key) => (
+                                            <div key={reply.id} className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
+                                                <div className="flex items-start gap-2 min-w-0">
+                                                    <div className="font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                        {reply.role === 'seller' ? 'فروشنده' : 'خریدار'} :
+                                                    </div>
+                                                    <span className="text-[10px] sm:text-[11px] text-slate-400 shrink-0">{new Date(reply.updatedAt).toLocaleDateString('fa-IR')}</span>
+                                                </div>
+                                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-xs sm:text-sm">{reply.content}</p>
                                             </div>
-                                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-xs sm:text-sm">{q.answer}</p>
-                                        </div>
-                                    )}
-
+                                        ))
+                                    }
                                     <div className="pt-1">
-                                        <QNAForm productId={product?.id} minimal={true} answer={true} />
+                                        <QNAForm productId={product?.id} id="" minimal={true} answer={true} />
                                     </div>
                                 </div>
                             ))}
@@ -293,7 +277,6 @@ export default function TabsProduct({ product, reviews = [], questions = [] }: a
 
                     </div>
                 </TabsContent>
-
             </Tabs>
         </section>
     );

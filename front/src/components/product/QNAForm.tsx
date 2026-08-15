@@ -13,12 +13,13 @@ import { useLocale, useTranslations } from "next-intl";
 type QNAFormType = {
     minimal?: boolean;
     productId: string;
-    answer?: boolean; // اگر true باشد حالت پاسخ به سوال فعال می‌شود
+    answer?: boolean;
+    id: string
 }
 
-export default function QNAForm({ minimal = false, productId, answer = false }: QNAFormType) {
+export default function QNAForm({ minimal = false, productId, answer = false, id }: QNAFormType) {
     const { user } = useAuth();
-    const locale = useLocale(); // دریافت زبان فعلی (fa یا en)
+    const locale = useLocale();
     const isEn = locale === 'en';
 
     const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -27,40 +28,37 @@ export default function QNAForm({ minimal = false, productId, answer = false }: 
         comment: "",
     });
 
-    // مدیریت عناوین دوزبانه (فارسی / انگلیسی)
     const titles = {
-        dialogTitle: answer 
-            ? (isEn ? "Submit New Answer" : "ثبت پاسخ جدید") 
+        dialogTitle: answer
+            ? (isEn ? "Submit New Answer" : "ثبت پاسخ جدید")
             : (isEn ? "Ask a New Question" : "ثبت پرسش جدید"),
-            
-        btnName: answer 
-            ? (isEn ? "Answer this question" : "پاسخ") 
+
+        btnName: answer
+            ? (isEn ? "Answer this question" : "پاسخ")
             : (isEn ? "Ask a Question" : "ثبت پرسش جدید"),
-            
-        label: answer 
-            ? (isEn ? "Your Answer" : "متن پاسخ شما") 
+
+        label: answer
+            ? (isEn ? "Your Answer" : "متن پاسخ شما")
             : (isEn ? "Your Question" : "متن پرسش شما"),
-            
-        placeholder: answer 
-            ? (isEn ? "Write a clear and helpful answer to this question..." : "پاسخ خود را به این پرسش به صورت دقیق و راهنما بنویسید...") 
+
+        placeholder: answer
+            ? (isEn ? "Write a clear and helpful answer to this question..." : "پاسخ خود را به این پرسش به صورت دقیق و راهنما بنویسید...")
             : (isEn ? "Ask any question about specs, features, or details..." : "سوال یا ابهام خود را درباره ویژگی‌ها، عملکرد یا مشخصات این محصول بپرسید..."),
-            
-        submitBtn: answer 
-            ? (isEn ? "Submit Answer" : "ثبت و ارسال پاسخ") 
+
+        submitBtn: answer
+            ? (isEn ? "Submit Answer" : "ثبت و ارسال پاسخ")
             : (isEn ? "Submit Question" : "ثبت و ارسال پرسش"),
 
         cancelBtn: isEn ? "Cancel" : "انصراف",
-            
-        toastSuccess: answer 
-            ? (isEn ? "Your answer has been submitted and will be published after review." : "پاسخ شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.") 
+
+        toastSuccess: answer
+            ? (isEn ? "Your answer has been submitted and will be published after review." : "پاسخ شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.")
             : (isEn ? "Your question has been submitted and will be published after review." : "پرسش شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.")
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.comment.trim()) return;
-
-        console.log("Q&A Submitted:", { productId, isAnswer: answer, ...formData });
         toast.success(titles.toastSuccess);
         setFormData({ comment: "" });
         setOpenDialog(false);

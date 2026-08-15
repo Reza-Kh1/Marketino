@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import MotionWrapper from '../motion/MotionWrapper';
 import AdminRichEditor from '../inputs/AdminRichEditor';
 import UploadMedia from '../upload/UploadMedia';
-import { ProductEntity, VariantType } from '@/services/product.service';
+import { ProductEntity } from '@/services/product.service';
 import { ProductFormData, productSchema } from '@/schemas/product.schema';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,14 +22,13 @@ import { useCreateProduct, useUpdateProduct } from '@/hooks/product.hook';
 import FormDatePicker from '../inputs/FormDatePicker';
 import ProductTable, { TableData } from '../inputs/ProductTable';
 import { useBrands } from '@/hooks/brand.hook';
-import VariantSelector from './VariantSelector';
+import ProductVariantsManager from '../product/ProductVariantsManager';
 interface ProductFormProps {
   product?: ProductEntity | null;
   returnUrl?: string;
-  variantData: VariantType[] | []
 }
 
-export function ProductForm({ product, returnUrl = '/admin/products', variantData }: ProductFormProps) {
+export function ProductForm({ product, returnUrl = '/admin/products' }: ProductFormProps) {
   const [openEn, setOpenEn] = useState(false)
   const [tableValue, setTableValue] = useState<TableData | null>()
   const [tableValueEn, setTableValueEn] = useState<TableData | null>()
@@ -78,12 +77,10 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
         description: product.description || '',
         descriptionEn: product.descriptionEn || '',
         brandId: product.brandId || '',
-        weight: product.weight || undefined,
-        dimensions: product.dimensions || '',
         metaTitle: product.metaTitle || '',
         metaTitleEn: product.metaTitleEn || '',
-        metaDescription: product.metaDescription ? JSON.parse(product.metaDescription) : '',
-        metaDescriptionEn: product.metaDescriptionEn ? JSON.parse(product.metaDescriptionEn) : '',
+        content: product.content ? JSON.parse(product.content) : '',
+        contentEn: product.contentEn ? JSON.parse(product.contentEn) : '',
         images: product?.images.map((i) => i.url) || []
       });
       setTableValue(product.productTable)
@@ -103,19 +100,15 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
         description: data.description || null,
         descriptionEn: data.descriptionEn || null,
         brandId: data.brandId || null,
-        weight: data.weight || null,
-        dimensions: data.dimensions || null,
         categoryId: data.categoryId,
         metaTitle: data.metaTitle || null,
         metaTitleEn: data.metaTitleEn || null,
-        metaDescription: data.metaDescription ? JSON.stringify(data.metaDescription) : null,
-        metaDescriptionEn: data.metaDescriptionEn ? JSON.stringify(data.metaDescriptionEn) : null,
+        content: data.content ? JSON.stringify(data.content) : null,
+        contentEn: data.contentEn ? JSON.stringify(data.contentEn) : null,
         images: data?.images || [],
         productTable: tableValue || null,
         productTableEn: tableValueEn || null
       } as any
-      console.log(body);
-
       if (isEdit && product?.id) {
         updateProduct({ id: product?.id, data: body })
       } else {
@@ -135,8 +128,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
   const onError = (err: any) => {
     console.log(err);
   }
-  console.log(product);
-
   return (
     <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
       {/* Header */}
@@ -187,8 +178,8 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
           <div className="card p-4 space-y-4">
             <label className="block text-sm font-medium">توضیحات محصول</label>
             <AdminRichEditor
-              content={product?.metaDescription ? JSON.parse(product?.metaDescription) : null}
-              onChange={val => setValue('metaDescription', val)}
+              content={product?.content ? JSON.parse(product?.content) : null}
+              onChange={val => setValue('content', val)}
               placeholder="توضیحات کامل محصول را اینجا بنویسید..."
             />
           </div>
@@ -208,7 +199,7 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
               helperText="تصاویر و ویدیوهای محصول"
             />
           </div>
-          <VariantSelector productId={product?.id} variantData={variantData} />
+          <ProductVariantsManager categoryId={categoryId} productId={product?.id} />
         </div>
 
         {/* Sidebar */}
@@ -248,20 +239,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
               setValue={e => setValue('brandId', e)}
               value={brandId}
               label='برند'
-            />
-            <InputForm
-              label='ابعاد'
-              register={register}
-              name='dimensions'
-              type='text'
-              placeholder="مثال: 14*25 cm"
-            />
-            <InputForm
-              label='وزن'
-              register={register}
-              name='weight'
-              type='number'
-              placeholder="مثال: 58 "
             />
             {
               product?.slug && (
@@ -351,8 +328,8 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
                 <div>
                   <label className="block text-sm font-medium">توضیحات محصول</label>
                   <AdminRichEditor
-                    content={product?.metaDescriptionEn ? JSON.parse(product?.metaDescriptionEn) : null}
-                    onChange={val => setValue('metaDescriptionEn', val)}
+                    content={product?.contentEn ? JSON.parse(product?.contentEn) : null}
+                    onChange={val => setValue('contentEn', val)}
                     placeholder="توضیحات کامل محصول را اینجا بنویسید..."
                   />
                 </div>
@@ -365,7 +342,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
             />
           </div>
         }
-
       </div >
 
       {/* Bottom Actions */}
@@ -384,7 +360,6 @@ export function ProductForm({ product, returnUrl = '/admin/products', variantDat
           iconEnd={<ArrowLeft className="w-5 h-5" />}
         />
       </div >
-
     </form >
   );
 }

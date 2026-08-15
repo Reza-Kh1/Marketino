@@ -16,6 +16,7 @@ import { CreateColleagueDto } from './dto/create-colleague.dto';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
 import { UserRole } from '@prisma/client';
 import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto';
+import { ProductSearchDto } from './dto/product.search.dto';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -182,18 +183,20 @@ export class AdminController {
     return this.adminService.getSellers({ page, status });
   }
 
+  @Get('seller-list')
+  @ApiOperation({ summary: 'لیست فروشندگان برای سلکتور' })
+  async getSellerList() {
+    return this.adminService.getSellerList();
+  }
+
   // ==========================================
   // 📦 PRODUCTS MANAGEMENT
   // ==========================================
 
   @Get('products')
   @ApiOperation({ summary: 'لیست تمام محصولات' })
-  async getProducts(
-    @Query('page') page?: number,
-    @Query('status') status?: string,
-    @Query('q') q?: string,
-  ) {
-    return this.adminService.getProducts({ page, status, q });
+  async getProducts(@Query() query: ProductSearchDto) {
+    return this.adminService.getProducts(query);
   }
 
   @Patch('products/:id/approve')

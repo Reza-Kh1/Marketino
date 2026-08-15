@@ -3,12 +3,11 @@ import { useParams } from 'next/navigation';
 import { ArrowRight, Loader2, Edit3 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { ProductForm } from '@/components/admin/product-form';
-import { useProductSlug, useVariant } from '@/hooks/product.hook';
+import { useProductSlug } from '@/hooks/product.hook';
 
 export default function EditProductPage() {
   const params = useParams();
   const { data, isFetching, isError } = useProductSlug((params?.id)?.toString() || '')
-  const { data: dataVariant } = useVariant((params?.id)?.toString() || '')
   if (isFetching) {
     return (
       <div className="flex items-center justify-center min-h-100">
@@ -45,7 +44,7 @@ export default function EditProductPage() {
           <p className="text-sm text-muted-foreground mt-1">{data.title}</p>
         </div>
       </div>
-      <ProductForm product={data} variantData={dataVariant || []} />
+      <ProductForm product={data} />
     </div>
   );
 }

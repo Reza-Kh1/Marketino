@@ -21,8 +21,17 @@ export class DiscountsController {
   @Post('validate')
   @ApiOperation({ summary: 'اعتبارسنجی کد تخفیف' })
   @ApiBody({ type: ValidateDiscountDto })
-  async validate(@Body() body: ValidateDiscountDto) {    
+  async validate(@Body() body: ValidateDiscountDto) {
     return this.discountsService.validate(body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'seller')
+  @ApiBearerAuth()
+  @Get('list')
+  @ApiOperation({ summary: 'نمایش تمام تخفیف ها' })
+  async listDiscount() {
+    return this.discountsService.listDiscount();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

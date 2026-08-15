@@ -38,6 +38,27 @@ export class CreateProductDto {
   @IsString()
   status?: string;
 
+  @ApiPropertyOptional({ description: 'تایتل بالای صفحه' })
+  @IsOptional()
+  @IsString()
+  metaTitle?: string;
+
+  @ApiPropertyOptional({ description: 'تایتل بالای صفحه انگلیسی' })
+  @IsOptional()
+  @IsString()
+  metaTitleEn?: string;
+
+  @ApiPropertyOptional({ description: 'توضیحات' })
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @ApiPropertyOptional({ description: 'توضیحات انگلیسی' })
+  @IsOptional()
+  @IsString()
+  contentEn?: string;
+
+
   @ApiPropertyOptional({ description: 'عنوان انگلیسی محصول' })
   @IsOptional()
   @IsString()
@@ -58,17 +79,6 @@ export class CreateProductDto {
   @IsString()
   brandId?: string;
 
-  @ApiPropertyOptional({ description: 'وزن به گرم' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  weight?: number;
-
-  @ApiPropertyOptional({ description: 'ابعاد (مثال: 20x15x10)' })
-  @IsOptional()
-  @IsString()
-  dimensions?: string;
-
   @ApiPropertyOptional({ description: 'وضعیت محصول', default: 'new', enum: ['new', 'used'] })
   @IsOptional()
   @IsString()
@@ -77,28 +87,6 @@ export class CreateProductDto {
   @ApiProperty({ description: 'شناسه دسته‌بندی' })
   @IsString()
   categoryId!: string;
-
-  @ApiPropertyOptional({ description: 'عنوان متا فارسی' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  metaTitle?: string;
-
-  @ApiPropertyOptional({ description: 'عنوان متا انگلیسی' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  metaTitleEn?: string;
-
-  @ApiPropertyOptional({ description: 'توضیحات متا فارسی' })
-  @IsOptional()
-  @IsString()
-  metaDescription?: string;
-
-  @ApiPropertyOptional({ description: 'توضیحات متا انگلیسی' })
-  @IsOptional()
-  @IsString()
-  metaDescriptionEn?: string;
 }
 
 export class UpdateProductDto extends PartialType(CreateProductDto) { }

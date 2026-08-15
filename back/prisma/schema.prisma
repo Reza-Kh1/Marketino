@@ -1,3 +1,8 @@
+// update with migration ==>
+// npx prisma format
+// npx prisma migrate dev --name add_reviews
+// npx prisma generate
+// in product ==> npx prisma migrate deploy 
 generator client {
   provider = "prisma-client-js"
 }
@@ -24,7 +29,7 @@ model User {
   sellerReason         String?             @map("seller_reason")
   businessType         String?             @map("business_type")
   commissionRate       Float               @default(0) @map("commission_rate")
-  storeName            String?             @map("store_name")
+  storeName            String?             @unique @map("store_name")
   storeLogo            String?             @map("store_logo")
   storeDescription     String?             @map("store_description")
   storeDescriptionEn   String?             @map("store_description_en")
@@ -55,7 +60,8 @@ model User {
   sellerOrderItems     OrderItem[]
   orders               Order[]
   products             Product[]
-  reviews              Review[]
+  reviews              Review[]            @relation("ReviewUser")
+  reviewAnswers        Review[]            @relation("ReviewAnswer")
   sellerRating         SellerRating?
   sellerReviews        SellerReview[]      @relation("SellerReviews")
   sellerReviewReceived SellerReview[]      @relation("SellerReviewed")
@@ -71,28 +77,30 @@ model User {
 }
 
 model Category {
-  id                String     @id @default(uuid())
-  name              String
-  nameEn            String?    @map("name_en")
-  slug              String     @unique
-  slugEn            String?    @unique @map("slug_en")
-  description       String?
-  descriptionEn     String?    @map("description_en")
-  parentId          String?    @map("parent_id")
-  icon              String?
-  image             String?
-  sortOrder         Int        @default(0) @map("sort_order")
-  isActive          Boolean    @default(true) @map("is_active")
-  metaTitle         String?    @map("meta_title")
-  metaTitleEn       String?    @map("meta_title_en")
-  metaDescription   String?    @map("meta_description")
-  metaDescriptionEn String?    @map("meta_description_en")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
-  parent            Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children          Category[] @relation("CategoryTree")
-  products          Product[]
+  id                   String                @id @default(uuid())
+  name                 String
+  nameEn               String?               @map("name_en")
+  slug                 String                @unique
+  slugEn               String?               @unique @map("slug_en")
+  parentId             String?               @map("parent_id")
+  icon                 String?
+  image                String?
+  ancestorIds          String[]              @default([])
+  sortOrder            Int                   @default(0) @map("sort_order")
+  isActive             Boolean               @default(true) @map("is_active")
+  metaTitle            String?               @map("meta_title")
+  metaTitleEn          String?               @map("meta_title_en")
+  metaDescription      String?               @map("meta_description")
+  metaDescriptionEn    String?               @map("meta_description_en")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  parent               Category?             @relation("CategoryTree", fields: [parentId], references: [id])
+  children             Category[]            @relation("CategoryTree")
+  products             Product[]
+  attributeDefinitions AttributeDefinition[]
 
+  @@index([parentId])
+  @@index([isActive, sortOrder])
   @@map("categories")
 }
 
@@ -109,78 +117,103 @@ model Brand {
 }
 
 model Product {
-  id                String           @id @default(uuid())
-  title             String
-  titleEn           String?          @map("title_en")
-  slug              String           @unique
-  slugEn            String?          @unique @map("slug_en")
-  description       String
-  descriptionEn     String?          @map("description_en")
-  weight            Float?
-  dimensions        String?
-  condition         ProductCondition @default(new)
-  status            ProductStatus    @default(pending)
-  isFeatured        Boolean          @default(false) @map("is_featured")
-  isDigital         Boolean          @default(false) @map("is_digital")
-  digitalFile       String?          @map("digital_file")
-  viewCount         Int              @default(0) @map("view_count")
-  saleCount         Int              @default(0) @map("sale_count")
-  rating            Float            @default(0)
-  reviewCount       Int              @default(0) @map("review_count")
-  metaTitle         String?          @map("meta_title")
-  metaTitleEn       String?          @map("meta_title_en")
-  metaDescription   String?          @map("meta_description")
-  metaDescriptionEn String?          @map("meta_description_en")
-  productTable      Json?            @map("product_table")
-  productTableEn    Json?            @map("product_table_en")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-  sellerId          String           @map("seller_id")
-  categoryId        String           @map("category_id")
-  brandId           String?          @map("brand_id")
-  cartItems         CartItem[]
-  compareItems      CompareItem[]
-  conversations     Conversation[]
-  orderItems        OrderItem[]
-  images            ProductImage[]
-  variants          ProductVariant[]
-  brand             Brand?           @relation(fields: [brandId], references: [id])
-  category          Category         @relation(fields: [categoryId], references: [id])
-  seller            User             @relation(fields: [sellerId], references: [id])
-  reviews           Review[]
-  wishlistItems     WishlistItem[]
-  qnas              Qna[]
+  id              String           @id @default(uuid())
+  title           String           @map("title")
+  titleEn         String?          @map("title_en")
+  slug            String           @unique @map("slug")
+  slugEn          String?          @unique @map("slug_en")
+  metaTitle       String?          @map("meta_title")
+  metaTitleEn     String?          @map("meta_title_en")
+  content         Json?            @map("content")
+  contentEn       Json?            @map("content_en")
+  description     String           @map("description")
+  descriptionEn   String?          @map("description_en")
+  originalPrice   Decimal?         @map("original_price") @db.Decimal(12, 2)
+  minPrice        Decimal?         @map("min_Price") @db.Decimal(12, 2)
+  discountPercent String?          @map("discount_percent")
+  condition       ProductCondition @default(new)
+  status          ProductStatus    @default(pending)
+  isFeatured      Boolean          @default(false) @map("is_featured")
+  isDigital       Boolean          @default(false) @map("is_digital")
+  digitalFile     String?          @map("digital_file")
+  viewCount       Int              @default(0) @map("view_count")
+  saleCount       Int              @default(0) @map("sale_count")
+  rating          Float            @default(0)
+  reviewCount     Int              @default(0) @map("review_count")
+  productTable    Json?            @map("product_table")
+  productTableEn  Json?            @map("product_table_en")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  sellerId        String           @map("seller_id")
+  categoryId      String           @map("category_id")
+  brandId         String?          @map("brand_id")
+
+  cartItems     CartItem[]
+  compareItems  CompareItem[]
+  conversations Conversation[]
+  orderItems    OrderItem[]
+  images        ProductImage[]
+  variants      ProductVariant[]
+  brand         Brand?           @relation(fields: [brandId], references: [id])
+  category      Category         @relation(fields: [categoryId], references: [id])
+  seller        User             @relation(fields: [sellerId], references: [id])
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+  qnas          Qna[]
 
   @@index([sellerId])
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured])
+  @@index([slug, slugEn])
   @@map("products")
 }
 
 model ProductVariant {
-  id           String        @id @default(uuid())
-  name         String
-  nameEn       String?
-  sku          String?       @unique
-  price        Float?
-  quantity     Int           @default(0)
-  colorId      String?
-  image        String?
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  discountId   String?       @map("discount_id")
-  productId    String        @map("product_id")
-  attributes   Json?
-  attributesEn Json?
-  cartItems    CartItem[]
-  orderItems   OrderItem[]
-  discount     DiscountCode? @relation(fields: [discountId], references: [id], onDelete: Cascade)
-  color        Color?        @relation(fields: [colorId], references: [id], onDelete: Cascade)
-  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  name       String   @map("name")
+  nameEn     String?  @map("name_en")
+  sku        String?  @unique @map("sku")
+  price      Decimal? @map("price") @db.Decimal(12, 2)
+  quantity   Int      @default(0) @map("quantity")
+  colorId    String?  @map("color_id")
+  image      String?  @map("image")
+  saleCount  Int      @default(0) @map("sale_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  discountId String?  @map("discount_id")
+  productId  String   @map("product_id")
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  attributes VariantAttributeValue[]
+  discount   DiscountCode?           @relation(fields: [discountId], references: [id], onDelete: SetNull)
+  color      Color?                  @relation(fields: [colorId], references: [id], onDelete: SetNull)
+  product    Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@map("product_variants")
+}
+
+model AttributeDefinition {
+  id       String     @id @default(cuid())
+  key      String     @unique @map("key")
+  label    String     @map("label")
+  category Category[]
+
+  values VariantAttributeValue[]
+}
+
+model VariantAttributeValue {
+  id          String              @id @default(cuid())
+  value       String              @map("value")
+  variantId   String              @map("variant_id")
+  variant     ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attributeId String              @map("attribute_id")
+  attribute   AttributeDefinition @relation(fields: [attributeId], references: [id])
+
+  @@unique([variantId, attributeId])
+  @@index([attributeId, value])
 }
 
 model Color {
@@ -188,7 +221,7 @@ model Color {
   name            String           @map("name")
   nameEn          String           @map("name_en")
   hexCode         String           @map("hex_code")
-  slug            String           @map("slug")
+  slug            String           @unique @map("slug")
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   productVariants ProductVariant[]
@@ -363,21 +396,28 @@ model Refund {
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  rating     Int
-  title      String?
-  body       String
-  isApproved Boolean  @default(true) @map("is_approved")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  userId     String   @map("user_id")
-  productId  String   @map("product_id")
-  orderId    String?  @map("order_id")
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(uuid())
+  rating       Int
+  title        String?
+  body         String
+  answerReview String?  @map("answer_review")
+  answerId     String?  @map("answer_id")
+  isApproved   Boolean  @default(false) @map("is_approved")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
+  userId    String  @map("user_id")
+  productId String  @map("product_id")
+  orderId   String? @map("order_id")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation("ReviewUser", fields: [userId], references: [id])
+  answer  User?   @relation("ReviewAnswer", fields: [answerId], references: [id])
+
+  @@unique([userId, productId])
   @@index([productId])
   @@index([userId])
+  @@index([answerId])
   @@map("reviews")
 }
 

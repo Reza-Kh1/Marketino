@@ -16,7 +16,7 @@ type CustomButtonType = {
     onClick?: (value: any) => void
     children?: React.ReactNode
     isPending?: boolean
-    color?: "gray" | "white" | "iconDelete" | "icon" | "iconBlack" | "neon" | "borderNeon" | "blueLow"
+    color?: "gray" | "white" | "iconDelete" | "icon" | "iconBlack" | "neon" | "borderNeon" | "blueLow" | "blueRadinat"
     size?: 'sx' | 'sm' | 'sl' | 'md' | 'lg' | 'xl' | 'auto'
     form?: string
     tooltip?: string
@@ -32,10 +32,9 @@ const colorBtn = {
     white: `${baseTextBtn} bg-primary text-primary-foreground hover:bg-primary/90`,
     gray: `${baseTextBtn} bg-muted text-muted-foreground hover:bg-accent`,
     blueLow: `${baseTextBtn} bg-white border border-slate-200 text-muted-foreground dark:border-slate-800 dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900`,
-    neon: `${baseTextBtn} font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-[0_0_15px_rgba(6,182,212,0.35)] hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:scale-[1.01] active:scale-[0.99]`,
+    neon: `${baseTextBtn} font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-[0_0_15px_rgba(6,182,212,0.35)] hover:shadow-[0_0_20px_rgba(6,182,212,0.6)]`,
     borderNeon: `${baseTextBtn} w-full text-slate-900 dark:text-white border-2 border-cyan-500 shadow-[0_0_15px_rgba(147,51,234,0.25)] hover:shadow-[0_0_20px_rgba(147,51,234,0.45)] hover:scale-[1.01] active:scale-[0.99]`,
-    
-    /* سه حالت آیکونی بدون تغییر ابعاد و طبق درخواست دست‌نخورده */
+    blueRadinat: `${baseTextBtn} w-full sm:flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-extrabold text-xs sm:text-sm py-2.5 sm:py-3 px-4 rounded-2xl shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer`,
     iconDelete: 'w-9 h-9 cursor-pointer flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors',
     icon: 'w-9 h-9 cursor-pointer flex items-center justify-center rounded-lg hover:text-blue-600 hover:bg-blue-800/40 dark:hover:bg-white transition-all duration-200',
     iconBlack: 'w-9 h-9 cursor-pointer flex items-center justify-center rounded-lg text-black hover:text-blue-600 hover:bg-blue-800/40 dark:hover:bg-white transition-all duration-200',
@@ -65,7 +64,7 @@ export default function CustomButton({
         (disabled || activePending) && 'cursor-default opacity-60 pointer-events-none',
         className
     )
-    
+
     const content = (
         <div className="relative w-full flex justify-center items-center">
             <div className='flex gap-2 sm:gap-2.5 relative transition-all items-center duration-100'>

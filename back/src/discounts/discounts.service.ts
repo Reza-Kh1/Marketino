@@ -6,10 +6,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateDiscountDto } from './dto/discount.dto';
 import pagination from '../common/utils/pagination';
 import { ValidateDiscountDto } from './dto/validate.discount.dto';
+import { DiscountQueueService } from '@/queues/discount/discount-queue.service';
 
 @Injectable()
 export class DiscountsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly discountQueueService: DiscountQueueService,
+  ) { }
 
   /** دریافت تمام کدهای تخفیف */
   async findAll(page: number = 1, limit: number = 10) {
@@ -22,8 +26,19 @@ export class DiscountsService {
     return { discounts, total, pagination: pages };
   }
 
+  async listDiscount() {
+    const discounts = await this.prisma.discountCode.findMany({
+      select: {
+        id: true,
+        code: true,
+        isActive: true,
+      }
+    })
+    return discounts
+  }
+
   /** بررسی و اعتبارسنجی کد تخفیف */
-  async validate(body: ValidateDiscountDto) {    
+  async validate(body: ValidateDiscountDto) {
     const { code, orderAmount } = body
     const discount = await this.prisma.discountCode.findUnique({ where: { code: code.toUpperCase() } });
     if (!discount) throw new NotFoundException('کد تخفیف نامعتبر است');
@@ -48,8 +63,8 @@ export class DiscountsService {
   async create(creatorId: string, dto: CreateDiscountDto) {
     const existing = await this.prisma.discountCode.findUnique({ where: { code: dto.code.toUpperCase() } });
     if (existing) throw new BadRequestException('این کد تخفیف قبلاً ثبت شده است');
-
-    return this.prisma.discountCode.create({
+    const now = new Date();
+    const discount = await this.prisma.discountCode.create({
       data: {
         ...dto,
         code: dto.code.toUpperCase(),
@@ -58,19 +73,40 @@ export class DiscountsService {
         creatorId,
       },
     });
+
+    if (discount.endsAt) {
+      await this.discountQueueService.scheduleExpire(discount.id, discount.endsAt);
+    }
+
+    if (discount.startsAt > now) {
+      await this.discountQueueService.scheduleActivate(discount.id, discount.startsAt);
+    }
+
+    return { success: true }
   }
 
   /** حذف کد تخفیف */
   async delete(id: string) {
     const discount = await this.prisma.discountCode.findUnique({ where: { id } });
     if (!discount) throw new NotFoundException('کد تخفیف یافت نشد');
-    return this.prisma.discountCode.delete({ where: { id } });
+    const variants = await this.prisma.productVariant.findMany({
+      where: { discountId: id },
+      select: { productId: true },
+      distinct: ['productId'],
+    });
+    const productIds = variants.map((v) => v.productId);
+    await this.discountQueueService.cancelJobs(id);
+    await this.prisma.discountCode.delete({ where: { id } });
+    await this.discountQueueService.enqueueSyncForProducts(productIds);
+    return { success: true }
   }
 
   /** فعال/غیرفعال کردن کد تخفیف */
   async toggleActive(id: string) {
     const discount = await this.prisma.discountCode.findUnique({ where: { id } });
     if (!discount) throw new NotFoundException('کد تخفیف یافت نشد');
-    return this.prisma.discountCode.update({ where: { id }, data: { isActive: !discount.isActive } });
+    await this.prisma.discountCode.update({ where: { id }, data: { isActive: !discount.isActive } });
+    await this.discountQueueService.enqueueImmediateSync(id);
+    return { success: true }
   }
 }

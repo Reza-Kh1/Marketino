@@ -3,7 +3,6 @@
  * اجرا: npx prisma db seed
  */
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -27,14 +26,53 @@ const IMAGE_PATHS = [
   'marketino/image/2026/07/images-9-820133-6613.jpg',
 ];
 
-// انتخاب رندوم از آدرس‌های عکس
 function getRandomImage(seed: number): string {
-  const index = seed % IMAGE_PATHS.length;
-  return IMAGE_PATHS[index];
+  return IMAGE_PATHS[seed % IMAGE_PATHS.length];
 }
 
 async function main() {
   console.log('🌱 شروع seeding دیتابیس...');
+  console.log('🗑️ پاک‌سازی کامل دیتابیس...');
+
+  // پاک‌سازی جداول با توجه به وابستگی‌ها (به ترتیب معکوس FK)
+  await prisma.wishlistItem.deleteMany();
+  await prisma.compareItem.deleteMany();
+  await prisma.cartItem.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.trackingEvent.deleteMany();
+  await prisma.refund.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.ticketMessage.deleteMany();
+  await prisma.ticket.deleteMany();
+  await prisma.address.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.review.deleteMany();
+  await prisma.sellerReview.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.qna.deleteMany();
+  await prisma.productImage.deleteMany();
+  await prisma.variantAttributeValue.deleteMany();
+  await prisma.productVariant.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.attributeDefinition.deleteMany();
+  await prisma.discountCodeUsage.deleteMany();
+  await prisma.discountCode.deleteMany();
+  await prisma.blogPost.deleteMany();
+  await prisma.banner.deleteMany();
+  await prisma.shippingMethod.deleteMany();
+  await prisma.sellerRating.deleteMany();
+  await prisma.walletTransaction.deleteMany();
+  await prisma.siteSetting.deleteMany();
+  await prisma.color.deleteMany();
+  await prisma.brand.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.otpCode.deleteMany();
+
+  console.log('✅ دیتابیس پاک شد');
 
   // ============================================
   // ۱. تنظیمات سایت
@@ -70,6 +108,7 @@ async function main() {
   // ============================================
   // ۲. کاربران (ادمین، فروشنده، خریدار)
   // ============================================
+  const bcrypt = await import('bcryptjs');
   const adminPassword = await bcrypt.hash('123', 12);
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
@@ -91,7 +130,6 @@ async function main() {
   });
   console.log('✅ کاربر ادمین ایجاد شد');
 
-  // ایجاد چند فروشنده نمونه
   const sellers: any[] = [];
   const sellerNames = [
     { username: 'seller1', name: 'فروشنده نمونه', store: 'فروشگاه نمونه', email: 'seller@marketplace.com' },
@@ -127,7 +165,6 @@ async function main() {
   }
   console.log(`✅ ${sellers.length} فروشنده ایجاد شد`);
 
-  // ایجاد چند خریدار نمونه
   const buyers: any[] = [];
   const buyerNames = [
     { username: 'buyer1', name: 'خریدار نمونه', email: 'buyer@marketplace.com' },
@@ -193,7 +230,6 @@ async function main() {
     createdCategories.push(category);
   }
 
-  // زیردسته‌های الکترونیک
   const electronicsSubs = [
     { name: 'موبایل', nameEn: 'Mobile Phones', slug: 'mobile-phones', parentId: createdCategories[0].id },
     { name: 'لپ تاپ', nameEn: 'Laptops', slug: 'laptops', parentId: createdCategories[0].id },
@@ -211,7 +247,6 @@ async function main() {
     });
   }
 
-  // زیردسته‌های مد و پوشاک
   const fashionSubs = [
     { name: 'مردانه', nameEn: 'Men', slug: 'men-fashion', parentId: createdCategories[1].id },
     { name: 'زنانه', nameEn: 'Women', slug: 'women-fashion', parentId: createdCategories[1].id },
@@ -250,7 +285,7 @@ async function main() {
     { name: 'اچ‌پی', nameEn: 'HP', slug: 'hp', description: 'اچ‌پی، پرینتر و لپ تاپ' },
     { name: 'دل', nameEn: 'Dell', slug: 'dell', description: 'دل، کامپیوتر' },
     { name: 'مارشال', nameEn: 'Marshall', slug: 'marshall', description: 'مارشال، اسپیکر' },
-    { name: 'بلو', nameEn: 'Blue', slug: 'blue', description: 'بلو، لوازم صوتی' },
+    { name: 'بلو', nameEn: 'Blue', slug: 'blue', description: 'بلو，لوازم صوتی' },
   ];
 
   const createdBrands: any[] = [];
@@ -258,116 +293,107 @@ async function main() {
     const createdBrand = await prisma.brand.upsert({
       where: { slug: brand.slug },
       update: {},
-      create: {
-        name: brand.name,
-        nameEn: brand.nameEn,
-        slug: brand.slug,
-        description: brand.description,
-      },
+      create: { name: brand.name, nameEn: brand.nameEn, slug: brand.slug, description: brand.description },
     });
     createdBrands.push(createdBrand);
   }
   console.log(`✅ ${createdBrands.length} برند ایجاد شد`);
 
   // ============================================
-  // ۵. محصولات نمونه (۶۰ محصول)
+  // ۵. رنگ‌ها (Colors)
+  // ============================================
+  const colorsData = [
+    { name: 'مشکی', nameEn: 'Black', hexCode: '#000000', slug: 'black' },
+    { name: 'سفید', nameEn: 'White', hexCode: '#FFFFFF', slug: 'white' },
+    { name: 'قرمز', nameEn: 'Red', hexCode: '#FF0000', slug: 'red' },
+    { name: 'آبی', nameEn: 'Blue', hexCode: '#0066FF', slug: 'blue' },
+    { name: 'سبز', nameEn: 'Green', hexCode: '#00AA00', slug: 'green' },
+    { name: 'زرد', nameEn: 'Yellow', hexCode: '#FFD700', slug: 'yellow' },
+    { name: 'نارنجی', nameEn: 'Orange', hexCode: '#FF8C00', slug: 'orange' },
+    { name: 'بنفش', nameEn: 'Purple', hexCode: '#800080', slug: 'purple' },
+    { name: 'صورتی', nameEn: 'Pink', hexCode: '#FFC0CB', slug: 'pink' },
+    { name: 'سورمه‌ای', nameEn: 'Navy', hexCode: '#000080', slug: 'navy' },
+    { name: 'خاکستری', nameEn: 'Gray', hexCode: '#808080', slug: 'gray' },
+    { name: 'قهوه‌ای', nameEn: 'Brown', hexCode: '#8B4513', slug: 'brown' },
+  ];
+
+  const createdColors: any[] = [];
+  for (const c of colorsData) {
+    const color = await prisma.color.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: { name: c.name, nameEn: c.nameEn, hexCode: c.hexCode, slug: c.slug },
+    });
+    createdColors.push(color);
+  }
+  console.log(`✅ ${createdColors.length} رنگ ایجاد شد`);
+
+  // نگاشت slug رنگ به id
+  const colorById: Record<string, string> = {};
+  for (const c of createdColors) {
+    colorById[c.slug] = c.id;
+  }
+
+  // ============================================
+  // ۶. محصولات نمونه (~30 محصول)
   // ============================================
   const productsData = [
-    // موبایل (10 محصول)
-    { title: 'گوشی سامسونگ Galaxy S24', slug: 'samsung-s24', desc: 'پرچمدار سامسونگ', price: 45999000, qty: 10, brand: 'samsung', cat: 'mobile-phones' },
+    // موبایل (7 محصول)
+    { title: 'گوشی سامسونگ Galaxy S24', slug: 'samsung-s24', desc: 'پرچمدار سامسونگ با دوربین 200 مگاپیکسل', price: 45999000, qty: 10, brand: 'samsung', cat: 'mobile-phones' },
     { title: 'گوشی سامسونگ Galaxy A34', slug: 'samsung-a34', desc: 'میانی رده سامسونگ', price: 9999000, qty: 25, brand: 'samsung', cat: 'mobile-phones' },
     { title: 'گوشی سامسونگ Galaxy A14', slug: 'samsung-a14', desc: 'اقتصادی سامسونگ', price: 5999000, qty: 40, brand: 'samsung', cat: 'mobile-phones' },
     { title: 'گوشی آیفون 15 پرو', slug: 'iphone-15-pro', desc: 'پرچمدار اپل', price: 79999000, qty: 5, brand: 'apple', cat: 'mobile-phones' },
     { title: 'گوشی آیفون 15', slug: 'iphone-15', desc: 'آیفون استاندارد', price: 59999000, qty: 8, brand: 'apple', cat: 'mobile-phones' },
-    { title: 'گوشی آیفون SE', slug: 'iphone-se', desc: 'اقتصادی اپل', price: 29999000, qty: 15, brand: 'apple', cat: 'mobile-phones' },
     { title: 'گوشی شیائومی 14', slug: 'xiaomi-14', desc: 'پرچمدار شیائومی', price: 29999000, qty: 12, brand: 'xiaomi', cat: 'mobile-phones' },
     { title: 'گوشی شیائومی Redmi Note 13', slug: 'redmi-note-13', desc: 'میانی رده شیائومی', price: 8999000, qty: 30, brand: 'xiaomi', cat: 'mobile-phones' },
-    { title: 'گوشی شیائومی Poco X6', slug: 'poco-x6', desc: 'گیمینگ اقتصادی', price: 12999000, qty: 20, brand: 'xiaomi', cat: 'mobile-phones' },
-    { title: 'گوشی ال جی Velvet', slug: 'lg-velvet', desc: 'طراحی زیبا', price: 18999000, qty: 7, brand: 'lg', cat: 'mobile-phones' },
 
-    // لپ تاپ (8 محصول)
+    // لپ تاپ (5 محصول)
     { title: 'لپ تاپ لنوو IdeaPad 5', slug: 'lenovo-ideapad-5', desc: 'کاربری عمومی', price: 35999000, qty: 8, brand: 'lenovo', cat: 'laptops' },
     { title: 'لپ تاپ ایسوس VivoBook', slug: 'asus-vivobook', desc: 'سبک و قابل حمل', price: 28999000, qty: 12, brand: 'asus', cat: 'laptops' },
-    { title: 'لپ تاپ اچ‌پ۴۵۰', slug: 'hp-pro-450', desc: 'تجاری', price: 32999000, qty: 6, brand: 'hp', cat: 'laptops' },
-    { title: 'لپ تاپ دل Inspiron', slug: 'dell-inspiron', desc: 'خانگی و اداری', price: 27999000, qty: 10, brand: 'dell', cat: 'laptops' },
     { title: 'مک بوک ایر M3', slug: 'macbook-air-m3', desc: 'اپل سبک', price: 69999000, qty: 4, brand: 'apple', cat: 'laptops' },
     { title: 'لپ تاپ گیمینگ ایسوس TUF', slug: 'asus-tuf-gaming', desc: 'بازی حرفه‌ای', price: 52999000, qty: 5, brand: 'asus', cat: 'laptops' },
     { title: 'لپ تاپ لنوو Legion', slug: 'lenovo-legion', desc: 'گیمینگ لنوو', price: 48999000, qty: 6, brand: 'lenovo', cat: 'laptops' },
-    { title: 'لپ تاپ سرفیس لنوو', slug: 'lenovo-surface', desc: 'دو حالته', price: 42999000, qty: 7, brand: 'lenovo', cat: 'laptops' },
 
-    // هدفون (6 محصول)
+    // هدفون (4 محصول)
     { title: 'ایرپاد پرو 2', slug: 'airpod-pro-2', desc: 'اپل بی‌سیم', price: 12999000, qty: 15, brand: 'apple', cat: 'headphones' },
     { title: 'هدفون سونی WH-1000XM5', slug: 'sony-xm5', desc: 'نویز کنسلینگ', price: 18999000, qty: 8, brand: 'sony', cat: 'headphones' },
-    { title: 'ایرپاد نسل 3', slug: 'airpod-gen3', desc: 'اپل استاندارد', price: 7999000, qty: 20, brand: 'apple', cat: 'headphones' },
     { title: 'هدفون بلو Tune 770', slug: 'blue-tune-770', desc: 'بلو بی‌سیم', price: 4999000, qty: 25, brand: 'blue', cat: 'headphones' },
-    { title: 'هدفون مارشال Major IV', slug: 'marshall-major-4', desc: 'مارشال کلاسیک', price: 8999000, qty: 10, brand: 'marshall', cat: 'headphones' },
     { title: 'هندزفری شیائومی Buds', slug: 'xiaomi-buds-4', desc: 'شیائومی بلوتوث', price: 3499000, qty: 30, brand: 'xiaomi', cat: 'headphones' },
 
-    // ساعت هوشمند (4 محصول)
+    // ساعت هوشمند (3 محصول)
     { title: 'اپل واچ Ultra 2', slug: 'apple-watch-ultra-2', desc: 'اپل حرفه‌ای', price: 39999000, qty: 5, brand: 'apple', cat: 'smart-watches' },
     { title: 'ساعت سامسونگ Watch 6', slug: 'samsung-watch-6', desc: 'سامسونگ کلاسیک', price: 15999000, qty: 12, brand: 'samsung', cat: 'smart-watches' },
     { title: 'ساعت شیائومی Band 8', slug: 'xiaomi-band-8', desc: 'اقتصادی', price: 2999000, qty: 40, brand: 'xiaomi', cat: 'smart-watches' },
-    { title: 'ساعت گارمین Venu 3', slug: 'garmin-venu-3', desc: 'ورزشی', price: 22999000, qty: 7, brand: 'garmin', cat: 'smart-watches' },
 
-    // پوشاک مردانه (8 محصول)
-    { title: 'پیراهن مردانه اسلیم', slug: 'men-slim-shirt', desc: 'اسلیم فیت', price: 690000, qty: 50, brand: 'iran-fashion', cat: 'men-fashion' },
+    // پوشاک مردانه (4 محصول)
+    { title: 'پیراهن مردانه اسلیم', slug: 'men-slim-shirt', desc: 'اسلیم فیت نخی', price: 690000, qty: 50, brand: 'iran-fashion', cat: 'men-fashion' },
     { title: 'شلوار جین مردانه', slug: 'men-jeans', desc: 'جین اصل', price: 1290000, qty: 35, brand: 'mod-barta', cat: 'men-fashion' },
-    { title: 'کاپشن مردانه زمستانی', slug: 'men-jacket', desc: 'کاپشن گرم', price: 2890000, qty: 20, brand: 'iran-fashion', cat: 'men-fashion' },
     { title: 'تیشرت مردانه یقه گرد', slug: 'men-tshirt', desc: 'نخی راحت', price: 390000, qty: 80, brand: 'mod-barta', cat: 'men-fashion' },
-    { title: 'پالتو مردانه بلند', slug: 'men-coat', desc: 'رسمی', price: 4590000, qty: 12, brand: 'iran-fashion', cat: 'men-fashion' },
     { title: 'هودی مردانه', slug: 'men-hoodie', desc: 'کلاه‌دار', price: 890000, qty: 45, brand: 'mod-barta', cat: 'men-fashion' },
-    { title: 'شلوار کتان مردانه', slug: 'men-khaki-pants', desc: 'کتان راحت', price: 790000, qty: 40, brand: 'iran-fashion', cat: 'men-fashion' },
-    { title: 'ژاکت مردانه اسپرت', slug: 'men-sport-jacket', desc: 'سبک', price: 1590000, qty: 25, brand: 'mod-barta', cat: 'men-fashion' },
 
-    // پوشاک زنانه (8 محصول)
-    { title: 'مانتو زنانه مجلسی', slug: 'women-manto-formal', desc: 'مجلسی', price: 1890000, qty: 20, brand: 'mod-barta', cat: 'women-fashion' },
+    // پوشاک زنانه (4 محصول)
+    { title: 'مانتو زنانه مجلسی', slug: 'women-manto-formal', desc: 'مجلسی شیک', price: 1890000, qty: 20, brand: 'mod-barta', cat: 'women-fashion' },
     { title: 'شلوار زنانه پارچه‌ای', slug: 'women-trousers', desc: 'رسمی', price: 790000, qty: 35, brand: 'iran-fashion', cat: 'women-fashion' },
     { title: 'بلوز زنانه مجلسی', slug: 'women-blouse', desc: 'شیک', price: 690000, qty: 40, brand: 'mod-barta', cat: 'women-fashion' },
-    { title: 'پالتو زنانه بلند', slug: 'women-coat-long', desc: 'زمستانی', price: 3490000, qty: 15, brand: 'iran-fashion', cat: 'women-fashion' },
     { title: 'لباس زنانه مجلس', slug: 'women-dress', desc: 'بلند', price: 2290000, qty: 18, brand: 'mod-barta', cat: 'women-fashion' },
-    { title: 'کیف زنانه دستی', slug: 'women-handbag', desc: 'چرم', price: 1590000, qty: 25, brand: 'iran-fashion', cat: 'women-fashion' },
-    { title: 'شال و روسری', slug: 'women-shawl', desc: 'ابریشم', price: 490000, qty: 60, brand: 'mod-barta', cat: 'women-fashion' },
-    { title: 'کفش پاشنه‌دار زنانه', slug: 'women-heels', desc: 'پاشنه بلند', price: 1890000, qty: 22, brand: 'iran-fashion', cat: 'women-fashion' },
 
-    // لوازم خانگی (6 محصول)
-    { title: 'سرویس قابلمه ۱۰ پارچه', slug: 'cookware-10pc', desc: 'گرانیتی', price: 6990000, qty: 10, brand: 'tefal', cat: 'home-kitchen' },
-    { title: 'سرویس چای‌خوری', slug: 'tea-set', desc: 'سرامیکی', price: 2490000, qty: 15, brand: 'bosh', cat: 'home-kitchen' },
-    { title: 'مخلوط‌کن ال جی', slug: 'lg-blender', desc: '۵ تیغه', price: 3990000, qty: 12, brand: 'lg', cat: 'home-kitchen' },
-    { title: 'سرخ‌کن بدون روغن', slug: 'air-fryer', desc: '۵ لیتری', price: 5490000, qty: 8, brand: 'hyundai', cat: 'home-kitchen' },
-    { title: 'جاروبرقی بوش', slug: 'bosch-vacuum', desc: 'قوی', price: 12990000, qty: 5, brand: 'bosh', cat: 'home-kitchen' },
-    { title: 'ست قابلمه هیوندای', slug: 'hyundai-cookware', desc: '۱۲ پارچه', price: 4990000, qty: 10, brand: 'hyundai', cat: 'home-kitchen' },
+    // لوازم خانگی (3 محصول)
+    { title: 'سرویس قابلمه 10 پارچه', slug: 'cookware-10pc', desc: 'گرانیتی', price: 6990000, qty: 10, brand: 'tefal', cat: 'home-kitchen' },
+    { title: 'سرخ‌کن بدون روغن', slug: 'air-fryer', desc: '5 لیتری', price: 5490000, qty: 8, brand: 'hyundai', cat: 'home-kitchen' },
+    { title: 'جاروبرقی بوش', slug: 'bosch-vacuum', desc: 'قوی', price: 12990000, qty: 5, brand: 'bosch', cat: 'home-kitchen' },
 
-    // کتاب (6 محصول)
-    { title: 'کتاب اثر مرکب', slug: 'compound-effect-book', desc: 'دارن هاردی', price: 180000, qty: 100, brand: 'tech-publisher', cat: 'books' },
-    { title: 'کتاب عادت‌های اتمی', slug: 'atomic-habits-book', desc: 'جیمز کلیر', price: 220000, qty: 80, brand: 'tech-publisher', cat: 'books' },
-    { title: 'کتاب ذهن بی‌نهایت', slug: 'infinite-mind-book', desc: 'آموزش تمرکز', price: 150000, qty: 90, brand: 'tech-publisher', cat: 'books' },
-    { title: 'کتاب قدرت در حال حاضر', slug: 'power-now-book', desc: 'اگرت هلولین', price: 190000, qty: 70, brand: 'tech-publisher', cat: 'books' },
-    { title: 'کتاب فروشنده بزرگ', slug: 'biggest-seller-book', desc: 'زک باتن', price: 160000, qty: 85, brand: 'tech-publisher', cat: 'books' },
-    { title: 'کتاب هنر ظریف بی‌خیالی', slug: 'art-subtle-art-book', desc: 'مارک منسن', price: 170000, qty: 75, brand: 'tech-publisher', cat: 'books' },
-
-    // ورزشی (8 محصول)
+    // ورزشی (3 محصول)
     { title: 'کفش دویدن نایک پیموس', slug: 'nike-pegasus', desc: 'دویدن', price: 6990000, qty: 15, brand: 'nike', cat: 'sports' },
     { title: 'کفش آدیداس Ultraboost', slug: 'adidas-ultraboost', desc: 'راحتی بالا', price: 7490000, qty: 12, brand: 'adidas', cat: 'sports' },
-    { title: 'تردمیل خانگی', slug: 'home-treadmill', desc: 'تاشو', price: 29990000, qty: 3, brand: 'hyundai', cat: 'sports' },
-    { title: 'دمبل ۱۰ کیلویی', slug: 'dumbbell-10kg', desc: 'جفت', price: 890000, qty: 30, brand: 'puma', cat: 'sports' },
     { title: 'مت یوگا', slug: 'yoga-mat', desc: 'ضد لغزش', price: 490000, qty: 50, brand: 'nike', cat: 'sports' },
-    { title: 'کیسه بوکس', slug: 'boxing-bag', desc: '۱ متری', price: 4990000, qty: 8, brand: 'puma', cat: 'sports' },
-    { title: 'توپ فوتبال آدیداس', slug: 'adidas-football', desc: 'سایز ۵', price: 1290000, qty: 25, brand: 'adidas', cat: 'sports' },
-    { title: 'رکورت ورزشی', slug: 'sport-bench', desc: 'قابل تنظیم', price: 8990000, qty: 5, brand: 'puma', cat: 'sports' },
 
-    // زیبایی و سلامت (8 محصول)
-    { title: 'کرم ضد آفتاب ۵۰', slug: 'spf50-cream', desc: 'ضد آفتاب', price: 450000, qty: 60, brand: 'cinere', cat: 'beauty' },
+    // زیبایی و سلامت (3 محصول)
+    { title: 'کرم ضد آفتاب 50', slug: 'spf50-cream', desc: 'ضد آفتاب', price: 450000, qty: 60, brand: 'cinere', cat: 'beauty' },
     { title: 'سرم ویتامین C', slug: 'vitamin-c-serum', desc: 'روشن‌کننده', price: 690000, qty: 40, brand: 'loreal', cat: 'beauty' },
     { title: 'ادکلن مردانه', slug: 'men-parfum', desc: 'خوشبو', price: 1890000, qty: 20, brand: 'loreal', cat: 'beauty' },
-    { title: 'ریمل حجم‌دهنده', slug: 'volume-mascara', desc: 'ریمل حرفه‌ای', price: 390000, qty: 50, brand: 'cinere', cat: 'beauty' },
-    { title: 'رژ لب مات', slug: 'matte-lipstick', desc: 'ماندگار', price: 290000, qty: 70, brand: 'loreal', cat: 'beauty' },
-    { title: 'شامپو ضد ریزش', slug: 'anti-hairfall-shampoo', desc: 'درمان', price: 520000, qty: 45, brand: 'cinere', cat: 'beauty' },
-    { title: 'ساعت هوشمند ورزشی', slug: 'sport-smartwatch', desc: 'ضربه مقاوم', price: 5990000, qty: 10, brand: 'samsung', cat: 'beauty' },
-    { title: 'ست مراقبت پوست', slug: 'skincare-set', desc: '۵ مرحله‌ای', price: 2490000, qty: 18, brand: 'loreal', cat: 'beauty' },
   ];
 
   let productCount = 0;
-  // نگاشت slug -> product برای دسترسی بعدی
   const createdProducts: any[] = [];
 
   for (const prod of productsData) {
@@ -385,7 +411,7 @@ async function main() {
       const newProduct = await prisma.product.create({
         data: {
           title: prod.title,
-          titleEn: prod.slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          titleEn: prod.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
           slug: prod.slug,
           slugEn: prod.slug,
           description: prod.desc,
@@ -393,7 +419,7 @@ async function main() {
           brandId: brand?.id || null,
           sellerId: randSeller.id,
           categoryId: category.id,
-          status: 'approved' as any,
+          status: 'approved',
           isFeatured: Math.random() > 0.7,
           viewCount: Math.floor(Math.random() * 500),
           saleCount: Math.floor(Math.random() * 100),
@@ -402,10 +428,9 @@ async function main() {
         },
       });
 
-      // تصاویر (حداقل ۱ عکس برای هر محصول - انتخاب رندوم از آدرس‌های محلی)
-      const imageCount = 1 + Math.floor(Math.random() * 3); // 1 تا 3 عکس
+      // تصاویر محصول
+      const imageCount = 1 + Math.floor(Math.random() * 3);
       for (let i = 0; i < imageCount; i++) {
-        // استفاده از seed منحصر به فرد برای هر تصویر محصول تا URL تکراری نباشد
         const imgPath = IMAGE_PATHS[(productCount * 10 + i) % IMAGE_PATHS.length];
         await prisma.productImage.upsert({
           where: { url: `/${imgPath}` },
@@ -420,7 +445,7 @@ async function main() {
         });
       }
 
-      // ایجاد default Variant با قیمت و موجودی
+      // ایجاد default Variant (بدون attributes JSON)
       const sku = `PRD-${prod.slug.toUpperCase().replace(/[^A-Z0-9]/g, '')}-001`;
       const defaultVariant = await prisma.productVariant.create({
         data: {
@@ -430,8 +455,6 @@ async function main() {
           sku: sku.substring(0, 100),
           price: prod.price,
           quantity: prod.qty,
-          attributes: JSON.stringify({}) as any,
-          attributesEn: JSON.stringify({}) as any,
         },
       });
 
@@ -442,90 +465,166 @@ async function main() {
   console.log(`✅ ${productCount} محصول جدید ایجاد شد`);
 
   // ============================================
-  // ۶. Variant اضافی برای محصولات نمونه (JSON format)
+  // ۶.۵. اطمینان از ساخت attribute definitionها (قبل از Variant)
   // ============================================
-  async function createVariants(productSlug: string, variants: { name: string; nameEn: string; sku: string; price?: number; quantity: number; attributes: Record<string, string | number>; attributesEn: Record<string, string | number> }[]) {
+  const attrKeys = ['storage', 'ram', 'gen', 'size', 'pieces', 'capacity', 'color', 'material'];
+  for (const key of attrKeys) {
+    await prisma.attributeDefinition.upsert({
+      where: { key },
+      update: {},
+      create: { key, label: key },
+    });
+  }
+  console.log('✅ Attribute definitions ساخته شدند');
+
+  // ============================================
+  // ۷. Variant اضافی با VariantAttributeValue (مدل جدید)
+  // ============================================
+  async function createVariantWithAttributes(
+    productSlug: string,
+    variantName: string,
+    variantNameEn: string,
+    sku: string,
+    price: number,
+    quantity: number,
+    colorSlug: string,
+    attributeKey: string,
+    attributeValue: string,
+  ) {
     const product = await prisma.product.findUnique({ where: { slug: productSlug } });
-    if (!product) {
-      console.log(`⚠️ محصول ${productSlug} یافت نشد`);
-      return;
-    }
-    // دریافت قیمت پایه از default variant
-    const defaultVariant = await prisma.productVariant.findFirst({ where: { productId: product.id } });
-    const basePrice = defaultVariant?.price || 0;
-    for (const v of variants) {
-      await prisma.productVariant.upsert({
-        where: { sku: v.sku },
-        update: {},
-        create: {
-          productId: product.id,
-          name: v.name,
-          nameEn: v.nameEn,
-          sku: v.sku,
-          price: v.price ?? basePrice,
-          quantity: v.quantity,
-          attributes: JSON.stringify(v.attributes) as any,
-          attributesEn: JSON.stringify(v.attributesEn) as any,
+    if (!product) return;
+    const basePrice = (await prisma.productVariant.findFirst({ where: { productId: product.id } }))?.price;
+
+    await prisma.productVariant.upsert({
+      where: { sku },
+      update: {},
+      create: {
+        productId: product.id,
+        name: variantName,
+        nameEn: variantNameEn,
+        sku,
+        price: price ?? basePrice,
+        quantity,
+        colorId: colorById[colorSlug] || null,
+        attributes: {
+          create: {
+            attributeId: (await prisma.attributeDefinition.findFirst({ where: { key: attributeKey } }))?.id || '',
+            value: attributeValue,
+          },
         },
-      });
-    }
+      },
+    });
   }
 
-  await createVariants('samsung-s24', [
-    { name: 'مشکی - ۱۲۸GB', nameEn: 'Black - 128GB', sku: 'SAM-S24-BLK-128', quantity: 5, attributes: { color: 'مشکی', storage: 128 }, attributesEn: { color: 'Black', storage: 128 } },
-    { name: 'سفید - ۲۵۶GB', nameEn: 'White - 256GB', sku: 'SAM-S24-WHT-256', quantity: 3, attributes: { color: 'سفید', storage: 256 }, attributesEn: { color: 'White', storage: 256 } },
-    { name: 'بنفش - ۲۵۶GB', nameEn: 'Purple - 256GB', sku: 'SAM-S24-PUR-256', quantity: 4, attributes: { color: 'بنفش', storage: 256 }, attributesEn: { color: 'Purple', storage: 256 } },
-  ]);
+  // موبایل: رنگ + حافظه
+  await createVariantWithAttributes('samsung-s24', 'مشکی - 128GB', 'Black - 128GB', 'SAM-S24-BLK-128', 45999000, 5, 'black', 'storage', '128GB');
+  await createVariantWithAttributes('samsung-s24', 'سفید - 256GB', 'White - 256GB', 'SAM-S24-WHT-256', 49999000, 3, 'white', 'storage', '256GB');
+  await createVariantWithAttributes('samsung-s24', 'بنفش - 256GB', 'Purple - 256GB', 'SAM-S24-PUR-256', 49999000, 4, 'purple', 'storage', '256GB');
 
-  await createVariants('nike-pegasus', [
-    { name: 'سایز ۴۰ - قرمز', nameEn: 'Size 40 - Red', sku: 'NIKE-PEG-40-RED', quantity: 8, attributes: { size: '40', color: 'قرمز' }, attributesEn: { size: '40', color: 'Red' } },
-    { name: 'سایز ۴۲ - آبی', nameEn: 'Size 42 - Blue', sku: 'NIKE-PEG-42-BLU', quantity: 7, attributes: { size: '42', color: 'آبی' }, attributesEn: { size: '42', color: 'Blue' } },
-    { name: 'سایز ۴۴ - مشکی', nameEn: 'Size 44 - Black', sku: 'NIKE-PEG-44-BLK', quantity: 5, attributes: { size: '44', color: 'مشکی' }, attributesEn: { size: '44', color: 'Black' } },
-  ]);
+  await createVariantWithAttributes('iphone-15-pro', 'مشکی تیتانیوم', 'Black Titanium', 'APL-IP15P-BLK', 79999000, 3, 'black', 'storage', '256GB');
+  await createVariantWithAttributes('iphone-15-pro', 'سفید تیتانیوم', 'White Titanium', 'APL-IP15P-WHT', 79999000, 2, 'white', 'storage', '512GB');
 
-  await createVariants('men-slim-shirt', [
-    { name: 'M - آبی', nameEn: 'M - Blue', sku: 'SHIRT-SLIM-M-BLU', quantity: 15, attributes: { size: 'M', color: 'آبی', material: 'نخی' }, attributesEn: { size: 'M', color: 'Blue', material: 'Cotton' } },
-    { name: 'L - آبی', nameEn: 'L - Blue', sku: 'SHIRT-SLIM-L-BLU', quantity: 15, attributes: { size: 'L', color: 'آبی', material: 'نخی' }, attributesEn: { size: 'L', color: 'Blue', material: 'Cotton' } },
-    { name: 'XL - سفید', nameEn: 'XL - White', sku: 'SHIRT-SLIM-XL-WHT', quantity: 10, attributes: { size: 'XL', color: 'سفید', material: 'نخی' }, attributesEn: { size: 'XL', color: 'White', material: 'Cotton' } },
-    { name: 'M - سفید', nameEn: 'M - White', sku: 'SHIRT-SLIM-M-WHT', quantity: 10, attributes: { size: 'M', color: 'سفید', material: 'نخی' }, attributesEn: { size: 'M', color: 'White', material: 'Cotton' } },
-  ]);
+  await createVariantWithAttributes('xiaomi-14', 'مشکی', 'Black', 'XMI-X14-BLK', 29999000, 6, 'black', 'storage', '256GB');
+  await createVariantWithAttributes('xiaomi-14', 'سبز', 'Green', 'XMI-X14-GRN', 29999000, 6, 'green', 'storage', '256GB');
 
-  await createVariants('women-manto-formal', [
-    { name: 'S - مشکی', nameEn: 'S - Black', sku: 'MANTO-FRM-S-BLK', quantity: 8, attributes: { size: 'S', color: 'مشکی' }, attributesEn: { size: 'S', color: 'Black' } },
-    { name: 'M - مشکی', nameEn: 'M - Black', sku: 'MANTO-FRM-M-BLK', quantity: 8, attributes: { size: 'M', color: 'مشکی' }, attributesEn: { size: 'M', color: 'Black' } },
-    { name: 'L - سورمه‌ای', nameEn: 'L - Navy', sku: 'MANTO-FRM-L-NVY', quantity: 5, attributes: { size: 'L', color: 'سورمه‌ای' }, attributesEn: { size: 'L', color: 'Navy' } },
-  ]);
+  // لپ تاپ: رنگ
+  await createVariantWithAttributes('lenovo-ideapad-5', 'خاکستری', 'Gray', 'LNV-IDP5-GRY', 35999000, 4, 'gray', 'ram', '8GB');
+  await createVariantWithAttributes('lenovo-ideapad-5', 'مشکی', 'Black', 'LNV-IDP5-BLK', 37999000, 4, 'black', 'ram', '16GB');
 
-  await createVariants('cookware-10pc', [
-    { name: '۸ پارچه', nameEn: '8-Piece', sku: 'COOK-GRN-8PC', quantity: 8, attributes: { pieces: 8, material: 'گرانیتی' }, attributesEn: { pieces: 8, material: 'Granite' } },
-    { name: '۱۲ پارچه', nameEn: '12-Piece', sku: 'COOK-GRN-12PC', quantity: 10, attributes: { pieces: 12, material: 'گرانیتی' }, attributesEn: { pieces: 12, material: 'Granite' } },
-  ]);
-  console.log('✅ Variant محصولات ایجاد شدند');
+  await createVariantWithAttributes('macbook-air-m3', 'نقره‌ای', 'Silver', 'APL-MBA-M3-SLV', 69999000, 2, 'gray', 'ram', '8GB');
+  await createVariantWithAttributes('macbook-air-m3', 'طلایی', 'Gold', 'APL-MBA-M3-GOLD', 71999000, 2, 'yellow', 'ram', '16GB');
+
+  // هدفون: رنگ
+  await createVariantWithAttributes('airpod-pro-2', 'سفید', 'White', 'APL-APP2-WHT', 12999000, 8, 'white', 'gen', '2');
+  await createVariantWithAttributes('sony-xm5', 'مشکی', 'Black', 'SNY-XM5-BLK', 18999000, 4, 'black', 'gen', '5');
+  await createVariantWithAttributes('sony-xm5', 'نقره‌ای', 'Silver', 'SNY-XM5-SLV', 18999000, 4, 'gray', 'gen', '5');
+
+  // ساعت هوشمند: رنگ
+  await createVariantWithAttributes('apple-watch-ultra-2', 'نارنجی', 'Orange', 'APL-AWU2-ORG', 39999000, 3, 'orange', 'size', '49mm');
+  await createVariantWithAttributes('samsung-watch-6', 'مشکی', 'Black', 'SAM-SW6-BLK', 15999000, 6, 'black', 'size', '44mm');
+
+  // پوشاک مردانه: سایز + رنگ
+  await createVariantWithAttributes('men-slim-shirt', 'M - آبی', 'M - Blue', 'SHR-SLM-M-BLU', 690000, 15, 'blue', 'size', 'M');
+  await createVariantWithAttributes('men-slim-shirt', 'L - آبی', 'L - Blue', 'SHR-SLM-L-BLU', 690000, 15, 'blue', 'size', 'L');
+  await createVariantWithAttributes('men-slim-shirt', 'XL - سفید', 'XL - White', 'SHR-SLM-XL-WHT', 690000, 10, 'white', 'size', 'XL');
+  await createVariantWithAttributes('men-slim-shirt', 'M - سفید', 'M - White', 'SHR-SLM-M-WHT', 690000, 10, 'white', 'size', 'M');
+
+  await createVariantWithAttributes('men-jeans', '32 - آبی تیره', '32 - Dark Blue', 'JNS-MN-32-DBL', 1290000, 12, 'blue', 'size', '32');
+  await createVariantWithAttributes('men-jeans', '34 - آبی تیره', '34 - Dark Blue', 'JNS-MN-34-DBL', 1290000, 12, 'blue', 'size', '34');
+  await createVariantWithAttributes('men-jeans', '36 - مشکی', '36 - Black', 'JNS-MN-36-BLK', 1290000, 10, 'black', 'size', '36');
+
+  await createVariantWithAttributes('men-tshirt', 'M - سفید', 'M - White', 'TSH-MN-M-WHT', 390000, 25, 'white', 'size', 'M');
+  await createVariantWithAttributes('men-tshirt', 'L - مشکی', 'L - Black', 'TSH-MN-L-BLK', 390000, 25, 'black', 'size', 'L');
+  await createVariantWithAttributes('men-tshirt', 'XL - آبی', 'XL - Blue', 'TSH-MN-XL-BLU', 390000, 20, 'blue', 'size', 'XL');
+
+  await createVariantWithAttributes('men-hoodie', 'M - خاکستری', 'M - Gray', 'HOD-MN-M-GRY', 890000, 15, 'gray', 'size', 'M');
+  await createVariantWithAttributes('men-hoodie', 'L - مشکی', 'L - Black', 'HOD-MN-L-BLK', 890000, 15, 'black', 'size', 'L');
+
+  // پوشاک زنانه: سایز + رنگ
+  await createVariantWithAttributes('women-manto-formal', 'S - مشکی', 'S - Black', 'MNT-FRM-S-BLK', 1890000, 6, 'black', 'size', 'S');
+  await createVariantWithAttributes('women-manto-formal', 'M - مشکی', 'M - Black', 'MNT-FRM-M-BLK', 1890000, 6, 'black', 'size', 'M');
+  await createVariantWithAttributes('women-manto-formal', 'L - سورمه‌ای', 'L - Navy', 'MNT-FRM-L-NVY', 1890000, 5, 'navy', 'size', 'L');
+
+  await createVariantWithAttributes('women-trousers', 'S - مشکی', 'S - Black', 'TRS-WMN-S-BLK', 790000, 12, 'black', 'size', 'S');
+  await createVariantWithAttributes('women-trousers', 'M - سورمه‌ای', 'M - Navy', 'TRS-WMN-M-NVY', 790000, 12, 'navy', 'size', 'M');
+
+  await createVariantWithAttributes('women-blouse', 'S - سفید', 'S - White', 'BLS-WMN-S-WHT', 690000, 15, 'white', 'size', 'S');
+  await createVariantWithAttributes('women-blouse', 'M - صورتی', 'M - Pink', 'BLS-WMN-M-PNK', 690000, 15, 'pink', 'size', 'M');
+
+  await createVariantWithAttributes('women-dress', 'S - مشکی', 'S - Black', 'DRS-WMN-S-BLK', 2290000, 8, 'black', 'size', 'S');
+  await createVariantWithAttributes('women-dress', 'M - قرمز', 'M - Red', 'DRS-WMN-M-RED', 2290000, 8, 'red', 'size', 'M');
+
+  // لوازم خانگی
+  await createVariantWithAttributes('cookware-10pc', '8 پارچه', '8-Piece', 'CKW-GRN-8PC', 5990000, 8, 'gray', 'pieces', '8');
+  await createVariantWithAttributes('cookware-10pc', '12 پارچه', '12-Piece', 'CKW-GRN-12PC', 7990000, 10, 'gray', 'pieces', '12');
+
+  await createVariantWithAttributes('air-fryer', '4 لیتری', '4L', 'FRY-HY-4L', 4490000, 5, 'black', 'capacity', '4L');
+  await createVariantWithAttributes('air-fryer', '6 لیتری', '6L', 'FRY-HY-6L', 5990000, 5, 'black', 'capacity', '6L');
+
+  // ورزشی: سایز + رنگ
+  await createVariantWithAttributes('nike-pegasus', '40 - قرمز', '40 - Red', 'NIKE-PEG-40-RED', 6990000, 6, 'red', 'size', '40');
+  await createVariantWithAttributes('nike-pegasus', '42 - آبی', '42 - Blue', 'NIKE-PEG-42-BLU', 6990000, 6, 'blue', 'size', '42');
+  await createVariantWithAttributes('nike-pegasus', '44 - مشکی', '44 - Black', 'NIKE-PEG-44-BLK', 6990000, 5, 'black', 'size', '44');
+
+  await createVariantWithAttributes('adidas-ultraboost', '40 - سفید', '40 - White', 'ADI-UB-40-WHT', 7490000, 6, 'white', 'size', '40');
+  await createVariantWithAttributes('adidas-ultraboost', '42 - مشکی', '42 - Black', 'ADI-UB-42-BLK', 7490000, 6, 'black', 'size', '42');
+
+  // زیبایی
+  await createVariantWithAttributes('spf50-cream', '50ml', '50ml', 'SPF-50ML', 450000, 30, 'white', 'size', '50ml');
+  await createVariantWithAttributes('spf50-cream', '100ml', '100ml', 'SPF-100ML', 750000, 25, 'white', 'size', '100ml');
+
+  await createVariantWithAttributes('vitamin-c-serum', '30ml', '30ml', 'VTC-30ML', 690000, 20, 'orange', 'size', '30ml');
+  await createVariantWithAttributes('vitamin-c-serum', '50ml', '50ml', 'VTC-50ML', 990000, 15, 'orange', 'size', '50ml');
+
+  await createVariantWithAttributes('men-parfum', '100ml', '100ml', 'PRF-MN-100', 1890000, 10, 'black', 'size', '100ml');
+  await createVariantWithAttributes('men-parfum', '50ml', '50ml', 'PRF-MN-50', 1190000, 10, 'black', 'size', '50ml');
+
+  console.log('✅ Variant محصولات با مدل جدید ایجاد شدند');
 
   // ============================================
-  // ۷. کدهای تخفیف (۲۰ کد)
+  // ۸. کدهای تخفیف
   // ============================================
   const discountCodes = [
-    { code: 'WELCOME10', type: 'percentage' as const, value: 10, minOrder: 1000000, maxDisc: 500000, limit: 100, desc: 'خوش‌آمدگویی ۱۰٪' },
-    { code: 'FREE50', type: 'fixed' as const, value: 50000, minOrder: 500000, limit: 50, desc: '۵۰ هزار تومان ثابت' },
-    { code: 'SUMMER20', type: 'percentage' as const, value: 20, minOrder: 2000000, maxDisc: 1000000, limit: 200, desc: 'تابستانه ۲۰٪' },
-    { code: 'NEWYEAR15', type: 'percentage' as const, value: 15, minOrder: 1500000, maxDisc: 750000, limit: 150, desc: 'سال نو ۱۵٪' },
-    { code: 'FLASH30', type: 'percentage' as const, value: 30, minOrder: 3000000, maxDisc: 2000000, limit: 30, desc: 'فلاش ۳۰٪' },
-    { code: 'BIG100', type: 'fixed' as const, value: 100000, minOrder: 5000000, limit: 25, desc: '۱۰۰ هزار تومان بزرگ' },
-    { code: 'FIRST5', type: 'percentage' as const, value: 5, minOrder: 0, limit: 9999, desc: 'اولین خرید ۵٪' },
-    { code: 'VIP20', type: 'percentage' as const, value: 20, minOrder: 4000000, maxDisc: 1500000, limit: 50, desc: 'وی‌آی‌پی ۲۰٪' },
-    { code: 'MOBILE15', type: 'percentage' as const, value: 15, minOrder: 5000000, maxDisc: 2000000, limit: 40, desc: 'موبایل ۱۵٪' },
-    { code: 'FASHION25', type: 'percentage' as const, value: 25, minOrder: 1000000, maxDisc: 500000, limit: 80, desc: 'مد و پوشاک ۲۵٪' },
-    { code: 'HOME30', type: 'fixed' as const, value: 300000, minOrder: 8000000, limit: 20, desc: 'لوازم خانگی ۳۰۰ هزار' },
-    { code: 'BOOKS10', type: 'percentage' as const, value: 10, minOrder: 200000, limit: 200, desc: 'کتاب ۱۰٪' },
-    { code: 'SPORT15', type: 'percentage' as const, value: 15, minOrder: 2000000, maxDisc: 800000, limit: 60, desc: 'ورزشی ۱۵٪' },
-    { code: 'BEAUTY20', type: 'percentage' as const, value: 20, minOrder: 1000000, maxDisc: 400000, limit: 70, desc: 'زیبایی ۲۰٪' },
-    { code: 'NIGHT40', type: 'fixed' as const, value: 40000, minOrder: 300000, limit: 100, desc: 'شب تا صبح ۴۰ هزار' },
-    { code: 'FLASH2', type: 'percentage' as const, value: 50, minOrder: 1000000, maxDisc: 1000000, limit: 10, desc: 'فلاش ۲ ساعته ۵۰٪' },
-    { code: 'LOYALTY', type: 'percentage' as const, value: 8, minOrder: 0, limit: 9999, desc: 'وفاداری ۸٪' },
-    { code: 'REFER25', type: 'fixed' as const, value: 25000, minOrder: 500000, limit: 500, desc: 'معرفی ۲۵ هزار' },
-    { code: 'HOLIDAY35', type: 'percentage' as const, value: 35, minOrder: 2000000, maxDisc: 1500000, limit: 45, desc: 'تعطیلات ۳۵٪' },
-    { code: 'EXTRA10', type: 'fixed' as const, value: 10000, minOrder: 100000, limit: 1000, desc: 'اضافه ۱۰ هزار' },
+    { code: 'WELCOME10', type: 'percentage' as any, value: 10, minOrder: 1000000, maxDisc: 500000, limit: 100, desc: 'خوش‌آمدگویی ۱۰٪' },
+    { code: 'FREE50', type: 'fixed' as any, value: 50000, minOrder: 500000, limit: 50, desc: '۵۰ هزار تومان ثابت' },
+    { code: 'SUMMER20', type: 'percentage' as any, value: 20, minOrder: 2000000, maxDisc: 1000000, limit: 200, desc: 'تابستانه ۲۰٪' },
+    { code: 'NEWYEAR15', type: 'percentage' as any, value: 15, minOrder: 1500000, maxDisc: 750000, limit: 150, desc: 'سال نو ۱۵٪' },
+    { code: 'FLASH30', type: 'percentage' as any, value: 30, minOrder: 3000000, maxDisc: 2000000, limit: 30, desc: 'فلاش ۳۰٪' },
+    { code: 'BIG100', type: 'fixed' as any, value: 100000, minOrder: 5000000, limit: 25, desc: '۱۰۰ هزار تومان بزرگ' },
+    { code: 'FIRST5', type: 'percentage' as any, value: 5, minOrder: 0, limit: 9999, desc: 'اولین خرید ۵٪' },
+    { code: 'VIP20', type: 'percentage' as any, value: 20, minOrder: 4000000, maxDisc: 1500000, limit: 50, desc: 'وی‌آی‌پی ۲۰٪' },
+    { code: 'MOBILE15', type: 'percentage' as any, value: 15, minOrder: 5000000, maxDisc: 2000000, limit: 40, desc: 'موبایل ۱۵٪' },
+    { code: 'FASHION25', type: 'percentage' as any, value: 25, minOrder: 1000000, maxDisc: 500000, limit: 80, desc: 'مد و پوشاک ۲۵٪' },
+    { code: 'HOME30', type: 'fixed' as any, value: 300000, minOrder: 8000000, limit: 20, desc: 'لوازم خانگی ۳۰۰ هزار' },
+    { code: 'BOOKS10', type: 'percentage' as any, value: 10, minOrder: 200000, limit: 200, desc: 'کتاب ۱۰٪' },
+    { code: 'SPORT15', type: 'percentage' as any, value: 15, minOrder: 2000000, maxDisc: 800000, limit: 60, desc: 'ورزشی ۱۵٪' },
+    { code: 'BEAUTY20', type: 'percentage' as any, value: 20, minOrder: 1000000, maxDisc: 400000, limit: 70, desc: 'زیبایی ۲۰٪' },
+    { code: 'NIGHT40', type: 'fixed' as any, value: 40000, minOrder: 300000, limit: 100, desc: 'شب تا صبح ۴۰ هزار' },
+    { code: 'FLASH2', type: 'percentage' as any, value: 50, minOrder: 1000000, maxDisc: 1000000, limit: 10, desc: 'فلاش ۲ ساعته ۵۰٪' },
+    { code: 'LOYALTY', type: 'percentage' as any, value: 8, minOrder: 0, limit: 9999, desc: 'وفاداری ۸٪' },
+    { code: 'REFER25', type: 'fixed' as any, value: 25000, minOrder: 500000, limit: 500, desc: 'معرفی ۲۵ هزار' },
+    { code: 'HOLIDAY35', type: 'percentage' as any, value: 35, minOrder: 2000000, maxDisc: 1500000, limit: 45, desc: 'تعطیلات ۳۵٪' },
+    { code: 'EXTRA10', type: 'fixed' as any, value: 10000, minOrder: 100000, limit: 1000, desc: 'اضافه ۱۰ هزار' },
   ];
 
   let discountCount = 0;
@@ -554,7 +653,7 @@ async function main() {
   console.log(`✅ ${discountCount} کد تخفیف جدید ایجاد شد`);
 
   // ============================================
-  // ۸. روش‌های ارسال
+  // ۹. روش‌های ارسال
   // ============================================
   const shippingMethods = [
     { name: 'پست پیشتاز', nameEn: 'Express Post', cost: 45000, freeThreshold: 500000, estimatedDays: '2-4', sortOrder: 1 },
@@ -570,7 +669,7 @@ async function main() {
   console.log('✅ روش‌های ارسال ایجاد شدند');
 
   // ============================================
-  // ۹. بنرها (۱۰ بنر)
+  // ۱۰. بنرها
   // ============================================
   const bannersData = [
     { title: 'تخفیفات تابستانه', subtitle: 'تا ۵۰٪ تخفیف', image: 'https://picsum.photos/seed/banner1/1200/400', link: '/products?sort=price_asc', position: 'home_top' as any, sortOrder: 1 },
@@ -591,7 +690,7 @@ async function main() {
   console.log('✅ ۱۰ بنر ایجاد شد');
 
   // ============================================
-  // ۱۰. آدرس‌های نمونه
+  // ۱۱. آدرس‌های نمونه
   // ============================================
   const addresses = [
     { userId: admin.id, title: 'دفتر', fullName: 'مدیر سیستم', phone: '09120000000', province: 'تهران', city: 'تهران', address: 'خیابان ولیعصر، شماره ۱', postalCode: '1234567890', isDefault: true },
@@ -613,7 +712,7 @@ async function main() {
   console.log('✅ آدرس‌های نمونه ایجاد شدند');
 
   // ============================================
-  // ۱۱. بلاگ پست‌ها (۱۵ پست)
+  // ۱۲. بلاگ پست‌ها
   // ============================================
   const blogPosts = [
     { title: 'راهنمای خرید گوشی هوشمند', slug: 'smartphone-buying-guide', excerpt: 'نکات مهم在购买手机', content: 'محتوای راهنمای خرید...', status: 'published' as any },
@@ -652,7 +751,7 @@ async function main() {
   console.log('✅ ۱۵ بلاگ پست ایجاد شد');
 
   // ============================================
-  // ۱۲. نظرات نمونه
+  // ۱۳. نظرات نمونه
   // ============================================
   const allProducts = await prisma.product.findMany({ where: { status: 'approved' }, take: 30 });
   const reviewTexts = [
@@ -673,8 +772,10 @@ async function main() {
     const numReviews = Math.floor(Math.random() * 3);
     for (let r = 0; r < numReviews; r++) {
       const randomBuyer = buyers[Math.floor(Math.random() * buyers.length)];
-      await prisma.review.create({
-        data: {
+      await prisma.review.upsert({
+        where: { userId_productId: { userId: randomBuyer.id, productId: product.id } },
+        update: {},
+        create: {
           rating: Math.floor(3 + Math.random() * 3),
           title: reviewTexts[Math.floor(Math.random() * reviewTexts.length)],
           body: reviewTexts[Math.floor(Math.random() * reviewTexts.length)] + ' - ' + product.title,
@@ -689,7 +790,7 @@ async function main() {
   console.log(`✅ ${reviewCount} نظر ایجاد شد`);
 
   // ============================================
-  // ۱۳. سفارشات نمونه (۱۵ سفارش)
+  // ۱۴. سفارشات نمونه
   // ============================================
   const orderStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'] as any[];
   const paymentMethods = ['card', 'wallet', 'zarinpal'] as any[];
@@ -705,7 +806,7 @@ async function main() {
       data: {
         orderNumber: `ORD-${Date.now()}-${i.toString().padStart(4, '0')}`,
         status: orderStatuses[Math.floor(Math.random() * orderStatuses.length)],
-        paymentStatus: 'paid' as any,
+        paymentStatus: 'paid',
         paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
         subtotal: total,
         shippingCost: Math.floor(Math.random() * 50000),
@@ -720,12 +821,12 @@ async function main() {
         items: {
           create: {
             title: cp.title,
-            price: price,
+            price,
             quantity: qty,
-            total: total,
+            total,
             sku: cp.defaultVariantSku || `SKU-${cp.slug.toUpperCase()}`,
             variantName: 'پیش‌فرض',
-             image: `/${getRandomImage(999)}`,
+            image: `/${getRandomImage(999)}`,
             productId: cp.id,
             sellerId: cp.sellerId,
             variantId: cp.defaultVariantId,
@@ -737,7 +838,7 @@ async function main() {
   console.log('✅ ۱۵ سفارش نمونه ایجاد شد');
 
   // ============================================
-  // ۱۴. سبد خرید نمونه
+  // ۱۵. سبد خرید نمونه
   // ============================================
   const allVariants = await prisma.productVariant.findMany({ take: 50 });
   for (const buyer of buyers.slice(0, 5)) {
@@ -761,7 +862,7 @@ async function main() {
   console.log('✅ سبد خرید نمونه ایجاد شد');
 
   // ============================================
-  // ۱۵. لیست علاقه‌مندی
+  // ۱۶. لیست علاقه‌مندی
   // ============================================
   for (const buyer of buyers.slice(0, 6)) {
     const numItems = 2 + Math.floor(Math.random() * 5);
@@ -780,19 +881,19 @@ async function main() {
   console.log('✅ لیست علاقه‌مندی ایجاد شد');
 
   // ============================================
-  // ۱۶. کیف پول - تراکنش‌ها
+  // ۱۷. کیف پول - تراکنش‌ها
   // ============================================
   for (const buyer of buyers.slice(0, 5)) {
     const balanceBefore = 0;
     const depositAmount = 5000000 + Math.floor(Math.random() * 20000000);
     await prisma.walletTransaction.create({
       data: {
-        type: 'deposit' as any,
+        type: 'deposit',
         amount: depositAmount,
         balanceBefore,
         balanceAfter: depositAmount,
         description: 'شارژ کیف پول',
-        status: 'completed' as any,
+        status: 'completed',
         reference: `REF-${Date.now()}`,
         userId: buyer.id,
       },
@@ -801,7 +902,7 @@ async function main() {
   console.log('✅ تراکنش‌های کیف پول ایجاد شد');
 
   // ============================================
-  // ۱۷. نوتیفیکیشن نمونه
+  // ۱۸. نوتیفیکیشن نمونه
   // ============================================
   const notificationTypes = ['order', 'message', 'system', 'promotion'] as any[];
   for (const buyer of buyers.slice(0, 5)) {
@@ -820,7 +921,7 @@ async function main() {
   console.log('✅ نوتیفیکیشن‌های نمونه ایجاد شدند');
 
   // ============================================
-  // ۱۸. رتبه‌بندی فروشنده
+  // ۱۹. رتبه‌بندی فروشنده
   // ============================================
   for (const seller of sellers.slice(0, 3)) {
     await prisma.sellerRating.upsert({
@@ -846,6 +947,7 @@ async function main() {
   console.log('📊 آمار داده‌های ایجاد شده:');
   console.log(`   - برندها: ${createdBrands.length}`);
   console.log(`   - محصولات: ${productCount}`);
+  console.log(`   - رنگ‌ها: ${createdColors.length}`);
   console.log(`   - کدهای تخفیف: ${discountCount}`);
   console.log(`   - بلاگ پست‌ها: ${blogPosts.length}`);
   console.log(`   - نظرات: ${reviewCount}`);
@@ -858,9 +960,9 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch((e: any) => {
     console.error('❌ خطا در seeding:', e);
-    process.exit(1);
+    throw e;
   })
   .finally(async () => {
     await prisma.$disconnect();

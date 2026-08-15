@@ -64,8 +64,8 @@ export default function FormDatePicker<T extends FieldValues>({
                 className="blue" // رنگ تم
                 plugins={includeTime ? [<TimePicker position="bottom" key="time" />] : []}
                 inputClass={cn(
-                  "w-full px-2 py-2 rounded-xl z-1000 border border-border bg-background",
-                  "focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/50",
+                  "w-full px-2 py-2 rounded-xl z-1000 border border-border text-slate-950 bg-background",
+                  "focus:outline-none focus:ring-1 focus:ring-primary/20 dark:text-white! focus:border-primary/50",
                   "transition-all duration-200",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   error && 'border-red-500'
@@ -84,8 +84,6 @@ export default function FormDatePicker<T extends FieldValues>({
                 </button>
               )}
             </div>
-
-            {/* نمایش خطای Validation */}
             {error && (
               <span className="text-xs text-red-500 mr-1">
                 {error.message}

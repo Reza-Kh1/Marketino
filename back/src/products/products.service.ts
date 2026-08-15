@@ -6,20 +6,18 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto, ProductFilterDto } from './dto/product.dto';
 import slugifyLib = require('slugify');
-import { CreateVariantDto } from './dto/variant.dto';
-
+import { Prisma } from '@prisma/client';
+export interface BreadcrumbItem {
+  id: string;
+  name: string;
+  nameEn: string | null;
+  slug: string;
+  slugEn: string | null;
+}
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) { }
-  generateSku() {
-    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const part = () =>
-      Array.from({ length: 4 }, () =>
-        CHARS[Math.floor(Math.random() * CHARS.length)]
-      ).join('');
 
-    return `${part()}-${part()}-${part()}`;
-  }
   /**
    * دریافت لیست محصولات با فیلتر و صفحه‌بندی
    */
@@ -27,57 +25,44 @@ export class ProductsService {
     const page = filters.page || 1;
     const limit = filters.limit || 12;
     const skip = (page - 1) * limit;
-    const where: any = { status: filters.status || 'approved' };
+    const where: Prisma.ProductWhereInput = { status: filters.status || 'approved' };
 
     if (filters.category) where.categoryId = filters.category;
     if (filters.seller) where.sellerId = filters.seller;
-    // Price filtering via variants since price moved from Product to ProductVariant
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      where.variants = {};
-      if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-        (where.variants as any).price = {};
-        if (filters.minPrice !== undefined) (where.variants as any).price.gte = filters.minPrice;
-        if (filters.maxPrice !== undefined) (where.variants as any).price.lte = filters.maxPrice;
-      }
+      where.minPrice = {
+        ...(filters.minPrice !== undefined && { gte: filters.minPrice }),
+        ...(filters.maxPrice !== undefined && { lte: filters.maxPrice }),
+      };
     }
 
-    let orderBy: any = { createdAt: 'desc' };
+    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
     if (filters.sort) {
-      const sortMap = {
-        price_asc: { price: 'asc' }, price_desc: { price: 'desc' },
-        newest: { createdAt: 'desc' }, oldest: { createdAt: 'asc' },
-        popular: { saleCount: 'desc' }, rating: { rating: 'desc' },
+      const sortMap: Record<string, Prisma.ProductOrderByWithRelationInput> = {
+        price_asc: { minPrice: 'asc' },
+        price_desc: { minPrice: 'desc' },
+        newest: { createdAt: 'desc' },
+        oldest: { createdAt: 'asc' },
+        popular: { saleCount: 'desc' },
+        rating: { rating: 'desc' },
       };
       orderBy = sortMap[filters.sort] || orderBy;
     }
+
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
         select: {
-          title: true,
-          titleEn: true,
-          slug: true,
-          slugEn: true,
-          description: true,
-          descriptionEn: true,
-          categoryId: true,
-          condition: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          id: true,
-          isFeatured: true,
-          viewCount: true,
-          saleCount: true,
-          rating: true,
-          reviewCount: true,
-          sellerId: true,
-          brandId: true,
-          brand: true,
-          images: { take: 1, orderBy: { sortOrder: 'asc' } },
-          category: { select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true, } },
+          id: true, title: true, titleEn: true, slug: true, slugEn: true,
+          description: true, descriptionEn: true, categoryId: true,
+          condition: true, status: true, updatedAt: true,
+          isFeatured: true, viewCount: true, saleCount: true, rating: true,
+          reviewCount: true, sellerId: true, brandId: true,
+          originalPrice: true, minPrice: true, discountPercent: true,
+          brand: { select: { name: true, nameEn: true, slug: true } },
+          images: { select: { alt: true, sortOrder: true, url: true }, take: 1, orderBy: { sortOrder: 'asc' } },
+          category: { select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true } },
           seller: { select: { id: true, storeName: true, storeLogo: true } },
-          variants: { select: { id: true, name: true, sku: true, price: true, quantity: true } },
         },
         skip, take: limit, orderBy,
       }),
@@ -92,26 +77,110 @@ export class ProductsService {
    */
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findFirst({
-      where: { OR: [{ slug }, { slugEn: slug }] },
-      include: {
-        images: { orderBy: { sortOrder: 'asc' } },
+      where: {
+        OR: [{ slug }, { slugEn: slug }],
+        status: 'approved',
+      },
+      select: {
+        condition: true, content: true, contentEn: true, description: true, descriptionEn: true, digitalFile: true, minPrice: true, isDigital: true,
+        isFeatured: true, slug: true, slugEn: true, metaTitle: true, metaTitleEn: true, productTable: true, productTableEn: true, rating: true,
+        saleCount: true, reviewCount: true, originalPrice: true, title: true, titleEn: true, viewCount: true, id: true, discountPercent: true,
+        brand: { select: { name: true, nameEn: true, slug: true } },
+        images: {
+          select: { alt: true, url: true, sortOrder: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+        seller: { select: { storeName: true } },
+        reviews: {
+          select: { body: true, answerReview: true, user: { select: { id: true, firstName: true, lastName: true } }, rating: true, updatedAt: true },
+          where: { isApproved: true },
+          take: 5,
+          orderBy: { updatedAt: 'desc' }
+        },
         category: {
-          select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true, }
+          select: {
+            id: true,
+            name: true,
+            nameEn: true,
+            slug: true,
+            slugEn: true,
+            ancestorIds: true,
+          },
         },
         variants: {
-          include: {
-            discount: true
-          }
+          select: {
+            id: true,
+            discountId: true,
+            colorId: true,
+            name: true,
+            nameEn: true,
+            image: true,
+            price: true,
+            quantity: true,
+            sku: true,
+            saleCount: true,
+            color: { select: { hexCode: true, name: true, nameEn: true } },
+            discount: {
+              where: { isActive: true },
+              select: { type: true, endsAt: true, startsAt: true, value: true, isActive: true },
+            },
+            attributes: {
+              select: {
+                value: true,
+                attribute: { select: { key: true, label: true } },
+              },
+            },
+          },
         },
-        seller: { select: { id: true, username: true, storeName: true, storeLogo: true, storeDescription: true } },
-        reviews: {
-          include: { user: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } } },
-          orderBy: { createdAt: 'desc' }, take: 10
+        qnas: {
+          select: {
+            id: true, content: true, role: true, updatedAt: true, _count: true,
+            replies: {
+              where: { status: 'approved' },
+              take: 5,
+              select: {
+                id: true, content: true, role: true, updatedAt: true,
+              },
+            }
+          },
+          where: { status: 'approved', parentId: null },
+          take: 5,
+          orderBy: { updatedAt: 'desc' },
+        },
+        _count: {
+          select: {
+            reviews: { where: { isApproved: true } },
+            qnas: { where: { status: 'approved', parentId: null } },
+          },
         },
       },
     });
+
     if (!product) throw new NotFoundException('محصول یافت نشد');
-    return product;
+    let breadcrumbs: BreadcrumbItem[] = [];
+    if (product.category) {
+      const { ancestorIds } = product.category;
+      const parentCategories = await this.prisma.category.findMany({
+        where: { id: { in: ancestorIds } },
+        select: { id: true, name: true, nameEn: true, slug: true, slugEn: true },
+      });
+      const parentMap = new Map(parentCategories.map((c) => [c.id, c]));
+      const sortedParents = ancestorIds
+        .map((ancestorId) => parentMap.get(ancestorId))
+        .filter((item): item is BreadcrumbItem => Boolean(item));
+      breadcrumbs = [
+        ...sortedParents,
+        {
+          id: product.category.id,
+          name: product.category.name,
+          nameEn: product.category.nameEn,
+          slug: product.category.slug,
+          slugEn: product.category.slugEn,
+        },
+      ];
+    }
+
+    return { ...product, breadcrumbs, };
   }
 
   /**
@@ -127,7 +196,8 @@ export class ProductsService {
         },
         variants: {
           include: {
-            discount: true
+            discount: true,
+            attributes: true,
           }
         },
         seller: { select: { id: true, username: true, storeName: true, storeLogo: true, storeDescription: true } },
@@ -247,65 +317,6 @@ export class ProductsService {
       include: { images: { take: 1, orderBy: { sortOrder: 'asc' } } },
       take: limit, orderBy: { saleCount: 'desc' },
     });
-  }
-
-  /**
-   * ایجاد Variant برای محصول
-   */
-  async createVariant(dto: CreateVariantDto) {
-    const variant = await this.prisma.productVariant.create({
-      data: {
-        ...dto,
-        quantity: Number(dto.quantity),
-        price: Number(dto.price),
-        sku: this.generateSku()
-      },
-    });
-
-    return variant;
-  }
-
-  /**
-   * دریافت لیست Variantهای محصول
-   */
-  async getVariants(productId: string) {
-    const variants = await this.prisma.productVariant.findMany({
-      where: { productId },
-      orderBy: { createdAt: 'asc' },
-    });
-    return variants;
-  }
-
-  /**
-   * به‌روزرسانی Variant
-   */
-  async updateVariant(variantId: string, dto: CreateVariantDto) {
-    const updated = await this.prisma.productVariant.update({
-      where: { id: variantId },
-      data: {
-        attributes: dto.attributes || undefined,
-        attributesEn: dto.attributesEn || undefined,
-        discountId: dto.discountId || null,
-        image: dto.image || null,
-        name: dto.name || undefined,
-        nameEn: dto.nameEn || null,
-        price: Number(dto.price) || undefined,
-        quantity: Number(dto.quantity) || undefined,
-      },
-    });
-
-    return updated;
-  }
-
-  /**
-   * حذف Variant
-   */
-  async deleteVariant(variantId: string) {
-    await this.prisma.productVariant.delete({
-      where: { id: variantId },
-    });
-
-    return { success: true, message: 'تنوع محصول با موفقیت حذف شد' };
   }
 
   /**

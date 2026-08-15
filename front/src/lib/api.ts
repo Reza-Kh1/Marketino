@@ -9,6 +9,7 @@
 
 import { BrandType } from "@/services/brand.service";
 import { MediaUseCase } from "@/services/media.service";
+import { ProductEntity } from "@/services/product.service";
 
 const MOCK_MODE = false;
 
@@ -89,57 +90,8 @@ export interface Product {
   variants: VariantType[]
 }
 
-export interface ProductType {
-  id: string;
-  title: string;
-  titleEn: string | null;
-  slug: string;
-  slugEn: string | null;
-  description: string;
-  descriptionEn: string | null;
-  weight: number | null;
-  dimensions: string | null;
-  // condition: ProductCondition;
-  // status: ProductStatus;
-  isFeatured: boolean;
-  isDigital: boolean;
-  digitalFile: string | null;
-  viewCount: number;
-  saleCount: number;
-  rating: number;
-  condition: 'new' | 'used'
-  status: 'pending' | 'approved' | 'inactive'
-  reviewCount: number;
-  metaTitle: string | null;
-  metaTitleEn: string | null;
-  metaDescription: string | null;
-  metaDescriptionEn: string | null;
-  productTable: any | null; // Json
-  productTableEn: any | null; // Json
-  brandId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-
-  // کلیدهای خارجی
-  sellerId: string;
-  categoryId: string;
-
-  // روابط (در صورت include شدن)
-  seller?: User;
-  category?: Category;
-  images: ProductImage[] | [];
-  reviews?: Review[];
-  cartItems?: CartItem[];
-  orderItems?: OrderItem[];
-  // wishlistItems?: WishlistItem[];
-  // compareItems?: CompareItem[];
-  // conversations?: Conversation[];
-  variants: VariantType[];
-  brand?: BrandType | null;
-}
-
 export interface AllProduct {
-  data: ProductType[]
+  data: ProductEntity[]
   pagination: PaginationType
 }
 
@@ -1179,8 +1131,8 @@ export const authApi = {
 
 export const productsApi = {
   list: (params?: any) => api.get<{ products: Product[]; total: number; pages: number }>('/products', params),
-  getBySlug: (slug: string) => api.get<ProductType & { related: ProductType[] }>(`/products/${slug}`),
-  getById: (id: string) => api.get<ProductType & { related: ProductType[] }>(`/products/${id}`),
+  getBySlug: (slug: string) => api.get<ProductEntity & { related: ProductEntity[] }>(`/products/${slug}`),
+  getById: (id: string) => api.get<ProductEntity & { related: ProductEntity[] }>(`/products/${id}`),
   create: (data: FormData) => api.upload<Product>('/products', data),
   update: (id: string, data: FormData) => api.upload<Product>(`/products/${id}`, data),
   delete: (id: string) => api.delete<{ message: string }>(`/products/${id}`),
@@ -1288,7 +1240,15 @@ export const adminApi = {
     api.patch<User>(`/admin/users/${id}/verify-seller`, data),
   changeRole: (id: string, role: string) =>
     api.patch<User>(`/admin/users/${id}/change-role`, { role }),
-  products: (params?: any) => api.get<AllProduct>('/admin/products', params),
+  products: (params?: any) => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(params || {})
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => [key, String(value)])
+    );
+    const queryString = new URLSearchParams(cleanFilters).toString();
+    return api.get<AllProduct>(`/admin/products?${queryString}`)
+  },
   approveProduct: (id: string) => api.patch<Product>(`/admin/products/${id}/approve`),
   featureProduct: (id: string) => api.patch<Product>(`/admin/products/${id}/feature`),
   deleteProduct: (id: string) => api.delete<{ message: string }>(`/admin/products/${id}`),
@@ -1299,6 +1259,7 @@ export const adminApi = {
   createDiscount: (data: any) => api.post<DiscountCode>('/discounts', data),
   changeDiscount: (id: string) => api.put<DiscountCode>(`/discounts/${id}/toggle`),
   deleteDiscount: (id: string) => api.delete<{ message: string }>(`/discounts/${id}`),
+  sellerList: () => api.get<{ id: string, username: string, storeName: string | null }[]>('/admin/seller-list'),
   sellers: (params?: any) => api.get<any>('/admin/sellers', params),
   stats: () => api.get<any>('/admin/stats'),
   netProfit: (period?: string) => api.get<any>('/admin/net-profit', { period }),

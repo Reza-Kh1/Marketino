@@ -2,15 +2,12 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Package, Star, CheckCircle, Eye, Trash2, TrendingUp, Plus, Edit3 } from 'lucide-react';
-import { AllProduct, ProductType, VariantType, type Product } from '@/lib/api';
-import {
-  useAdminProducts, useApproveProduct, useFeatureProduct, useDeleteAdminProduct,
-} from '@/lib/react-query-hooks';
+import { AllProduct, VariantType, type Product } from '@/lib/api';
+import { useAdminProducts, useApproveProduct, useFeatureProduct, useDeleteAdminProduct, useAdminSellerList, } from '@/lib/react-query-hooks';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { Link } from '@/i18n/navigation';
 import ImgTag from '@/components/ImgTag';
-import PaginationBar from '@/components/admin/PaginationBar';
 import { useSearchParams } from 'next/navigation';
 import DynamicTable from '@/components/DynamicTable';
 import { ColumnDef } from '@tanstack/react-table';
@@ -18,21 +15,54 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import DialogView from '@/components/DialogView';
 import { format } from 'date-fns-jalali';
+import SearchBox from '@/components/admin/SearchBox';
+import { useColors } from '@/hooks/color.hook';
+import { useDiscountsList } from '@/hooks/discount.hook';
+import { CategorysTypes } from '@/services/category.service';
+import { useCategoriesAdmin } from '@/hooks/category.hook';
+import { useBrandAdmin } from '@/hooks/brand.hook';
+import { ProductEntity } from '@/services/product.service';
+import SearchPrice from '@/components/admin/SearchPrice';
 
 export default function AdminProductsPage() {
-  const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
-  const page = useSearchParams().get('page')
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const { data, isLoading } = useAdminProducts({ page, status: statusFilter || undefined, q: search || undefined });
+  const [selectedProduct, setSelectedProduct] = useState<ProductEntity | null>(null);
+  const { data: discountData, isLoading: loadingDiscount } = useDiscountsList()
+  const { data: dataCategory, isFetching: loadCategories } = useCategoriesAdmin()
+  const { data: dataBrand, isFetching: loadingBrand } = useBrandAdmin()
+  const { data: dataSeller, isLoading: loadingSeller } = useAdminSellerList()
   const approveMutation = useApproveProduct();
   const featureMutation = useFeatureProduct();
   const deleteMutation = useDeleteAdminProduct();
+  const searchParams = useSearchParams();
 
-  const handleSearch = () => {
-    setSearch(searchInput);
-  };
+  const filters = useMemo(() => {
+    const limitParam = searchParams.get('limit');
+    const pageParam = searchParams.get('page');
+    const minPrice = Number(searchParams.get('minPrice'));
+    const maxPrice = Number(searchParams.get('maxPrice'));    
+    return {
+      limit: limitParam && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined,
+      page: pageParam && !isNaN(Number(pageParam)) ? Number(pageParam) : undefined,
+      search: searchParams.get('search') || undefined,
+      status: searchParams.get('status') || undefined,
+      sort: searchParams.get('sort') || undefined,
+      condition: searchParams.get('condition') || undefined,
+      featured: searchParams.get('featured') || undefined,
+      discountId: searchParams.get('discountId') || undefined,
+      order: searchParams.get('order') || undefined,
+      categoryId: searchParams.get('categoryId') || undefined,
+      sellerId: searchParams.get('sellerId') || undefined,
+      brandId: searchParams.get('brandId') || undefined,
+      priority: searchParams.get('priority') || undefined,
+      ...((minPrice !== 0 && maxPrice !== 0) && {
+        minPrice: minPrice && !isNaN(Number(minPrice)) ? Number(minPrice) : undefined,
+        maxPrice: maxPrice && !isNaN(Number(maxPrice)) ? Number(maxPrice) : undefined,
+      })
+
+    };
+  }, [searchParams]);
+
+  const { data, isLoading } = useAdminProducts(filters);
 
   const handleApprove = (id: string) => {
     approveMutation.mutate(id, {
@@ -53,60 +83,37 @@ export default function AdminProductsPage() {
       onError: (err: any) => toast.error(err?.message || 'خطا'),
     });
   };
-  function calculateFinalPrice(variant: VariantType): {
-    finalPrice: number
-    originalPrice: number
-    discountAmount: number
-    discountText: string
-    isDiscounted: boolean
-  } {
-    const originalPrice = variant.price
 
-    // بررسی وجود تخفیف معتبر
-    const discount = variant.discount
-    const hasValidDiscount = variant.discountId && discount && discount.isActive !== false
+  const formattedSellerOptions = useMemo(() => {
+    return dataSeller?.map((item) => ({
+      id: item.id,
+      name: `${item.username}(${item.storeName})`,
+    })) || [];
+  }, [dataSeller]);
 
-    if (!hasValidDiscount) {
-      return {
-        finalPrice: originalPrice,
-        originalPrice: originalPrice,
-        discountAmount: 0,
-        discountText: '',
-        isDiscounted: false
+  const formattedDiscountOptions = useMemo(() => {
+    return discountData?.map((item) => ({
+      id: item.id,
+      name: item.code,
+    })) || [];
+  }, [discountData]);
+
+  function formatCategories(categories: CategorysTypes[] | [] | undefined) {
+    if (!categories?.length) return
+    const result = [] as CategorysTypes[];
+    function traverse(catss: CategorysTypes[]) {
+      for (const cat of catss) {
+        result.push(cat);
+        if (cat.children && cat.children.length > 0) {
+          traverse(cat.children);
+        }
       }
     }
-
-    let finalPrice = originalPrice
-    let discountAmount = 0
-    let discountText = ''
-
-    // محاسبه بر اساس نوع تخفیف
-    if (discount.type === 'percentage') {
-      discountAmount = (originalPrice * discount.value) / 100
-      finalPrice = originalPrice - discountAmount
-      discountText = `${discount.value}%`
-    } else if (discount.type === 'fixed' || discount.type === 'flat') {
-      discountAmount = discount.value
-      finalPrice = originalPrice - discountAmount
-      discountText = `${discount.value.toLocaleString()} تومان`
-    } else {
-      // نوع تخفیف نامشخص
-      finalPrice = originalPrice
-      discountText = 'نامشخص'
-    }
-
-    // اطمینان از اینکه قیمت نهایی منفی نشود
-    finalPrice = Math.max(0, finalPrice)
-
-    return {
-      finalPrice: Math.round(finalPrice),
-      originalPrice,
-      discountAmount: Math.round(discountAmount),
-      discountText,
-      isDiscounted: true
-    }
+    traverse(categories);
+    return result;
   }
-  const columns: ColumnDef<ProductType>[] = useMemo(() => [
+
+  const columns: ColumnDef<ProductEntity>[] = useMemo(() => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -143,40 +150,48 @@ export default function AdminProductsPage() {
       cell: ({ row }) => <span className="text-xs">{row.original?.seller?.storeName || '-'}</span>
     },
     {
-      accessorKey: 'rating',
-      id: 'rating',
+      accessorKey: 'price',
+      id: 'price',
       header: 'قیمت',
       cell: ({ row }) => {
-        const variants = row.original?.variants
-        if (!variants?.length) return <span className="text-xs">-</span>
-
-        const firstVariant = variants[0]
-        const priceInfo = calculateFinalPrice(firstVariant)
-
-        if (priceInfo.isDiscounted) {
-          return (
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-emerald-600">
-                  {priceInfo.finalPrice.toLocaleString()} تومان
-                </span>
-                <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
-                  {priceInfo.discountText}-
-                </span>
-              </div>
-              <span className="text-[10px] text-muted-foreground line-through">
-                {priceInfo.originalPrice.toLocaleString()} تومان
-              </span>
-            </div>
-          )
-        }
-
+        const discount = row.original.discountPercent
+        const price = row.original.originalPrice
+        const minPrice = row.original.minPrice
         return (
-          <span className="text-xs">
-            {priceInfo.finalPrice.toLocaleString()} تومان
-          </span>
+          <div className="relative inline-flex flex-col gap-0.5 dir-rtl pt-2 pr-3">
+            <div className='flex gap-2 items-center justify-end'>
+              {Boolean(discount) && <span className="text-[11px] text-slate-500 line-through font-medium">{Number(price).toLocaleString()}</span>}
+              {Boolean(discount) && <span className=" flex items-center justify-center w-5 h-5 bg-linear-to-tr from-rose-600 to-pink-500 text-white font-black text-[9px] rounded-bl-lg rounded-tr-lg shadow-sm shadow-rose-500/30 ring-1 ring-white/20">٪{discount}</span>}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-base font-black text-cyan-600">{Number(minPrice).toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">تومان</span></span>
+            </div>
+          </div>
         )
       }
+    },
+    {
+      accessorKey: 'reviewCount',
+      id: 'reviewCount',
+      header: 'نظرات',
+      cell: ({ row }) => <span className="text-xs">{row.original.reviewCount.toLocaleString()}</span>
+    }, {
+      accessorKey: 'rating',
+      id: 'rating',
+      header: 'امتیاز',
+      cell: ({ row }) => <span className="text-xs">{row.original.rating}</span>
+    },
+    {
+      accessorKey: 'saleCount',
+      id: 'saleCount',
+      header: 'فروش',
+      cell: ({ row }) => <span className="text-xs">{row.original.saleCount.toLocaleString()}</span>
+    },
+    {
+      accessorKey: 'updateAt',
+      id: 'updateAt',
+      header: 'تاریخ',
+      cell: ({ row }) => <span className="text-xs">{row.original.updatedAt && format(new Date(row.original.updatedAt), "yyyy/MM/dd")}</span>
     },
     {
       accessorKey: 'status',
@@ -223,9 +238,9 @@ export default function AdminProductsPage() {
       )
     },
   ], []);
-  console.log(data);
+
   return (
-    <div>
+    <div className='flex flex-col gap-3'>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-black">مدیریت محصولات</h2>
@@ -239,20 +254,71 @@ export default function AdminProductsPage() {
           محصول جدید
         </Link>
       </div>
-      <div className="flex gap-3 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input value={searchInput} onChange={e => setSearchInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="جستجوی محصول..." className="w-full h-10 pr-9 pl-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value) }}
-          className="h-10 px-3 rounded-xl border border-border bg-background text-sm">
-          <option value="">همه</option>
-          <option value="pending">در انتظار تأیید</option>
-          <option value="approved">تأیید شده</option>
-          <option value="featured">ویژه</option>
-        </select>
-      </div>
+      <SearchBox
+        isOrder={false}
+        isPrice={true}
+        placeHolder='جستجو محصول'
+        selects={[
+          {
+            children: [
+              { id: 'all', name: 'همه' },
+              { id: 'pending', name: 'در انتظار تایید' },
+              { id: 'approved', name: 'تایید شده' },
+              { id: 'inactive', name: 'تایید نشده' },
+            ], label: 'وضعیت محصول', placeHolder: 'انتخاب کنید', setValue: 'status'
+          },
+          {
+            children: [
+              { id: 'all', name: 'همه' },
+              { id: 'new', name: 'آکبند' },
+              { id: 'used', name: 'کار کرده' },
+            ], label: 'محصول', placeHolder: 'انتخاب کنید', setValue: 'condition'
+          },
+          {
+            children: [
+              { id: 'all', name: 'همه' },
+              { id: 'true', name: 'فعال' },
+              { id: 'false', name: 'غیر فعال' },
+            ], label: 'ویژه بودن', placeHolder: 'انتخاب کنید', setValue: 'featured'
+          },
+          {
+            children: [
+              { id: 'all', name: 'همه' },
+              { id: 'saleCount-up', name: 'بیش ترین فروش' },
+              { id: 'saleCount-down', name: 'کم ترین فروش' },
+              { id: 'rating-up', name: 'بیش ترین امتیاز' },
+              { id: 'rating-down', name: 'کم ترین امتیاز' },
+              { id: 'reviewCount-up', name: 'بیش ترین نظر' },
+              { id: 'reviewCount-down', name: 'کم ترین نظر' },
+              { id: 'updatedAt', name: 'قدیمی ترین' },
+              { id: 'updatedAt-down', name: 'جدید ترین' },
+            ], label: 'مرتب سازی بر اساس', placeHolder: 'انتخاب کنید', setValue: 'sort'
+          },
+        ]}
+        autocomplete={[
+          {
+            label: 'دسته',
+            options: formatCategories(dataCategory || []) || [],
+            placeholder: loadCategories ? 'صبر کنید ...' : 'انتخاب کنید',
+            setValue: 'categoryId',
+          },
+          {
+            label: 'تخفیف',
+            options: formattedDiscountOptions || [],
+            placeholder: loadingDiscount ? 'صبر کنید ...' : 'انتخاب کنید',
+            setValue: 'discountId',
+          },
+          {
+            label: 'برند',
+            options: dataBrand || [],
+            placeholder: loadingBrand ? 'صبر کنید ...' : 'انتخاب کنید',
+            setValue: 'brandId',
+          }, {
+            options: formattedSellerOptions
+            , label: 'فروشندگان', placeholder: loadingSeller ? 'صبر کنید ...' : 'انتخاب کنید', setValue: 'sellerId'
+          },
+        ]}
+      />
       <DynamicTable
         limitPage={10}
         data={data?.data || []}
@@ -371,55 +437,6 @@ export default function AdminProductsPage() {
                   format(new Date(selectedProduct.updatedAt), "dd MMMM yyyy ساعت HH:mm")
               }
             ]
-          },
-          {
-            head: 'واریانت‌ها (Variants)',
-            detail: selectedProduct && selectedProduct?.variants.length > 0 ?
-              selectedProduct.variants.map((variant: any, index: number) => ({
-                name: `واریانت ${index + 1}: ${variant.name || 'پیش‌فرض'}`,
-                value: (
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">SKU:</span>
-                      <span className="font-mono">{variant.sku}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">قیمت:</span>
-                      <span className="font-bold text-emerald-600">
-                        {Number(variant.price).toLocaleString()} تومان
-                      </span>
-                      {variant.discountId && variant.discount && (
-                        <span className="text-xs text-muted-foreground line-through">
-                          {Number(variant.price + variant.discount.value).toLocaleString()} تومان
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">موجودی:</span>
-                      <span className={cn(
-                        'font-medium',
-                        variant.quantity > 10 ? 'text-emerald-600' :
-                          variant.quantity > 0 ? 'text-amber-600' :
-                            'text-red-600'
-                      )}>
-                        {variant.quantity > 0 ? `${variant.quantity} عدد` : 'ناموجود'}
-                      </span>
-                    </div>
-                    {variant.discountId && variant.discount && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">تخفیف:</span>
-                        <span className="text-sm text-emerald-600">
-                          {Number(variant.discount.value).toLocaleString()} تومان
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )
-              })) :
-              [{
-                name: 'واریانت',
-                value: 'هیچ واریانتی برای این محصول ثبت نشده است'
-              }]
           },
           {
             head: 'تصاویر محصول',

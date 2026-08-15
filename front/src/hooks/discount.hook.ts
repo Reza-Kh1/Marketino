@@ -1,5 +1,5 @@
 import { AllDiscount } from "@/lib/api";
-import { discountService, ValidateDiscountDto } from "@/services/discount.service";
+import { discountService, ListDiscountType, ValidateDiscountDto } from "@/services/discount.service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 const DISCOUNT_KEYS = {
     all: ["discount"] as const,
     lists: () => [...DISCOUNT_KEYS.all, "list"] as const,
+    list: () => [...DISCOUNT_KEYS.all, "list-discount"] as const,
     listWithFilters: (filters: number) => [...DISCOUNT_KEYS.lists(), filters] as const,
 } as const;
 
@@ -14,6 +15,15 @@ export function useDiscounts(page: number) {
     return useQuery<AllDiscount>({
         queryKey: DISCOUNT_KEYS.listWithFilters(page),
         queryFn: () => discountService.list(),
+        staleTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+}
+
+export function useDiscountsList() {
+    return useQuery<ListDiscountType[]>({
+        queryKey: DISCOUNT_KEYS.list(),
+        queryFn: () => discountService.listDiscount(),
         staleTime: 10 * 60 * 1000,
         refetchOnWindowFocus: false,
     });

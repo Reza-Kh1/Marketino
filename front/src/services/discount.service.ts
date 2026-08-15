@@ -28,9 +28,18 @@ export interface DiscountType {
     discountAmount?: number; // اضافی (محاسبه شده)
 }
 
+export interface ListDiscountType {
+    id: string
+    code: string
+    isActive: boolean
+}
+
 export const discountService = {
     list: () => {
         return apiClient.get<AllDiscount>(BASE_URL);
+    },
+    listDiscount: () => {
+        return apiClient.get<ListDiscountType[]>(`${BASE_URL}/list`);
     },
     validate: (data: ValidateDiscountDto) => {
         return apiClient.post(BASE_URL + "/validate", data);

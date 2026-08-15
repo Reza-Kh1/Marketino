@@ -21,6 +21,7 @@ import MotionWrapper from '@/components/motion/MotionWrapper';
 interface OptionItem {
   id: string;
   name: string;
+  label?: React.ReactNode;
 }
 
 interface AutocompleteCustomProps {
@@ -95,7 +96,8 @@ export default function AutocompleteCustom({
                       key={(option.id).toString()}
                       className="flex items-center gap-1 bg-blue/20 text-admin-low-white border border-deep-purple/30 text-xs px-2 py-1 rounded-md transition-all hover:bg-blue/30"
                     >
-                      {option.name}
+                      {option?.label}
+                      <span>{option.name}</span>
                       <X
                         className="w-3 h-3 cursor-pointer text-white/50 hover:text-white"
                         onClick={(e) => handleRemove(e, option.id.toString())}
@@ -126,7 +128,10 @@ export default function AutocompleteCustom({
                       onSelect={() => handleSelect(option.id.toString())}
                       className="flex items-center justify-between cursor-pointer"
                     >
-                      <span>{option.name}</span>
+                      <div className="flex items-center gap-2">
+                        {option?.label}
+                        <span className="text-sm">{option.name}</span>
+                      </div>
                       <Check
                         className={cn(
                           'ml-2 h-4 w-4 text-blue',
