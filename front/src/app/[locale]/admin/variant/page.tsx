@@ -254,6 +254,7 @@ export default function page() {
                                 placeholder={loadCategories ? 'صبر کنید ...' : 'انتخاب کنید'}
                                 value={categoryIds}
                                 label='تمام دسته ها'
+                                className='col-span-2 w-full'
                                 onChange={(val) => setValue('categoryIds', val)}
                             />
 

@@ -120,8 +120,6 @@ export class VariantsService {
 
   private async createWithUniqueSkuRetry(tx: Prisma.TransactionClient, dto: CreateProductVariantDto) {
     const { attributes, ...variantData } = dto;
-    console.log();
-
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         return await tx.productVariant.create({

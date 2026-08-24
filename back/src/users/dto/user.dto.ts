@@ -4,7 +4,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsEmail, IsOptional, IsNumber, IsIn, Min, Max, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SellerStatus } from '@prisma/client';
+import { StoreStatus as PrismaStoreStatus } from '@prisma/client';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ description: 'نام' })
@@ -59,7 +59,7 @@ export class VerifySellerDto {
   @ApiProperty({ description: 'وضعیت', enum: ['approved', 'rejected'] })
   @IsString()
   @IsIn(['approved', 'rejected'])
-  status?: SellerStatus;
+  status?: PrismaStoreStatus;
 
   @ApiPropertyOptional({ description: 'دلیل رد درخواست' })
   @IsOptional()

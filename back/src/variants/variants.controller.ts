@@ -14,7 +14,7 @@ export class VariantsController {
   constructor(private readonly variantsService: VariantsService) { }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Post('/')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد Variant محصول' })
@@ -26,7 +26,7 @@ export class VariantsController {
   /** ############### AttributeDefinition (روت‌های ثابت باید قبل از :id بیان) ############### */
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Get('attribute-definition')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'دریافت لیست AttributeDefinition' })
@@ -35,7 +35,7 @@ export class VariantsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Post('attribute-definition')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد AttributeDefinition' })
@@ -44,7 +44,7 @@ export class VariantsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Put('attribute-definition/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش AttributeDefinition' })
@@ -53,7 +53,7 @@ export class VariantsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Delete('attribute-definition/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف AttributeDefinition' })
@@ -71,7 +71,7 @@ export class VariantsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Put(':variantId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش Variant' })
@@ -80,7 +80,7 @@ export class VariantsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Delete(':variantId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف Variant' })

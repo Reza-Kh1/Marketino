@@ -25,7 +25,7 @@ export interface User {
   lastName?: string;
   phone?: string;
   avatar?: string;
-  role: 'buyer' | 'seller' | 'admin';
+  role: 'buyer' | 'seller' | 'admin' | 'superAdmin';
   sellerStatus?: 'pending' | 'approved' | 'rejected';
   storeName?: string;
   storeLogo?: string;
@@ -35,7 +35,6 @@ export interface User {
   isActive: boolean;
   wallet?: number;
   createdAt: string;
-  isSuperAdmin?: boolean;
   permissions?: string[];
   commissionRate?: number;
 }
@@ -76,7 +75,7 @@ export interface Product {
   saleCount: number;
   rating: number;
   reviewCount: number;
-  sellerId: string;
+  storeId: string;
   seller?: User;
   categoryId: string;
   category?: Category;
@@ -209,7 +208,7 @@ export interface OrderItem {
   quantity: number;
   total: number;
   image?: string;
-  sellerId: string;
+  storeId: string;
   seller?: User;
 }
 
@@ -252,7 +251,7 @@ export interface DiscountCode {
   maxDiscount: null | number;
   minOrderAmount: number;
   perUserLimit: number;
-  sellerId: null | string;
+  storeId: null | string;
   startsAt: string;
   type: "fixed" | "percentage";
   updatedAt: string;
@@ -395,7 +394,7 @@ function mockProduct(overrides: Partial<Product> = {}): Product {
     saleCount: overrides.saleCount ?? 0,
     rating: overrides.rating ?? 4.5,
     reviewCount: overrides.reviewCount ?? 0,
-    sellerId: overrides.sellerId || 's1',
+    storeId: overrides.storeId || 's1',
     seller: overrides.seller,
     categoryId: overrides.categoryId || 'cat1',
     image: overrides.image || 'https://picsum.photos/seed/prod/400/400',
@@ -451,26 +450,26 @@ const MOCK_USERS: User[] = [
 function _user(id: string) { return MOCK_USERS.find(u => u.id === id) || MOCK_USERS[0]; }
 
 const MOCK_ORDERS: Order[] = [
-  { id: 'o1', orderNumber: 'BC-140301', status: 'pending', paymentStatus: 'pending', subtotal: 21990000, shippingCost: 50000, discountAmount: 0, total: 22040000, shippingName: 'علیرضا محمدی', shippingPhone: '09121234567', trackingCode: '', items: [{ id: 'oi1', title: 'گوشی هوشمند X1 Pro 5G', price: 21990000, quantity: 1, total: 21990000, sellerId: 's1' }], user: _user('u1'), createdAt: '2026-05-30T10:30:00Z' },
-  { id: 'o2', orderNumber: 'BC-140302', status: 'confirmed', paymentStatus: 'paid', subtotal: 7380000, shippingCost: 50000, discountAmount: 0, total: 7430000, shippingName: 'سارا احمدی', shippingPhone: '09131234568', trackingCode: '', commissionAmount: 738000, items: [{ id: 'oi2', title: 'هدفون بیسیم ANC Pro', price: 3690000, quantity: 2, total: 7380000, sellerId: 's1' }], user: _user('u2'), createdAt: '2026-05-29T14:15:00Z' },
-  { id: 'o3', orderNumber: 'BC-140303', status: 'processing', paymentStatus: 'paid', subtotal: 16500000, shippingCost: 75000, discountAmount: 500000, total: 16575000, shippingName: 'رضا جوادی', shippingPhone: '09141234569', trackingCode: 'IRP-1234567890', commissionAmount: 1650000, items: [{ id: 'oi3', title: 'مانیتور گیمینگ ۲۷ اینچ 4K', price: 16500000, quantity: 1, total: 16500000, sellerId: 's3' }], user: _user('u3'), createdAt: '2026-05-28T09:00:00Z' },
-  { id: 'o4', orderNumber: 'BC-140304', status: 'shipped', paymentStatus: 'paid', subtotal: 28900000, shippingCost: 120000, discountAmount: 1000000, total: 28220000, shippingName: 'مریم حسنی', shippingPhone: '09151234570', trackingCode: 'IRP-0987654321', commissionAmount: 2890000, items: [{ id: 'oi4', title: 'تبلت ۱۱ اینچی Pro M2', price: 28900000, quantity: 1, total: 28900000, sellerId: 's1' }], user: _user('u4'), createdAt: '2026-05-25T11:30:00Z' },
-  { id: 'o5', orderNumber: 'BC-140305', status: 'delivered', paymentStatus: 'paid', subtotal: 3690000, shippingCost: 50000, discountAmount: 100000, total: 3640000, shippingName: 'امیر رضایی', shippingPhone: '09161234571', trackingCode: 'IRP-5555555555', commissionAmount: 369000, items: [{ id: 'oi5', title: 'هدفون بیسیم ANC Pro', price: 3690000, quantity: 1, total: 3690000, sellerId: 's1' }], user: _user('u5'), createdAt: '2026-05-20T16:45:00Z' },
-  { id: 'o6', orderNumber: 'BC-140306', status: 'cancelled', paymentStatus: 'refunded', subtotal: 5500000, shippingCost: 50000, discountAmount: 0, total: 0, shippingName: 'علیرضا محمدی', shippingPhone: '09121234567', items: [{ id: 'oi6', title: 'کیبورد مکانیکال RGB', price: 5500000, quantity: 1, total: 5500000, sellerId: 's7' }], user: _user('u1'), createdAt: '2026-05-18T08:00:00Z' },
+  { id: 'o1', orderNumber: 'BC-140301', status: 'pending', paymentStatus: 'pending', subtotal: 21990000, shippingCost: 50000, discountAmount: 0, total: 22040000, shippingName: 'علیرضا محمدی', shippingPhone: '09121234567', trackingCode: '', items: [{ id: 'oi1', title: 'گوشی هوشمند X1 Pro 5G', price: 21990000, quantity: 1, total: 21990000, storeId: 's1' }], user: _user('u1'), createdAt: '2026-05-30T10:30:00Z' },
+  { id: 'o2', orderNumber: 'BC-140302', status: 'confirmed', paymentStatus: 'paid', subtotal: 7380000, shippingCost: 50000, discountAmount: 0, total: 7430000, shippingName: 'سارا احمدی', shippingPhone: '09131234568', trackingCode: '', commissionAmount: 738000, items: [{ id: 'oi2', title: 'هدفون بیسیم ANC Pro', price: 3690000, quantity: 2, total: 7380000, storeId: 's1' }], user: _user('u2'), createdAt: '2026-05-29T14:15:00Z' },
+  { id: 'o3', orderNumber: 'BC-140303', status: 'processing', paymentStatus: 'paid', subtotal: 16500000, shippingCost: 75000, discountAmount: 500000, total: 16575000, shippingName: 'رضا جوادی', shippingPhone: '09141234569', trackingCode: 'IRP-1234567890', commissionAmount: 1650000, items: [{ id: 'oi3', title: 'مانیتور گیمینگ ۲۷ اینچ 4K', price: 16500000, quantity: 1, total: 16500000, storeId: 's3' }], user: _user('u3'), createdAt: '2026-05-28T09:00:00Z' },
+  { id: 'o4', orderNumber: 'BC-140304', status: 'shipped', paymentStatus: 'paid', subtotal: 28900000, shippingCost: 120000, discountAmount: 1000000, total: 28220000, shippingName: 'مریم حسنی', shippingPhone: '09151234570', trackingCode: 'IRP-0987654321', commissionAmount: 2890000, items: [{ id: 'oi4', title: 'تبلت ۱۱ اینچی Pro M2', price: 28900000, quantity: 1, total: 28900000, storeId: 's1' }], user: _user('u4'), createdAt: '2026-05-25T11:30:00Z' },
+  { id: 'o5', orderNumber: 'BC-140305', status: 'delivered', paymentStatus: 'paid', subtotal: 3690000, shippingCost: 50000, discountAmount: 100000, total: 3640000, shippingName: 'امیر رضایی', shippingPhone: '09161234571', trackingCode: 'IRP-5555555555', commissionAmount: 369000, items: [{ id: 'oi5', title: 'هدفون بیسیم ANC Pro', price: 3690000, quantity: 1, total: 3690000, storeId: 's1' }], user: _user('u5'), createdAt: '2026-05-20T16:45:00Z' },
+  { id: 'o6', orderNumber: 'BC-140306', status: 'cancelled', paymentStatus: 'refunded', subtotal: 5500000, shippingCost: 50000, discountAmount: 0, total: 0, shippingName: 'علیرضا محمدی', shippingPhone: '09121234567', items: [{ id: 'oi6', title: 'کیبورد مکانیکال RGB', price: 5500000, quantity: 1, total: 5500000, storeId: 's7' }], user: _user('u1'), createdAt: '2026-05-18T08:00:00Z' },
 ];
 
 const MOCK_PRODUCTS: Product[] = [
-  { id: 'p1', title: 'گوشی هوشمند X1 Pro 5G', slug: 'x1-pro-5g', description: 'پرچمدار جدید با دوربین 200 مگاپیکسلی و پردازنده نسل جدید', price: 21990000, discountPrice: 19900000, quantity: 45, brand: 'XPhone', status: 'approved', isFeatured: true, viewCount: 15234, saleCount: 234, rating: 4.7, reviewCount: 156, sellerId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/phone1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-03-01T08:00:00Z' },
-  { id: 'p2', title: 'هدفون بیسیم ANC Pro', slug: 'anc-pro-wireless', description: 'هدفون بیسیم با قابلیت حذف نویز فعال و ۴۰ ساعت شارژدهی', price: 3690000, discountPrice: 3290000, quantity: 120, brand: 'SoundMax', status: 'approved', isFeatured: true, viewCount: 9856, saleCount: 312, rating: 4.6, reviewCount: 234, sellerId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/headphone1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-02-15T10:00:00Z' },
-  { id: 'p3', title: 'مانیتور گیمینگ ۲۷ اینچ 4K', slug: 'gaming-monitor-27-4k', description: 'مانیتور گیمینگ با رفرش ریت 165Hz و زمان پاسخگویی 1ms', price: 16500000, discountPrice: 14800000, quantity: 30, brand: 'VisionPro', status: 'approved', isFeatured: false, viewCount: 7562, saleCount: 89, rating: 4.8, reviewCount: 67, sellerId: 's3', categoryId: 'electronics', image: 'https://picsum.photos/seed/monitor1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2026-01-20T14:00:00Z' },
-  { id: 'p4', title: 'تبلت ۱۱ اینچی Pro M2', slug: 'tablet-pro-11-m2', description: 'تبلت حرفه‌ای با صفحه نمایش Liquid Retina و پشتیبانی از قلم', price: 28900000, discountPrice: 26900000, quantity: 18, brand: 'TabPro', status: 'approved', isFeatured: true, viewCount: 11234, saleCount: 156, rating: 4.9, reviewCount: 98, sellerId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/tablet1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-01-10T09:00:00Z' },
-  { id: 'p5', title: 'کیبورد مکانیکال RGB گیمینگ', slug: 'mechanical-keyboard-rgb', description: 'کیبورد گیمینگ با سوییچ‌های Cherry MX و نورپردازی RGB', price: 5500000, discountPrice: undefined, quantity: 80, brand: 'GameGear', status: 'pending', isFeatured: false, viewCount: 3456, saleCount: 45, rating: 4.3, reviewCount: 34, sellerId: 's7', categoryId: 'electronics', image: 'https://picsum.photos/seed/keyboard1/400/400', images: [], tags: ['pending'], specs: {}, createdAt: '2026-04-25T12:00:00Z' },
-  { id: 'p6', title: 'اسپیکر بلوتوثی پرتابل', slug: 'portable-bluetooth-speaker', description: 'اسپیکر ضدآب با کیفیت صدای Hi-Fi و ۲۰ ساعت باتری', price: 2850000, discountPrice: 2490000, quantity: 200, brand: 'SoundMax', status: 'approved', isFeatured: false, viewCount: 6789, saleCount: 198, rating: 4.5, reviewCount: 89, sellerId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/speaker1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2025-12-15T09:00:00Z' },
-  { id: 'p7', title: 'پیراهن مردانه کتان', slug: 'mens-cotton-shirt', description: 'پیراهن کتان با کیفیت عالی، مناسب مهمانی و مجلسی', price: 1290000, discountPrice: 990000, quantity: 300, brand: 'ModIran', status: 'approved', isFeatured: true, viewCount: 5432, saleCount: 234, rating: 4.4, reviewCount: 178, sellerId: 's2', categoryId: 'clothing', image: 'https://picsum.photos/seed/shirt1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-02-01T08:00:00Z' },
-  { id: 'p8', title: 'سرویس قابلمه گرانیتی ۱۲ پارچه', slug: 'granite-cookware-set', description: 'سرویس کامل قابلمه و تابه با روکش گرانیت نچسب', price: 8900000, discountPrice: 7600000, quantity: 50, brand: 'KhanehModern', status: 'approved', isFeatured: false, viewCount: 4321, saleCount: 123, rating: 4.7, reviewCount: 56, sellerId: 's3', categoryId: 'home', image: 'https://picsum.photos/seed/cookware1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2026-03-10T11:00:00Z' },
-  { id: 'p9', title: 'کفش ورزشی حرفه‌ای', slug: 'professional-sports-shoes', description: 'کفش دویدن با کفی طبی و تهویه هوای عالی', price: 4500000, discountPrice: undefined, quantity: 150, brand: 'SportMax', status: 'approved', isFeatured: false, viewCount: 3456, saleCount: 98, rating: 4.6, reviewCount: 67, sellerId: 's4', categoryId: 'sports', image: 'https://picsum.photos/seed/shoes1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2026-01-25T10:00:00Z' },
-  { id: 'p10', title: 'دستبند طلا ۱۸ عیار', slug: '18k-gold-bracelet', description: 'دستبند طلا ۱۸ عیار طرح جدید با سنگ‌های قیمتی', price: 56000000, discountPrice: undefined, quantity: 5, brand: 'ZarGold', status: 'pending', isFeatured: false, viewCount: 1234, saleCount: 12, rating: 4.9, reviewCount: 8, sellerId: 's6', categoryId: 'jewelry', image: 'https://picsum.photos/seed/gold1/400/400', images: [], tags: ['pending'], specs: {}, createdAt: '2026-05-01T14:00:00Z' },
-  { id: 'p11', title: 'پک کامل لوازم تحریر فانتزی', slug: 'fancy-stationery-set', description: 'پک ۵۰ تکه لوازم تحریر فانتزی مناسب مدرسه و دانشگاه', price: 450000, discountPrice: 350000, quantity: 500, brand: 'KetabSara', status: 'inactive', isFeatured: false, viewCount: 2345, saleCount: 45, rating: 4.2, reviewCount: 23, sellerId: 's8', categoryId: 'books', image: 'https://picsum.photos/seed/stationery1/400/400', images: [], tags: ['inactive'], specs: {}, createdAt: '2026-04-01T08:00:00Z' },
+  { id: 'p1', title: 'گوشی هوشمند X1 Pro 5G', slug: 'x1-pro-5g', description: 'پرچمدار جدید با دوربین 200 مگاپیکسلی و پردازنده نسل جدید', price: 21990000, discountPrice: 19900000, quantity: 45, brand: 'XPhone', status: 'approved', isFeatured: true, viewCount: 15234, saleCount: 234, rating: 4.7, reviewCount: 156, storeId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/phone1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-03-01T08:00:00Z' },
+  { id: 'p2', title: 'هدفون بیسیم ANC Pro', slug: 'anc-pro-wireless', description: 'هدفون بیسیم با قابلیت حذف نویز فعال و ۴۰ ساعت شارژدهی', price: 3690000, discountPrice: 3290000, quantity: 120, brand: 'SoundMax', status: 'approved', isFeatured: true, viewCount: 9856, saleCount: 312, rating: 4.6, reviewCount: 234, storeId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/headphone1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-02-15T10:00:00Z' },
+  { id: 'p3', title: 'مانیتور گیمینگ ۲۷ اینچ 4K', slug: 'gaming-monitor-27-4k', description: 'مانیتور گیمینگ با رفرش ریت 165Hz و زمان پاسخگویی 1ms', price: 16500000, discountPrice: 14800000, quantity: 30, brand: 'VisionPro', status: 'approved', isFeatured: false, viewCount: 7562, saleCount: 89, rating: 4.8, reviewCount: 67, storeId: 's3', categoryId: 'electronics', image: 'https://picsum.photos/seed/monitor1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2026-01-20T14:00:00Z' },
+  { id: 'p4', title: 'تبلت ۱۱ اینچی Pro M2', slug: 'tablet-pro-11-m2', description: 'تبلت حرفه‌ای با صفحه نمایش Liquid Retina و پشتیبانی از قلم', price: 28900000, discountPrice: 26900000, quantity: 18, brand: 'TabPro', status: 'approved', isFeatured: true, viewCount: 11234, saleCount: 156, rating: 4.9, reviewCount: 98, storeId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/tablet1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-01-10T09:00:00Z' },
+  { id: 'p5', title: 'کیبورد مکانیکال RGB گیمینگ', slug: 'mechanical-keyboard-rgb', description: 'کیبورد گیمینگ با سوییچ‌های Cherry MX و نورپردازی RGB', price: 5500000, discountPrice: undefined, quantity: 80, brand: 'GameGear', status: 'pending', isFeatured: false, viewCount: 3456, saleCount: 45, rating: 4.3, reviewCount: 34, storeId: 's7', categoryId: 'electronics', image: 'https://picsum.photos/seed/keyboard1/400/400', images: [], tags: ['pending'], specs: {}, createdAt: '2026-04-25T12:00:00Z' },
+  { id: 'p6', title: 'اسپیکر بلوتوثی پرتابل', slug: 'portable-bluetooth-speaker', description: 'اسپیکر ضدآب با کیفیت صدای Hi-Fi و ۲۰ ساعت باتری', price: 2850000, discountPrice: 2490000, quantity: 200, brand: 'SoundMax', status: 'approved', isFeatured: false, viewCount: 6789, saleCount: 198, rating: 4.5, reviewCount: 89, storeId: 's1', categoryId: 'electronics', image: 'https://picsum.photos/seed/speaker1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2025-12-15T09:00:00Z' },
+  { id: 'p7', title: 'پیراهن مردانه کتان', slug: 'mens-cotton-shirt', description: 'پیراهن کتان با کیفیت عالی، مناسب مهمانی و مجلسی', price: 1290000, discountPrice: 990000, quantity: 300, brand: 'ModIran', status: 'approved', isFeatured: true, viewCount: 5432, saleCount: 234, rating: 4.4, reviewCount: 178, storeId: 's2', categoryId: 'clothing', image: 'https://picsum.photos/seed/shirt1/400/400', images: [], tags: ['approved', 'featured'], specs: {}, createdAt: '2026-02-01T08:00:00Z' },
+  { id: 'p8', title: 'سرویس قابلمه گرانیتی ۱۲ پارچه', slug: 'granite-cookware-set', description: 'سرویس کامل قابلمه و تابه با روکش گرانیت نچسب', price: 8900000, discountPrice: 7600000, quantity: 50, brand: 'KhanehModern', status: 'approved', isFeatured: false, viewCount: 4321, saleCount: 123, rating: 4.7, reviewCount: 56, storeId: 's3', categoryId: 'home', image: 'https://picsum.photos/seed/cookware1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2026-03-10T11:00:00Z' },
+  { id: 'p9', title: 'کفش ورزشی حرفه‌ای', slug: 'professional-sports-shoes', description: 'کفش دویدن با کفی طبی و تهویه هوای عالی', price: 4500000, discountPrice: undefined, quantity: 150, brand: 'SportMax', status: 'approved', isFeatured: false, viewCount: 3456, saleCount: 98, rating: 4.6, reviewCount: 67, storeId: 's4', categoryId: 'sports', image: 'https://picsum.photos/seed/shoes1/400/400', images: [], tags: ['approved'], specs: {}, createdAt: '2026-01-25T10:00:00Z' },
+  { id: 'p10', title: 'دستبند طلا ۱۸ عیار', slug: '18k-gold-bracelet', description: 'دستبند طلا ۱۸ عیار طرح جدید با سنگ‌های قیمتی', price: 56000000, discountPrice: undefined, quantity: 5, brand: 'ZarGold', status: 'pending', isFeatured: false, viewCount: 1234, saleCount: 12, rating: 4.9, reviewCount: 8, storeId: 's6', categoryId: 'jewelry', image: 'https://picsum.photos/seed/gold1/400/400', images: [], tags: ['pending'], specs: {}, createdAt: '2026-05-01T14:00:00Z' },
+  { id: 'p11', title: 'پک کامل لوازم تحریر فانتزی', slug: 'fancy-stationery-set', description: 'پک ۵۰ تکه لوازم تحریر فانتزی مناسب مدرسه و دانشگاه', price: 450000, discountPrice: 350000, quantity: 500, brand: 'KetabSara', status: 'inactive', isFeatured: false, viewCount: 2345, saleCount: 45, rating: 4.2, reviewCount: 23, storeId: 's8', categoryId: 'books', image: 'https://picsum.photos/seed/stationery1/400/400', images: [], tags: ['inactive'], specs: {}, createdAt: '2026-04-01T08:00:00Z' },
 ];
 
 function _userSimple(id: string): User & { orderCount?: number } { const u = _user(id); return { ...u, orderCount: Math.floor(Math.random() * 20) + 1 }; }
@@ -498,7 +497,7 @@ async function mockRequest<T = unknown>(endpoint: string, method: string): Promi
     const seller = MOCK_USERS.find(u => u.id === shopId && u.role === 'seller');
     return {
       shop: seller ? { ...seller, totalProducts: 50, avgRating: 4.6, reviewCount: 120, totalSales: 5000 } : mockShop({ id: shopId }),
-      products: MOCK_PRODUCTS.filter(p => p.sellerId === shopId),
+      products: MOCK_PRODUCTS.filter(p => p.storeId === shopId),
       reviews: [{ id: 'r1', rating: 5, body: 'فروشگاه عالی و محصولات باکیفیت', userId: 'u1', user: _user('u1'), productId: '', createdAt: '2026-05-01T10:00:00Z' }],
     } as T;
   }
@@ -543,11 +542,6 @@ async function mockRequest<T = unknown>(endpoint: string, method: string): Promi
     return (method === 'DELETE' ? { message: 'ok' } : { order: mockOrder() }) as T;
   }
 
-  // ── WISHLIST ──
-  if (path.startsWith('/wishlist')) {
-    if (path.includes('/check/')) return { isWishlisted: Math.random() > 0.5 } as T;
-    return (method === 'GET' ? { items: MOCK_PRODUCTS.slice(0, 3).map(p => ({ id: `wl_${p.id}`, product: p })) } : { message: 'ok' }) as T;
-  }
 
   // ── REVIEWS ──
   if (path.startsWith('/reviews')) {
@@ -719,8 +713,8 @@ async function mockRequest<T = unknown>(endpoint: string, method: string): Promi
   if (path.startsWith('/admin/seller-reviews')) {
     return {
       reviews: [
-        { id: 'sr1', rating: 5, body: 'فروشگاه عالی، ارسال سریع و بسته‌بندی مناسب', userId: 'u1', user: _user('u1'), productId: '', createdAt: '2026-05-01T10:00:00Z', sellerId: 's1' },
-        { id: 'sr2', rating: 4, body: 'کیفیت خوب، قیمت مناسب', userId: 'u2', user: _user('u2'), productId: '', createdAt: '2026-04-28T14:00:00Z', sellerId: 's1' },
+        { id: 'sr1', rating: 5, body: 'فروشگاه عالی، ارسال سریع و بسته‌بندی مناسب', userId: 'u1', user: _user('u1'), productId: '', createdAt: '2026-05-01T10:00:00Z', storeId: 's1' },
+        { id: 'sr2', rating: 4, body: 'کیفیت خوب، قیمت مناسب', userId: 'u2', user: _user('u2'), productId: '', createdAt: '2026-04-28T14:00:00Z', storeId: 's1' },
       ],
       total: 2, page: 1, pages: 1,
     } as T;
@@ -977,8 +971,6 @@ function getFallbackData<T>(endpoint: string): T {
       ratingTiers: [], topRatedSellers: [], lowRatedSellers: []
     } as unknown as T;
 
-  // Wishlist
-  if (path === '/wishlist') return { items: [] } as unknown as T;
 
   // Cart
   if (path === '/cart') return { items: [], totalItems: 0, totalPrice: 0 } as unknown as T;
@@ -1149,20 +1141,6 @@ export const categoriesApi = {
 };
 
 /* ============================================================
- * 🛒 CART API
- * ============================================================ */
-
-export const cartApi = {
-  get: () => api.get<{ items: CartItem[]; count: number; total: number }>('/cart'),
-  add: (productId: string, quantity?: number) =>
-    api.post<{ item: CartItem }>('/cart', { productId, quantity: quantity ?? 1 }),
-  update: (productId: string, quantity: number) =>
-    api.put<{ item: CartItem }>(`/cart/${productId}`, { quantity }),
-  remove: (productId: string) => api.delete<{ message: string }>(`/cart/${productId}`),
-  clear: () => api.delete<{ message: string }>('/cart'),
-};
-
-/* ============================================================
  * 📦 ORDERS API
  * ============================================================ */
 
@@ -1173,17 +1151,6 @@ export const ordersApi = {
     api.get<{ order: Order; timeline: TrackingEvent[] }>(`/orders/track/${orderNumber}`),
   create: (data: any) => api.post<{ order: Order; invoice?: { id: string; amount: number } }>('/orders', data),
   cancel: (id: string) => api.patch<{ order: Order }>(`/orders/${id}/cancel`),
-};
-
-/* ============================================================
- * ❤️ WISHLIST API
- * ============================================================ */
-
-export const wishlistApi = {
-  get: () => api.get<{ items: { id: string; product: Product }[] }>('/wishlist'),
-  add: (productId: string) => api.post<{ item: { id: string } }>(`/wishlist/${productId}`),
-  remove: (productId: string) => api.delete<{ message: string }>(`/wishlist/${productId}`),
-  check: (productId: string) => api.get<{ isWishlisted: boolean }>(`/wishlist/check/${productId}`),
 };
 
 /* ============================================================
@@ -1206,8 +1173,8 @@ export const messagesApi = {
     api.get<any>(`/messages/conversations/${id}`, { page }),
   sendMessage: (id: string, text: string) =>
     api.post<{ message: any }>(`/messages/conversations/${id}`, { text }),
-  startConversation: (sellerId: string, productId?: string, message?: string) =>
-    api.post<any>('/messages/start', { sellerId, productId, message }),
+  startConversation: (storeId: string, productId?: string, message?: string) =>
+    api.post<any>('/messages/start', { storeId, productId, message }),
   unreadCount: () => api.get<{ count: number }>('/messages/unread-count'),
 };
 
@@ -1233,13 +1200,11 @@ export const sellerApi = {
 
 export const adminApi = {
   dashboard: () => api.get<any>('/admin/dashboard'),
-  users: (params?: any) => api.get<{ users: User[]; pagination: PaginationType }>('/admin/users', params),
+  users: (params?: any) => api.get<{ users: User[]; pagination: PaginationType }>('/users', params),
   getUser: (id: string) => api.get<User>(`/admin/users/${id}`),
-  toggleUser: (id: string) => api.patch<User>(`/admin/users/${id}/toggle-active`),
-  verifySeller: (id: string, data: any) =>
-    api.patch<User>(`/admin/users/${id}/verify-seller`, data),
-  changeRole: (id: string, role: string) =>
-    api.patch<User>(`/admin/users/${id}/change-role`, { role }),
+  toggleUser: (id: string) => api.put<User>(`/users/${id}/toggle`),
+  verifySeller: (id: string, data: any) => api.patch<User>(`/admin/users/${id}/verify-seller`, data),
+  changeRole: (id: string, role: string) => api.put<User>(`/users/${id}/role`, { role }),
   products: (params?: any) => {
     const cleanFilters = Object.fromEntries(
       Object.entries(params || {})
@@ -1289,8 +1254,8 @@ export const shopsApi = {
   list: (params?: any) => api.get<any>('/shops', params),
   getById: (id: string) => api.get<any>(`/shops/${id}`),
   top: () => api.get<any[]>('/shops/top'),
-  review: (sellerId: string, data: any) =>
-    api.post<{ message: string }>(`/shops/${sellerId}/review`, data),
+  review: (storeId: string, data: any) =>
+    api.post<{ message: string }>(`/shops/${storeId}/review`, data),
 };
 
 /* ============================================================

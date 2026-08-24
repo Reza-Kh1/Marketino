@@ -30,7 +30,7 @@ import { Link, usePathname, useRouter } from '@/i18n/navigation';
 const FULL_MENU = [
   { href: '/admin', label: 'داشبورد', icon: LayoutDashboard, permission: 'dashboard' },
   { href: '/admin/users', label: 'کاربران', icon: Users, permission: 'users' },
-  { href: '/admin/sellers', label: 'فروشندگان', icon: Store, permission: 'sellers' },
+  { href: '/admin/store', label: 'فروشندگان', icon: Store, permission: 'sellers' },
   { href: '/admin/products', label: 'محصولات', icon: Package, permission: 'products' },
   { href: '/admin/orders', label: 'سفارشات', icon: ClipboardList, permission: 'orders' },
   { href: '/admin/discounts', label: 'تخفیف‌ها', icon: Tag, permission: 'discounts' },
@@ -57,20 +57,13 @@ const FULL_MENU = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdmin, isLoading, isSuperAdmin, permissions } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, permissions } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // useEffect(() => {
-  //   if (!isLoading && (!isAuthenticated || !isAdmin)) {
-  //     router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
-  //   }
-  // }, [isLoading, isAuthenticated, isAdmin, router, pathname]);
-
   const filteredMenu = FULL_MENU.filter(item => {
-    if (isSuperAdmin) return true;
-    if (item.superAdminOnly && !isSuperAdmin) return false;
+    if (isAdmin) return true
+    if (item.superAdminOnly) return false;
     if (!item.permission) return false;
     return permissions.includes(item.permission);
   });
@@ -98,7 +91,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ))}
     </nav>
   );
-
   return (
     <div className="min-h-screen bg-background antialiased" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -111,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div>
               <h1 className="text-2xl font-black">پنل مدیریت</h1>
               <p className="text-sm text-muted-foreground">
-                {isSuperAdmin ? 'مدیر اصلی • دسترسی کامل' : 'دسترسی محدود'}
+                {isAdmin ? 'مدیر اصلی • دسترسی کامل' : 'دسترسی محدود'}
               </p>
             </div>
           </div>

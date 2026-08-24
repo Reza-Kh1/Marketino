@@ -14,7 +14,7 @@ export class MessagesService {
       where: { OR: [{ buyerId: userId }, { sellerId: userId }] },
       include: {
         buyer: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } },
-        seller: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true, storeName: true } },
+        seller: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true, store: { select: { name: true } } } },
         product: { select: { id: true, title: true, slug: true, images: { take: 1 } } },
         _count: { select: { messages: { where: { isRead: false, receiverId: userId } } } },
       },

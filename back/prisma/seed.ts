@@ -48,7 +48,7 @@ async function main() {
   await prisma.address.deleteMany();
   await prisma.order.deleteMany();
   await prisma.review.deleteMany();
-  await prisma.sellerReview.deleteMany();
+  await prisma.storeReview.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
@@ -63,12 +63,13 @@ async function main() {
   await prisma.blogPost.deleteMany();
   await prisma.banner.deleteMany();
   await prisma.shippingMethod.deleteMany();
-  await prisma.sellerRating.deleteMany();
+  await prisma.storeRating.deleteMany();
   await prisma.walletTransaction.deleteMany();
   await prisma.siteSetting.deleteMany();
   await prisma.color.deleteMany();
   await prisma.brand.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.store.deleteMany();
   await prisma.user.deleteMany();
   await prisma.otpCode.deleteMany();
 
@@ -119,8 +120,7 @@ async function main() {
       password: adminPassword,
       firstName: 'مدیر',
       lastName: 'سیستم',
-      role: 'admin',
-      isSuperAdmin: true,
+      role: 'superAdmin',
       permissions: JSON.stringify(['all']),
       isVerified: true,
       emailVerified: true,
@@ -151,10 +151,6 @@ async function main() {
         firstName: s.name.split(' ')[0],
         lastName: s.name.split(' ')[1] || '',
         role: 'seller',
-        sellerStatus: 'approved',
-        storeName: s.store,
-        storeDescription: `${s.store} - بهترین محصولات`,
-        commissionRate: 10,
         isVerified: true,
         emailVerified: true,
         hasSetPassword: true,
@@ -164,6 +160,31 @@ async function main() {
     sellers.push(seller);
   }
   console.log(`✅ ${sellers.length} فروشنده ایجاد شد`);
+
+  // ============================================
+  // ۲.۵. فروشگاه‌ها (Stores)
+  // ============================================
+  const stores: any[] = [];
+  for (let i = 0; i < sellers.length; i++) {
+    const s = sellers[i];
+    const storeName = s.storeName || s.firstName + ' ' + s.lastName;
+    const store = await prisma.store.upsert({
+      where: { ownerId: s.id },
+      update: {},
+      create: {
+        ownerId: s.id,
+        name: storeName,
+        nameEn: storeName,
+        slug: `${s.username}-store-${i + 1}`,
+        status: 'approved' as any,
+        commissionRate: 10,
+        isVerified: true,
+        isActive: true,
+      },
+    });
+    stores.push(store);
+  }
+  console.log(`✅ ${stores.length} فروشگاه ایجاد شد`);
 
   const buyers: any[] = [];
   const buyerNames = [
@@ -339,58 +360,58 @@ async function main() {
   // ============================================
   const productsData = [
     // موبایل (7 محصول)
-    { title: 'گوشی سامسونگ Galaxy S24', slug: 'samsung-s24', desc: 'پرچمدار سامسونگ با دوربین 200 مگاپیکسل', price: 45999000, qty: 10, brand: 'samsung', cat: 'mobile-phones' },
-    { title: 'گوشی سامسونگ Galaxy A34', slug: 'samsung-a34', desc: 'میانی رده سامسونگ', price: 9999000, qty: 25, brand: 'samsung', cat: 'mobile-phones' },
-    { title: 'گوشی سامسونگ Galaxy A14', slug: 'samsung-a14', desc: 'اقتصادی سامسونگ', price: 5999000, qty: 40, brand: 'samsung', cat: 'mobile-phones' },
-    { title: 'گوشی آیفون 15 پرو', slug: 'iphone-15-pro', desc: 'پرچمدار اپل', price: 79999000, qty: 5, brand: 'apple', cat: 'mobile-phones' },
-    { title: 'گوشی آیفون 15', slug: 'iphone-15', desc: 'آیفون استاندارد', price: 59999000, qty: 8, brand: 'apple', cat: 'mobile-phones' },
-    { title: 'گوشی شیائومی 14', slug: 'xiaomi-14', desc: 'پرچمدار شیائومی', price: 29999000, qty: 12, brand: 'xiaomi', cat: 'mobile-phones' },
-    { title: 'گوشی شیائومی Redmi Note 13', slug: 'redmi-note-13', desc: 'میانی رده شیائومی', price: 8999000, qty: 30, brand: 'xiaomi', cat: 'mobile-phones' },
+    { title: 'گوشی سامسونگ Galaxy S24', slug: 'samsung-s24', desc: 'پرچمدار سامسونگ با دوربین 200 مگاپیکسل', price: 45999000, qty: 10, brand: 'samsung', cat: 'mobile-phones', storeIdx: 0 },
+    { title: 'گوشی سامسونگ Galaxy A34', slug: 'samsung-a34', desc: 'میانی رده سامسونگ', price: 9999000, qty: 25, brand: 'samsung', cat: 'mobile-phones', storeIdx: 1 },
+    { title: 'گوشی سامسونگ Galaxy A14', slug: 'samsung-a14', desc: 'اقتصادی سامسونگ', price: 5999000, qty: 40, brand: 'samsung', cat: 'mobile-phones', storeIdx: 1 },
+    { title: 'گوشی آیفون 15 پرو', slug: 'iphone-15-pro', desc: 'پرچمدار اپل', price: 79999000, qty: 5, brand: 'apple', cat: 'mobile-phones', storeIdx: 2 },
+    { title: 'گوشی آیفون 15', slug: 'iphone-15', desc: 'آیفون استاندارد', price: 59999000, qty: 8, brand: 'apple', cat: 'mobile-phones', storeIdx: 2 },
+    { title: 'گوشی شیائومی 14', slug: 'xiaomi-14', desc: 'پرچمدار شیائومی', price: 29999000, qty: 12, brand: 'xiaomi', cat: 'mobile-phones', storeIdx: 3 },
+    { title: 'گوشی شیائومی Redmi Note 13', slug: 'redmi-note-13', desc: 'میانی رده شیائومی', price: 8999000, qty: 30, brand: 'xiaomi', cat: 'mobile-phones', storeIdx: 3 },
 
     // لپ تاپ (5 محصول)
-    { title: 'لپ تاپ لنوو IdeaPad 5', slug: 'lenovo-ideapad-5', desc: 'کاربری عمومی', price: 35999000, qty: 8, brand: 'lenovo', cat: 'laptops' },
-    { title: 'لپ تاپ ایسوس VivoBook', slug: 'asus-vivobook', desc: 'سبک و قابل حمل', price: 28999000, qty: 12, brand: 'asus', cat: 'laptops' },
-    { title: 'مک بوک ایر M3', slug: 'macbook-air-m3', desc: 'اپل سبک', price: 69999000, qty: 4, brand: 'apple', cat: 'laptops' },
-    { title: 'لپ تاپ گیمینگ ایسوس TUF', slug: 'asus-tuf-gaming', desc: 'بازی حرفه‌ای', price: 52999000, qty: 5, brand: 'asus', cat: 'laptops' },
-    { title: 'لپ تاپ لنوو Legion', slug: 'lenovo-legion', desc: 'گیمینگ لنوو', price: 48999000, qty: 6, brand: 'lenovo', cat: 'laptops' },
+    { title: 'لپ تاپ لنوو IdeaPad 5', slug: 'lenovo-ideapad-5', desc: 'کاربری عمومی', price: 35999000, qty: 8, brand: 'lenovo', cat: 'laptops', storeIdx: 0 },
+    { title: 'لپ تاپ ایسوس VivoBook', slug: 'asus-vivobook', desc: 'سبک و قابل حمل', price: 28999000, qty: 12, brand: 'asus', cat: 'laptops', storeIdx: 1 },
+    { title: 'مک بوک ایر M3', slug: 'macbook-air-m3', desc: 'اپل سبک', price: 69999000, qty: 4, brand: 'apple', cat: 'laptops', storeIdx: 2 },
+    { title: 'لپ تاپ گیمینگ ایسوس TUF', slug: 'asus-tuf-gaming', desc: 'بازی حرفه‌ای', price: 52999000, qty: 5, brand: 'asus', cat: 'laptops', storeIdx: 1 },
+    { title: 'لپ تاپ لنوو Legion', slug: 'lenovo-legion', desc: 'گیمینگ لنوو', price: 48999000, qty: 6, brand: 'lenovo', cat: 'laptops', storeIdx: 0 },
 
     // هدفون (4 محصول)
-    { title: 'ایرپاد پرو 2', slug: 'airpod-pro-2', desc: 'اپل بی‌سیم', price: 12999000, qty: 15, brand: 'apple', cat: 'headphones' },
-    { title: 'هدفون سونی WH-1000XM5', slug: 'sony-xm5', desc: 'نویز کنسلینگ', price: 18999000, qty: 8, brand: 'sony', cat: 'headphones' },
-    { title: 'هدفون بلو Tune 770', slug: 'blue-tune-770', desc: 'بلو بی‌سیم', price: 4999000, qty: 25, brand: 'blue', cat: 'headphones' },
-    { title: 'هندزفری شیائومی Buds', slug: 'xiaomi-buds-4', desc: 'شیائومی بلوتوث', price: 3499000, qty: 30, brand: 'xiaomi', cat: 'headphones' },
+    { title: 'ایرپاد پرو 2', slug: 'airpod-pro-2', desc: 'اپل بی‌سیم', price: 12999000, qty: 15, brand: 'apple', cat: 'headphones', storeIdx: 2 },
+    { title: 'هدفون سونی WH-1000XM5', slug: 'sony-xm5', desc: 'نویز کنسلینگ', price: 18999000, qty: 8, brand: 'sony', cat: 'headphones', storeIdx: 3 },
+    { title: 'هدفون بلو Tune 770', slug: 'blue-tune-770', desc: 'بلو بی‌سیم', price: 4999000, qty: 25, brand: 'blue', cat: 'headphones', storeIdx: 4 },
+    { title: 'هندزفری شیائومی Buds', slug: 'xiaomi-buds-4', desc: 'شیائومی بلوتوث', price: 3499000, qty: 30, brand: 'xiaomi', cat: 'headphones', storeIdx: 3 },
 
     // ساعت هوشمند (3 محصول)
-    { title: 'اپل واچ Ultra 2', slug: 'apple-watch-ultra-2', desc: 'اپل حرفه‌ای', price: 39999000, qty: 5, brand: 'apple', cat: 'smart-watches' },
-    { title: 'ساعت سامسونگ Watch 6', slug: 'samsung-watch-6', desc: 'سامسونگ کلاسیک', price: 15999000, qty: 12, brand: 'samsung', cat: 'smart-watches' },
-    { title: 'ساعت شیائومی Band 8', slug: 'xiaomi-band-8', desc: 'اقتصادی', price: 2999000, qty: 40, brand: 'xiaomi', cat: 'smart-watches' },
+    { title: 'اپل واچ Ultra 2', slug: 'apple-watch-ultra-2', desc: 'اپل حرفه‌ای', price: 39999000, qty: 5, brand: 'apple', cat: 'smart-watches', storeIdx: 2 },
+    { title: 'ساعت سامسونگ Watch 6', slug: 'samsung-watch-6', desc: 'سامسونگ کلاسیک', price: 15999000, qty: 12, brand: 'samsung', cat: 'smart-watches', storeIdx: 1 },
+    { title: 'ساعت شیائومی Band 8', slug: 'xiaomi-band-8', desc: 'اقتصادی', price: 2999000, qty: 40, brand: 'xiaomi', cat: 'smart-watches', storeIdx: 3 },
 
     // پوشاک مردانه (4 محصول)
-    { title: 'پیراهن مردانه اسلیم', slug: 'men-slim-shirt', desc: 'اسلیم فیت نخی', price: 690000, qty: 50, brand: 'iran-fashion', cat: 'men-fashion' },
-    { title: 'شلوار جین مردانه', slug: 'men-jeans', desc: 'جین اصل', price: 1290000, qty: 35, brand: 'mod-barta', cat: 'men-fashion' },
-    { title: 'تیشرت مردانه یقه گرد', slug: 'men-tshirt', desc: 'نخی راحت', price: 390000, qty: 80, brand: 'mod-barta', cat: 'men-fashion' },
-    { title: 'هودی مردانه', slug: 'men-hoodie', desc: 'کلاه‌دار', price: 890000, qty: 45, brand: 'mod-barta', cat: 'men-fashion' },
+    { title: 'پیراهن مردانه اسلیم', slug: 'men-slim-shirt', desc: 'اسلیم فیت نخی', price: 690000, qty: 50, brand: 'mod-barta', cat: 'men-fashion', storeIdx: 2 },
+    { title: 'شلوار جین مردانه', slug: 'men-jeans', desc: 'جین اصل', price: 1290000, qty: 35, brand: 'mod-barta', cat: 'men-fashion', storeIdx: 2 },
+    { title: 'تیشرت مردانه یقه گرد', slug: 'men-tshirt', desc: 'نخی راحت', price: 390000, qty: 80, brand: 'mod-barta', cat: 'men-fashion', storeIdx: 2 },
+    { title: 'هودی مردانه', slug: 'men-hoodie', desc: 'کلاه‌دار', price: 890000, qty: 45, brand: 'mod-barta', cat: 'men-fashion', storeIdx: 2 },
 
     // پوشاک زنانه (4 محصول)
-    { title: 'مانتو زنانه مجلسی', slug: 'women-manto-formal', desc: 'مجلسی شیک', price: 1890000, qty: 20, brand: 'mod-barta', cat: 'women-fashion' },
-    { title: 'شلوار زنانه پارچه‌ای', slug: 'women-trousers', desc: 'رسمی', price: 790000, qty: 35, brand: 'iran-fashion', cat: 'women-fashion' },
-    { title: 'بلوز زنانه مجلسی', slug: 'women-blouse', desc: 'شیک', price: 690000, qty: 40, brand: 'mod-barta', cat: 'women-fashion' },
-    { title: 'لباس زنانه مجلس', slug: 'women-dress', desc: 'بلند', price: 2290000, qty: 18, brand: 'mod-barta', cat: 'women-fashion' },
+    { title: 'مانتو زنانه مجلسی', slug: 'women-manto-formal', desc: 'مجلسی شیک', price: 1890000, qty: 20, brand: 'mod-barta', cat: 'women-fashion', storeIdx: 2 },
+    { title: 'شلوار زنانه پارچه‌ای', slug: 'women-trousers', desc: 'رسمی', price: 790000, qty: 35, brand: 'iran-fashion', cat: 'women-fashion', storeIdx: 3 },
+    { title: 'بلوز زنانه مجلسی', slug: 'women-blouse', desc: 'شیک', price: 690000, qty: 40, brand: 'mod-barta', cat: 'women-fashion', storeIdx: 2 },
+    { title: 'لباس زنانه مجلس', slug: 'women-dress', desc: 'بلند', price: 2290000, qty: 18, brand: 'mod-barta', cat: 'women-fashion', storeIdx: 2 },
 
     // لوازم خانگی (3 محصول)
-    { title: 'سرویس قابلمه 10 پارچه', slug: 'cookware-10pc', desc: 'گرانیتی', price: 6990000, qty: 10, brand: 'tefal', cat: 'home-kitchen' },
-    { title: 'سرخ‌کن بدون روغن', slug: 'air-fryer', desc: '5 لیتری', price: 5490000, qty: 8, brand: 'hyundai', cat: 'home-kitchen' },
-    { title: 'جاروبرقی بوش', slug: 'bosch-vacuum', desc: 'قوی', price: 12990000, qty: 5, brand: 'bosch', cat: 'home-kitchen' },
+    { title: 'سرویس قابلمه 10 پارچه', slug: 'cookware-10pc', desc: 'گرانیتی', price: 6990000, qty: 10, brand: 'tefal', cat: 'home-kitchen', storeIdx: 4 },
+    { title: 'سرخ‌کن بدون روغن', slug: 'air-fryer', desc: '5 لیتری', price: 5490000, qty: 8, brand: 'hyundai', cat: 'home-kitchen', storeIdx: 4 },
+    { title: 'جاروبرقی بوش', slug: 'bosch-vacuum', desc: 'قوی', price: 12990000, qty: 5, brand: 'bosch', cat: 'home-kitchen', storeIdx: 4 },
 
     // ورزشی (3 محصول)
-    { title: 'کفش دویدن نایک پیموس', slug: 'nike-pegasus', desc: 'دویدن', price: 6990000, qty: 15, brand: 'nike', cat: 'sports' },
-    { title: 'کفش آدیداس Ultraboost', slug: 'adidas-ultraboost', desc: 'راحتی بالا', price: 7490000, qty: 12, brand: 'adidas', cat: 'sports' },
-    { title: 'مت یوگا', slug: 'yoga-mat', desc: 'ضد لغزش', price: 490000, qty: 50, brand: 'nike', cat: 'sports' },
+    { title: 'کفش دویدن نایک پیموس', slug: 'nike-pegasus', desc: 'دویدن', price: 6990000, qty: 15, brand: 'nike', cat: 'sports', storeIdx: 3 },
+    { title: 'کفش آدیداس Ultraboost', slug: 'adidas-ultraboost', desc: 'راحتی بالا', price: 7490000, qty: 12, brand: 'adidas', cat: 'sports', storeIdx: 3 },
+    { title: 'مت یوگا', slug: 'yoga-mat', desc: 'ضد لغزش', price: 490000, qty: 50, brand: 'nike', cat: 'sports', storeIdx: 3 },
 
     // زیبایی و سلامت (3 محصول)
-    { title: 'کرم ضد آفتاب 50', slug: 'spf50-cream', desc: 'ضد آفتاب', price: 450000, qty: 60, brand: 'cinere', cat: 'beauty' },
-    { title: 'سرم ویتامین C', slug: 'vitamin-c-serum', desc: 'روشن‌کننده', price: 690000, qty: 40, brand: 'loreal', cat: 'beauty' },
-    { title: 'ادکلن مردانه', slug: 'men-parfum', desc: 'خوشبو', price: 1890000, qty: 20, brand: 'loreal', cat: 'beauty' },
+    { title: 'کرم ضد آفتاب 50', slug: 'spf50-cream', desc: 'ضد آفتاب', price: 450000, qty: 60, brand: 'cinere', cat: 'beauty', storeIdx: 4 },
+    { title: 'سرم ویتامین C', slug: 'vitamin-c-serum', desc: 'روشن‌کننده', price: 690000, qty: 40, brand: 'loreal', cat: 'beauty', storeIdx: 4 },
+    { title: 'ادکلن مردانه', slug: 'men-parfum', desc: 'خوشبو', price: 1890000, qty: 20, brand: 'loreal', cat: 'beauty', storeIdx: 4 },
   ];
 
   let productCount = 0;
@@ -404,7 +425,7 @@ async function main() {
     }
 
     const brand = createdBrands.find((b: any) => b.slug === prod.brand);
-    const randSeller = sellers[Math.floor(Math.random() * sellers.length)];
+    const store = stores[prod.storeIdx % stores.length];
 
     const existing = await prisma.product.findUnique({ where: { slug: prod.slug } });
     if (!existing) {
@@ -417,7 +438,7 @@ async function main() {
           description: prod.desc,
           descriptionEn: prod.desc,
           brandId: brand?.id || null,
-          sellerId: randSeller.id,
+          storeId: store.id,
           categoryId: category.id,
           status: 'approved',
           isFeatured: Math.random() > 0.7,
@@ -445,7 +466,7 @@ async function main() {
         });
       }
 
-      // ایجاد default Variant (بدون attributes JSON)
+      // ایجاد default Variant
       const sku = `PRD-${prod.slug.toUpperCase().replace(/[^A-Z0-9]/g, '')}-001`;
       const defaultVariant = await prisma.productVariant.create({
         data: {
@@ -458,14 +479,14 @@ async function main() {
         },
       });
 
-      createdProducts.push({ ...newProduct, defaultVariantPrice: prod.price, defaultVariantSku: defaultVariant.sku, defaultVariantId: defaultVariant.id });
+      createdProducts.push({ ...newProduct, defaultVariantPrice: prod.price, defaultVariantSku: defaultVariant.sku, defaultVariantId: defaultVariant.id, store: store });
       productCount++;
     }
   }
   console.log(`✅ ${productCount} محصول جدید ایجاد شد`);
 
   // ============================================
-  // ۶.۵. اطمینان از ساخت attribute definitionها (قبل از Variant)
+  // ۶.۵. اطمینان از ساخت attribute definitionها
   // ============================================
   const attrKeys = ['storage', 'ram', 'gen', 'size', 'pieces', 'capacity', 'color', 'material'];
   for (const key of attrKeys) {
@@ -478,7 +499,7 @@ async function main() {
   console.log('✅ Attribute definitions ساخته شدند');
 
   // ============================================
-  // ۷. Variant اضافی با VariantAttributeValue (مدل جدید)
+  // ۷. Variant اضافی با VariantAttributeValue
   // ============================================
   async function createVariantWithAttributes(
     productSlug: string,
@@ -645,6 +666,7 @@ async function main() {
           isActive: true,
           description: d.desc,
           creatorId: admin.id,
+          storeId: stores[discountCount % stores.length].id,
         },
       });
       discountCount++;
@@ -694,7 +716,6 @@ async function main() {
   // ============================================
   const addresses = [
     { userId: admin.id, title: 'دفتر', fullName: 'مدیر سیستم', phone: '09120000000', province: 'تهران', city: 'تهران', address: 'خیابان ولیعصر، شماره ۱', postalCode: '1234567890', isDefault: true },
-    { userId: sellers[0].id, title: 'انبار', fullName: sellers[0].firstName, phone: '09121111111', province: 'اصفهان', city: 'اصفهان', address: 'خیابان امیرکبیر، شماره ۱۰', postalCode: '9876543210', isDefault: true },
     { userId: buyers[0].id, title: 'خانه', fullName: buyers[0].firstName, phone: '09122222222', province: 'تهران', city: 'تهران', address: 'خیابان آزادی، پلاک ۵', postalCode: '1112223334', isDefault: true },
     { userId: buyers[1].id, title: 'خانه', fullName: buyers[1].firstName, phone: '09123333333', province: 'اصفهان', city: 'اصفهان', address: 'خیابان چهارباغ', postalCode: '2223334445', isDefault: true },
     { userId: buyers[1].id, title: 'کار', fullName: buyers[1].firstName, phone: '09123333333', province: 'اصفهان', city: 'اصفهان', address: 'بلوار صنعت، شرکت الف', postalCode: '2223334446', isDefault: false },
@@ -715,7 +736,7 @@ async function main() {
   // ۱۲. بلاگ پست‌ها
   // ============================================
   const blogPosts = [
-    { title: 'راهنمای خرید گوشی هوشمند', slug: 'smartphone-buying-guide', excerpt: 'نکات مهم在购买手机', content: 'محتوای راهنمای خرید...', status: 'published' as any },
+    { title: 'راهنمای خرید گوشی هوشمند', slug: 'smartphone-buying-guide', excerpt: 'نکات مهم خرید', content: 'محتوای راهنمای خرید...', status: 'published' as any },
     { title: 'بهترین لپ تاپ‌های ۱۴۰۳', slug: 'best-laptops-1403', excerpt: 'معرفی بهترین‌ها', content: 'محتوای لپ تاپ...', status: 'published' as any },
     { title: 'تفاوت رنگ‌های پارچه', slug: 'fabric-colors', excerpt: 'آشنایی با انواع پارچه', content: 'محتوای پارچه...', status: 'published' as any },
     { title: 'نحوه مراقبت از پوست در تابستان', slug: 'summer-skincare', excerpt: 'مراقبت پوستی', content: 'محتوای پوست...', status: 'published' as any },
@@ -760,7 +781,7 @@ async function main() {
     'ارسال سریع، بسته‌بندی مناسب',
     'متوسط بود، انتظار بیشتری داشتم',
     'خیلی خوب، پیشنهاد می‌کنم',
-    'محصول اصل بود، ممنون',
+    'محصول اصل بود， ممنون',
     'کیفیت ساخت پایین‌تر از انتظار',
     'ارزش خرید دارد',
     'بعد از یک ماه هنوز خوشنم',
@@ -788,6 +809,204 @@ async function main() {
     }
   }
   console.log(`✅ ${reviewCount} نظر ایجاد شد`);
+
+  // ============================================
+  // ۱۳.۵. نظرات فیک لپ تاپ لنوو Legion
+  // ============================================
+  const legionProduct = await prisma.product.findUnique({ where: { slug: 'lenovo-legion' } });
+  if (legionProduct) {
+    const reviewTextsLegion = [
+      'لپ تاپ فوق‌العاده‌ای برای گیمینگ. سرعت بالا و خنک‌کننده عالی.',
+      'کارت گرافیک قوی، برای بازی‌های سنگین عالیه.',
+      'صفحه نمایش رنگ‌های زنده و شارپ داره.',
+      'کیبورد نورانی با تجربه تایپ عالی.',
+      'باتری در حد انتظار، برای گیم باید شارژر همراه باشه.',
+      'وزن مناسب برای یه لپ تاپ گیمینگ.',
+      'دقت لمسی تاچ‌پد خوبه ولی برای گیم ماوس بهتره.',
+      'صدای فن زیر فشار زیاد میشه ولی طبیعیه.',
+      'اسپیکرهای استریو با کیفیت عالی.',
+      'پورت‌های متنوع و دسترسی آسان.',
+      'حافظه SSD سرعت بوت فوق‌العاده‌ای داره.',
+      'رم قابل ارتقا هست و خوشبختانه خونه یدونه دیگه هم داره.',
+      'برای رندرینگ ویدیو هم خوب عمل می‌کنه.',
+      'درب لپ تاپ کمی لق میشه ولی مشکل بزرگ نیست.',
+      'قیمت نسبت بهspecs خوبه ولی رقبا هم هستند.',
+      'سیستم خنک‌کننده در برابر رقبا بهتر عمل می‌کنه.',
+      'پنجره نوت بوک رو به راحتی بالا میاره.',
+      'برنامه‌های چت و وبگردی بدون هیچ کندی.',
+      'برای استریم کردن هم مناسب هست.',
+      'اگه بودجه‌شو دارید مطمئناً ارزش خریدشو داره.',
+    ];
+    for (let i = 0; i < 20; i++) {
+      const randomBuyer = buyers[i % buyers.length];
+      await prisma.review.upsert({
+        where: { userId_productId: { userId: randomBuyer.id, productId: legionProduct.id } },
+        update: {},
+        create: {
+          rating: 3 + (i % 3),
+          title: reviewTextsLegion[i],
+          body: reviewTextsLegion[i] + ' - Lenovo Legion',
+          isApproved: true,
+          userId: randomBuyer.id,
+          productId: legionProduct.id,
+        },
+      });
+    }
+    console.log('✅ 20 نظر فیک برای لپ تاپ لنوو Legion ایجاد شد');
+
+    // ============================================
+    // ۱۳.۶. پرسش و پاسخ فیک لپ تاپ لنوو Legion
+    // ============================================
+    const qnasLegion = [
+      { content: 'آیا این لپ تاپ قابلیت ارتقای رم داره؟', role: 'buyer', status: 'approved' },
+      { content: 'حافظه SSD از چه نوعیه؟ NVMe؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا برای کارهای گرافیکی هم مناسبه؟', role: 'buyer', status: 'approved' },
+      { content: 'وزن دقیق دستگاه چقدره؟', role: 'buyer', status: 'approved' },
+      { content: 'چند پورت USB داره؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا پورت HDMI داره؟', role: 'buyer', status: 'approved' },
+      { content: 'دقت صفحه نمایش چقدره؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا برای پردازش ویدیو 4K مناسبه؟', role: 'buyer', status: 'approved' },
+      { content: 'چند سال گارانتی داره؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا تاچ اسکرینه؟', role: 'buyer', status: 'approved' },
+      { content: 'دوربین وب کیفیتش چطوره؟', role: 'buyer', status: 'approved' },
+      { content: 'بلوتوثش چندمه؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا از وای‌فای 6 پشتیبانی می‌کنه؟', role: 'buyer', status: 'approved' },
+      { content: 'شارژر 200 وات هست یا کمتر؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا امکان خرید رم اضافه هست؟', role: 'buyer', status: 'approved' },
+      { content: 'هیت سینکش چقدر سر و صدا داره؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا برای برنامه‌نویسی مناسبه؟', role: 'buyer', status: 'approved' },
+      { content: 'رنگش واقعاً مشکیه یا خاکستری؟', role: 'buyer', status: 'approved' },
+      { content: 'آیا برای کارهای مهندسی هم خوبه؟', role: 'buyer', status: 'approved' },
+      { content: 'کدوم مدل گیمینگ بهتره Legion یا IdeaPad؟', role: 'buyer', status: 'approved' },
+    ];
+    for (let i = 0; i < 20; i++) {
+      const randomBuyer = buyers[i % buyers.length];
+      await prisma.qna.create({
+        data: {
+          content: qnasLegion[i].content,
+          role: qnasLegion[i].role as any,
+          status: qnasLegion[i].status as any,
+          userId: randomBuyer.id,
+          productId: legionProduct.id,
+        },
+      });
+    }
+    console.log('✅ 20 پرسش و پاسخ فیک برای لپ تاپ لنوو Legion ایجاد شد');
+  }
+  // ============================================
+  // ۱۳.۷. نظرات و پرسش‌وپاسخ غنی برای فروشگاه‌های نمونه
+  // (فروشگاه ۰ و ۲ - بیشترین محصول)
+  // ============================================
+  const store0Products = await prisma.product.findMany({
+    where: { storeId: stores[0].id, status: 'approved' },
+    select: { id: true, slug: true, title: true },
+  });
+  const store1Products = await prisma.product.findMany({
+    where: { storeId: stores[2].id, status: 'approved' },
+    select: { id: true, slug: true, title: true },
+  });
+
+  const reviewTextsRich = [
+    'محصول عالی و با کیفیت، کاملاً راضی هستم. ارسال هم سریع بود.',
+    'کیفیت ساخت فوق‌العاده‌ست. دقیقاً همون چیزی بود که انتظار داشتم.',
+    'بعد از دو هفته استفاده هنوز هم مثل روز اول کار می‌کنه. ارزش خرید بالایی داره.',
+    'بسته‌بندی عالی بود و محصول بدون هیچ آسیبی رسید. ممنون از فروشنده.',
+    'قیمت نسبت به کیفیت محصول واقعاً منصفانه‌ست. پیشنهاد می‌کنم.',
+    'در اولین خریدم از این فروشگاه بود و اصلاً پشیمون نیستم.',
+    'محصول اصل هست و گارانتی هم داره. پشتیبانی فروشگاه هم عالیه.',
+    'رنگ و طراحی دقیقاً مثل عکس سایت بود. خیلی خوشحالم.',
+    'برای هدیه خریدم و بسته‌بندی‌ش خیلی شیک و حرفه‌ای بود.',
+    'سه بار دیگه هم از همین فروشگاه خرید کردم، همیشه راضی بودم.',
+    'کیفیت نسبت به رقبا خیلی بهتره. حتماً برمی‌گردم.',
+    'ارسال سریع، بسته‌بندی استاندارد و محصول بدون نقص. عالی!',
+    'با اینکه قیمتش متوسط بود ولی کیفیتش از خیلی برندهای گرون‌تر بهتره.',
+    'مشتری‌مداری فروشگاه واقعاً عالیه. به همه پیشنهاد می‌دم.',
+    'نصفه‌شب سفارش دادم صبح همون روز تحویل گرفتم. باورنکردنی!',
+    'برای استفاده روزمره عالیه. دستکم ۶ ماه استفاده کردم بدون هیچ مشکلی.',
+    'مقایسه‌اش کردم با مدل‌های دیگه، این بهترین گزینه توی این بازه قیمتی بود.',
+    'نکته مثبت دیگه خدمات پس از فروششونه که واقعاً جوابگو هستن.',
+    'از زمان سفارش تا تحویل همه مراحل شفاف و سریع بود.',
+    'یه خرید عالی بود. حتماً به دوستانم هم پیشنهاد می‌دم.',
+  ];
+
+  const answerTexts = [
+    'سلام، ممنون از حسن انتخابتون. امیدواریم همیشه راضی باشید.',
+    'متشکریم! پشتیبانی ما ۲۴ ساعته در خدمتتون هست.',
+    'خوشحالم که راضی بودید. برای خریدهای بعدی هم تخفیف ویژه داریم.',
+    'سپاسگزاریم. گارانتی محصول ۱۸ ماهه هست و در دسترسه.',
+    'ممنون از لطف شما. نظراتتون بهمون انگیزه میده.',
+  ];
+
+  async function seedRichReviews(
+    products: { id: string; slug: string; title: string }[],
+    prefix: string,
+    sellerOwnerId: string,
+  ) {
+    for (const product of products) {
+      const numReviews = 18 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < numReviews; i++) {
+        const buyer = buyers[i % buyers.length];
+        const rating = i < 3 ? 5 : i < 8 ? 4 : i < 12 ? 5 : 4;
+        await prisma.review.upsert({
+          where: { userId_productId: { userId: buyer.id, productId: product.id } },
+          update: {},
+          create: {
+            rating,
+            title: reviewTextsRich[i % reviewTextsRich.length],
+            body: reviewTextsRich[i % reviewTextsRich.length] +
+              ' - ' + product.title +
+              (i % 4 === 0 ? ' (خرید واقعی)' : ''),
+            isApproved: true,
+            verifiedPurchase: i % 3 !== 0,
+            userId: buyer.id,
+            productId: product.id,
+            variantInfo: i % 2 === 0 ? { color: 'مشکی', size: 'استاندارد' } : undefined,
+          },
+        });
+      }
+      // QNA: 15-20 سؤال + جواب
+      const qnaCount = 15 + Math.floor(Math.random() * 6);
+      const buyerQnaIds: string[] = [];
+      for (let i = 0; i < qnaCount; i++) {
+        const buyer = buyers[i % buyers.length];
+        const question = {
+          content: `سؤال ${i + 1} درباره ${product.title}: ${['آیا گارانتی داره؟', 'تحویل چقدر طول می‌کشه؟', 'رنگ‌بندی کامل چیه؟', 'آیا امکان مرجوعی هست؟', 'ضمانت اصالت کالا دارید؟', 'قیمت توجیهی‌تر کدوم مدله؟', 'آیا استوک دارید؟', 'امکان پرداخت در محل هست؟', 'ساعت کاری فروشگاه کی‌هست؟', 'تخفیف عمده دارید؟'][i % 10]}`,
+          role: 'buyer' as any,
+          status: 'approved' as any,
+        };
+        const createdQna = await prisma.qna.create({
+          data: {
+            content: question.content,
+            role: question.role,
+            status: question.status,
+            userId: buyer.id,
+            productId: product.id,
+          },
+        });
+        buyerQnaIds.push(createdQna.id);
+        // جواب فروشنده
+        await prisma.qna.create({
+          data: {
+            content: answerTexts[i % answerTexts.length] + ` - درباره ${product.title}`,
+            role: 'seller' as any,
+            status: 'approved' as any,
+            parentId: buyerQnaIds[buyerQnaIds.length - 1],
+            userId: sellerOwnerId,
+            productId: product.id,
+          },
+        });
+      }
+      console.log(`   ✅ ${product.title}: ${numReviews} نظر + ${qnaCount} پرسش‌وپاسخ`);
+    }
+  }
+
+  console.log('\n📝 پر کردن داده‌های فروشگاه ۰...');
+  await seedRichReviews(store0Products, 'store0', stores[0].ownerId);
+  console.log('📝 پر کردن داده‌های فروشگاه ۲...');
+  await seedRichReviews(store1Products, 'store1', stores[2].ownerId);
+  console.log('✅ نظرات و پرسش‌وپاسخ غنی ایجاد شد');
+
+
 
   // ============================================
   // ۱۴. سفارشات نمونه
@@ -828,7 +1047,7 @@ async function main() {
             variantName: 'پیش‌فرض',
             image: `/${getRandomImage(999)}`,
             productId: cp.id,
-            sellerId: cp.sellerId,
+            sellerId: cp.store?.ownerId,
             variantId: cp.defaultVariantId,
           },
         },
@@ -848,7 +1067,7 @@ async function main() {
       const variant = shuffled[j];
       if (!variant) continue;
       await prisma.cartItem.upsert({
-        where: { userId_productId: { userId: buyer.id, productId: variant.productId } },
+        where: { userId_variantId: { userId: buyer.id, variantId: variant.id } },
         update: { quantity: { increment: 1 } },
         create: {
           userId: buyer.id,
@@ -921,16 +1140,123 @@ async function main() {
   console.log('✅ نوتیفیکیشن‌های نمونه ایجاد شدند');
 
   // ============================================
-  // ۱۹. رتبه‌بندی فروشنده
+  // ۱۹. رتبه‌بندی فروشگاه‌ها
   // ============================================
-  for (const seller of sellers.slice(0, 3)) {
-    await prisma.sellerRating.upsert({
-      where: { sellerId: seller.id },
+
+  // StoreReview (نظرات خریداران روی فروشگاه)
+  const storeReviewTexts = [
+    'فروشگاه بسیار قابل اعتمادی هست. محصول اصل و ارسال سریع.',
+    'از خریدم راضی هستم. قیمت‌ها منصفانه و محصولات با کیفیت.',
+    'پشتیبانی عالی! پاسخگویی سریع و حرفه‌ای.',
+    'فروشگاه مورد اعتمادیه، چندین بار خرید کردم.',
+    'بسته‌بندی عالی و محصول دقیقاً مطابق توضیحات بود.',
+    'حتماً دوباره از این فروشگاه خرید می‌کنم.',
+    'تنوع محصولات عالیه و قیمت‌ها رقابتی.',
+    'ارسال خیلی سریع بود، همون روز سفارش دادم فردا رسید.',
+    'کیفیت محصولاتشون حرف نداره.',
+    'تجربه خرید خوبی بود، ممنون.',
+    'محصولات اصل و با گارانتی معتبر هستن.',
+    'سرویس پس از فروششون عالیه.',
+    'قیمت‌ها نسبت به بازار خیلی مناسب‌تره.',
+    'پیشنهاد می‌کنم، فروشگاه مطمئنی هست.',
+    'محصولاتشون همیشه تازه و به‌روز هست.',
+  ];
+  const storeReviewTopics = ['product_quality', 'shipping', 'communication', 'price', 'packaging'] as any[];
+  for (let s = 0; s < stores.length; s++) {
+    const store = stores[s];
+    const count = s < 2 ? 12 : 3; // 12 نظر برای دو فروشگاه ویژه، ۳ تا بقیه
+    for (let i = 0; i < count; i++) {
+      const buyer = buyers[i % buyers.length];
+      await prisma.storeReview.create({
+        data: {
+          userId: buyer.id,
+          storeId: store.id,
+          rating: s < 2 ? (i < 3 ? 5 : i < 8 ? 4 : 5) : 4,
+          body: storeReviewTexts[i % storeReviewTexts.length],
+          productQuality: s < 2 ? 4 + (i % 2) : 4,
+          status: 'approved' as any,
+          verifiedPurchase: i % 3 !== 0,
+        },
+      });
+    }
+  }
+  console.log('✅ نظرات فروشگاه‌ها (StoreReview) ایجاد شد');
+
+  // StoreRating کامل برای دو فروشگاه ویژه
+  const featuredStores = [stores[0], stores[2]];
+  const featuredRatings = [
+    // فروشگاه ۰ (الکترونیک - seller1)
+    {
+      avgRating: 4.7,
+      totalReviews: 47,
+      productCount: 8,
+      productQuality: 4.8,
+      productQualityTotal: 38.4,
+      productQualityCount: 8,
+      totalResponseRequests: 34,
+      answeredResponses: 32,
+      totalResponseTime: 6.2,
+      responseRate: 94.1,
+      responseTime: 1.8,
+      saleCount: 156,
+      onTimeDelivery: 96.5,
+      communication: 4.6,
+    },
+    // فروشگاه ۲ (پوشاک - seller_fashion)
+    {
+      avgRating: 4.5,
+      totalReviews: 38,
+      productCount: 10,
+      productQuality: 4.5,
+      productQualityTotal: 45.0,
+      productQualityCount: 10,
+      totalResponseRequests: 28,
+      answeredResponses: 26,
+      totalResponseTime: 8.4,
+      responseRate: 92.8,
+      responseTime: 3.0,
+      saleCount: 124,
+      onTimeDelivery: 94.0,
+      communication: 4.4,
+    },
+  ];
+  for (let i = 0; i < featuredStores.length; i++) {
+    const store = featuredStores[i];
+    const rating = featuredRatings[i];
+    await prisma.storeRating.upsert({
+      where: { storeId: store.id },
       update: {},
       create: {
-        sellerId: seller.id,
+        storeId: store.id,
+        avgRating: rating.avgRating,
+        totalReviews: rating.totalReviews,
+        productCount: rating.productCount,
+        productQuality: rating.productQuality,
+        productQualityTotal: rating.productQualityTotal,
+        productQualityCount: rating.productQualityCount,
+        totalResponseRequests: rating.totalResponseRequests,
+        answeredResponses: rating.answeredResponses,
+        totalResponseTime: rating.totalResponseTime,
+        responseRate: rating.responseRate,
+        responseTime: rating.responseTime,
+        saleCount: rating.saleCount,
+        onTimeDelivery: rating.onTimeDelivery,
+        communication: rating.communication,
+      },
+    });
+  }
+
+  // StoreRating معمولی برای بقیه
+  for (const store of stores.slice(0, 3)) {
+    if (featuredStores.find(s => s.id === store.id)) continue;
+    await prisma.storeRating.upsert({
+      where: { storeId: store.id },
+      update: {},
+      create: {
+        storeId: store.id,
         avgRating: parseFloat((3.5 + Math.random() * 1.5).toFixed(1)),
         totalReviews: Math.floor(Math.random() * 50),
+        productCount: 3 + Math.floor(Math.random() * 5),
         responseRate: 70 + Math.floor(Math.random() * 30),
         responseTime: parseFloat((1 + Math.random() * 10).toFixed(1)),
         onTimeDelivery: 80 + Math.floor(Math.random() * 20),
@@ -939,7 +1265,7 @@ async function main() {
       },
     });
   }
-  console.log('✅ رتبه‌بندی فروشندگان ایجاد شد');
+  console.log('✅ رتبه‌بندی فروشگاه‌ها ایجاد شد');
 
   console.log('');
   console.log('🎉 Seeding با موفقیت کامل شد!');
@@ -952,6 +1278,8 @@ async function main() {
   console.log(`   - بلاگ پست‌ها: ${blogPosts.length}`);
   console.log(`   - نظرات: ${reviewCount}`);
   console.log(`   - سفارشات: ۱۵`);
+  const storeReviewCount = await prisma.storeReview.count();
+  console.log(`   - نظرات فروشگاه: ${storeReviewCount}`);
   console.log('');
   console.log('📋 اطلاعات ورود:');
   console.log('   ادمین:     admin / 123');

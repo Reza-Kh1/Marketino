@@ -74,7 +74,7 @@ export default function IsLoginUser({ open, setOpen }: isLoginUserType) {
                     <DialogFooter className="shrink-0 pt-4 border-t border-border/50">
                         <MotionWrapper preset='slideUpBlur' staggerChildren={0} className='w-full flex justify-between items-center gap-2'>
                             <CustomButton
-                                color='neon'
+                                color='white'
                                 name='ورود به سایت'
                                 onClick={() => setShowForm('login')}
                                 iconStart={<DoorOpen />}

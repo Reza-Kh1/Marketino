@@ -26,7 +26,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'seller')
+  @Roles('admin', 'superAdmin', 'seller')
   @ApiBearerAuth()
   @Get('list')
   @ApiOperation({ summary: 'نمایش تمام تخفیف ها' })
@@ -35,7 +35,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'لیست کدهای تخفیف (ادمین)' })
@@ -44,7 +44,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد کد تخفیف جدید (ادمین)' })
@@ -53,7 +53,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف کد تخفیف (ادمین)' })
@@ -62,7 +62,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id/toggle')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'فعال/غیرفعال کردن کد تخفیف (ادمین)' })

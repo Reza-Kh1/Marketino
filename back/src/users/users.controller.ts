@@ -14,7 +14,7 @@ import { UserRole } from '@prisma/client';
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   /**
    * پروفایل کاربر فعلی
@@ -38,34 +38,12 @@ export class UsersController {
     return this.usersService.updateProfile(userId, dto);
   }
 
-  /**
-   * درخواست فروشنده شدن
-   */
-  @UseGuards(JwtAuthGuard)
-  @Post('become-seller')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'درخواست فروشنده شدن' })
-  async becomeSeller(@CurrentUser('id') userId: string, @Body() dto: BecomeSellerDto) {
-    return this.usersService.becomeSeller(userId, dto);
-  }
-
-  /**
-   * آمار فروشنده
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
-  @Get('seller/stats')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'آمار داشبورد فروشنده' })
-  async getSellerStats(@CurrentUser('id') userId: string) {
-    return this.usersService.getSellerStats(userId);
-  }
 
   /**
    * لیست کاربران - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'لیست کاربران (ادمین)' })
@@ -77,7 +55,7 @@ export class UsersController {
    * جزئیات کاربر - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'جزئیات کاربر (ادمین)' })
@@ -89,11 +67,11 @@ export class UsersController {
    * تغییر نقش کاربر - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id/role')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تغییر نقش کاربر (ادمین)' })
-  async updateRole(@Param('id') id: string, @Body('role') role:UserRole ) {
+  async updateRole(@Param('id') id: string, @Body('role') role: UserRole) {
     return this.usersService.updateRole(id, role);
   }
 
@@ -101,23 +79,11 @@ export class UsersController {
    * فعال/غیرفعال کردن کاربر - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id/toggle')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'فعال/غیرفعال کردن کاربر (ادمین)' })
   async toggleActive(@Param('id') id: string) {
     return this.usersService.toggleActive(id);
-  }
-
-  /**
-   * تأیید/رد فروشنده - فقط ادمین
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @Put(':id/verify-seller')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'تأیید یا رد فروشنده (ادمین)' })
-  async verifySeller(@Param('id') id: string, @Body() dto: VerifySellerDto) {
-    return this.usersService.verifySeller(id, dto);
   }
 }

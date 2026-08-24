@@ -1,18 +1,54 @@
 import { apiClient, api } from "@/lib/api-client";
+import { BreadcrumbsType } from "@/types/types";
 
 const BASE_URL = "/categories";
 
-export interface CategorysTypes {
+export interface CategorysProduct {
+    updatedAt: Date | string;
+    id: string;
+    name: string;
+    image: string | null;
+    icon: string | null;
+    nameEn: string;
+    slug: string;
+    slugEn: string | null;
+    sortOrder: number;
+}
+
+export interface CategorySingleType {
     id: string;
     name: string;
     nameEn: string;
     slug: string;
+    slugEn: string;
+    parentId: string | null;
+    icon: string;
+    image: string;
+    ancestorIds: string[];
+    sortOrder: number;
+    isActive: boolean;
+    metaTitle: string | null;
+    metaTitleEn: string | null;
+    metaDescription: string;
+    metaDescriptionEn: string;
+    createdAt: string;
+    updatedAt: string;
+    children: CategorysTypes[];
+    breadcrumbs: BreadcrumbsType[]
+}
+
+export interface CategorysTypes {
+    id: string;
+    name: string;
+    nameEn: string | null;
+    slug: string;
     slugEn: string | null;
-    description: string | null;
-    descriptionEn: string | null;
     parentId: string | null;
     icon: string | null;
     image: string | null;
+    ancestorIds: string[];
+    description: string | null;
+    descriptionEn: string | null;
     sortOrder: number;
     isFeatured: boolean
     isDigital: boolean
@@ -24,7 +60,7 @@ export interface CategorysTypes {
     metaDescriptionEn: string | null;
     createdAt: Date;
     updatedAt: Date;
-    children?: CategorysTypes[] | [];
+    children?: CategorysTypes[];
     _count: { products: number }
 }
 
@@ -43,14 +79,23 @@ export interface FormCategoryDTO {
 }
 
 export const categoryService = {
-    list: () => {
-        return apiClient.get<CategorysTypes[]>(BASE_URL);
+    list: (filter: any) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filter || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<CategorysTypes[]>(`${BASE_URL}?${queryString}`);
     },
     listAdmin: () => {
         return apiClient.get<CategorysTypes[]>(`${BASE_URL}/admin`);
     },
+    listProduct: () => {
+        return apiClient.get<CategorysProduct[]>(`${BASE_URL}/products`);
+    },
     listWithSlug: (slug: string) => {
-        return apiClient.get<CategorysTypes[]>(`${BASE_URL}/${slug}`);
+        return apiClient.get<CategorySingleType>(`${BASE_URL}/${slug}`);
     },
     create: (data: FormCategoryDTO) => {
         return apiClient.post<CategorysTypes>(BASE_URL, data);

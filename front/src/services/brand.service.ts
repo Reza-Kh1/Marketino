@@ -9,12 +9,14 @@ export interface BrandType {
     slug: string;
     logo: string | null;
     description: string | null;
+    sortOrder: number
     _count: {
         products: number;
     };
 };
 
 export interface FormBrandDTO {
+    sortOrder: number;
     name: string;
     nameEn: string;
     slug: string;

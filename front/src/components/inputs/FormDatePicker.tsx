@@ -51,9 +51,7 @@ export default function FormDatePicker<T extends FieldValues>({
                     onChange(null)
                     return
                   }
-                  onChange(date.toDate().toISOString())
-                  console.log(date.toDate().toISOString());
-                  
+                  onChange(date.toDate().toISOString())                  
                 }}
                 calendar={persian}
                 locale={persian_fa}

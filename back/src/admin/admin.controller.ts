@@ -21,7 +21,7 @@ import { ProductSearchDto } from './dto/product.search.dto';
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@Roles('admin', 'superAdmin')
 @ApiBearerAuth()
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }

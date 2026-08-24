@@ -30,7 +30,7 @@ export class QnaController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Roles('admin', 'seller')
+  @Roles('admin', 'seller', 'superAdmin')
   @Get('admin')
   @ApiOperation({ summary: 'دریافت پرسش و پاسخ‌های محصول ادمین' })
   findByProductAdmin(@Query() query: SearchQnaDto) {
@@ -44,7 +44,7 @@ export class QnaController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Roles('admin', 'seller')
+  @Roles('admin', 'seller', 'superAdmin')
   @Put(':id')
   @ApiOperation({ summary: 'ویرایش پرسش یا پاسخ' })
   update(@Param('id') id: string, @Body() dto: UpdateQnaDto) {

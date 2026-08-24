@@ -23,6 +23,7 @@ import FormDatePicker from '../inputs/FormDatePicker';
 import ProductTable, { TableData } from '../inputs/ProductTable';
 import { useBrands } from '@/hooks/brand.hook';
 import ProductVariantsManager from '../product/ProductVariantsManager';
+import { useCategoriesProducts } from '@/hooks/category.hook';
 interface ProductFormProps {
   product?: ProductEntity | null;
   returnUrl?: string;
@@ -32,7 +33,7 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
   const [openEn, setOpenEn] = useState(false)
   const [tableValue, setTableValue] = useState<TableData | null>()
   const [tableValueEn, setTableValueEn] = useState<TableData | null>()
-  const { register, reset, setValue, watch, getValues, handleSubmit, control } = useForm<ProductFormData>({
+  const { register, reset, setValue, watch, getValues, handleSubmit } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema)
   });
   const categoryId = watch('categoryId')
@@ -44,25 +45,10 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
   const router = useRouter();
   const isEdit = !!product;
   const [saving, setSaving] = useState(false);
-  const { data: dataCategory } = useCategories()
+  const { data: dataCategory } = useCategoriesProducts()
   const { mutate: createProduct } = useCreateProduct()
   const { mutate: updateProduct } = useUpdateProduct()
   const { data: brandsData } = useBrands()
-
-  function formatCategories(categories: Category[]): { id: string; name: string }[] {
-    const result: { id: string; name: string }[] = [];
-    function traverse(cats: Category[]) {
-      for (const cat of cats) {
-        result.push({ id: cat.id, name: cat.name });
-        if (cat.children && cat.children.length > 0) {
-          traverse(cat.children);
-        }
-      }
-    }
-
-    traverse(categories);
-    return result;
-  }
 
   useEffect(() => {
     if (product) {
@@ -226,7 +212,7 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
             label='وضعیت استفاده'
           />
           <SelectCustom
-            children={formatCategories(dataCategory || [])}
+            children={dataCategory || []}
             placeHolder='انتخاب کنید'
             setValue={e => setValue('categoryId', e)}
             value={categoryId}
@@ -251,11 +237,11 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
               )
             }
             {
-              product?.seller?.storeName && (
+              product?.store?.name && (
                 <InputForm
                   label='نام فروشنده'
                   name='storeName'
-                  value={product?.seller?.storeName}
+                  value={product?.store?.name}
                   disabled
                 />
               )

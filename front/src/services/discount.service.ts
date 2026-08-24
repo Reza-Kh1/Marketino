@@ -24,7 +24,7 @@ export interface DiscountType {
     createdAt: string; // یا Date
     updatedAt: string; // یا Date
     creatorId: string;
-    sellerId: string | null;
+    storeId: string | null;
     discountAmount?: number; // اضافی (محاسبه شده)
 }
 

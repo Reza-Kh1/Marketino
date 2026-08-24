@@ -58,7 +58,7 @@ export class TicketService {
     if (!ticket) throw new NotFoundException('تیکت یافت نشد');
 
     // Check access control
-    if (role !== 'admin' && ticket.userId !== userId) {
+    if ((role !== 'admin' || 'superAdmin') && ticket.userId !== userId) {
       throw new BadRequestException('دسترسی ندارید');
     }
 
@@ -121,7 +121,7 @@ export class TicketService {
       this.prisma.ticket.findMany({
         where,
         include: {
-          user: { select: { id: true, username: true, firstName: true, lastName: true, storeName: true } },
+          user: { select: { id: true, username: true, firstName: true, lastName: true, store: { select: { name: true } } } },
           order: { select: { id: true, orderNumber: true, total: true, status: true } },
         },
         skip, take: limitPage, orderBy: { createdAt: order },

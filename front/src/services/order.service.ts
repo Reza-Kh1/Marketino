@@ -19,7 +19,7 @@ export interface OrderItem {
     createdAt: string;
     orderId: string;
     productId: string;
-    sellerId: string;
+    storeId: string;
     variantId: string;
 }
 
@@ -60,11 +60,6 @@ export interface OrdersResponse {
 }
 
 export interface CreateOrderDto {
-    items: {
-        productId: string
-        quantity: number
-        price: number
-    }[]
     shippingAddress: string
     shippingName: string
     shippingPhone: string

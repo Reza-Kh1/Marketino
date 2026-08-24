@@ -123,6 +123,12 @@ export default function AdminDiscountsPage() {
 
   const handleCreate = async () => {
     try {
+      const starts = getValues('startsAt') as string;
+      const now = new Date();
+      const startDate = new Date(starts);
+      if (isNaN(startDate.getTime())) {
+        throw new Error('تاریخ شروع نامعتبر است');
+      }
       const body = {
         code: getValues('code'),
         type: getValues('type'),
@@ -132,8 +138,8 @@ export default function AdminDiscountsPage() {
         usageLimit: getValues('usageLimit'),
         startsAt: getValues('startsAt'),
         endsAt: getValues('endsAt'),
-        isActive: getValues('isActive'),
-      }
+        isActive: now >= startDate ? getValues('isActive') : false,
+      }      
       setSaving(true);
       await adminApi.createDiscount(body);
       toast.success('کد تخفیف با موفقیت ایجاد شد');

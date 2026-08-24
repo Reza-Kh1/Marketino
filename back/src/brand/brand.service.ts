@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { BrandDto } from './dto/brand.dts';
+import { BrandDto, SearchBrandDto } from './dto/brand.dts';
 
 @Injectable()
 export class BrandService {
@@ -14,18 +14,24 @@ export class BrandService {
         return this.prisma.brand.findMany({
             include: {
                 _count: { select: { products: true } }
-            }
-        });
-    }
-
-    async findAll() {
-        return this.prisma.brand.findMany({
-            select: { id: true, name: true, nameEn: true, slug: true, logo: true },
-            orderBy: {
-                name: 'asc',
             },
         });
     }
+
+    async findAll(query: SearchBrandDto) {
+        const { best, limit } = query
+        const orderBy = [] as any
+        if (best === 'true') {
+            orderBy.push({ sortOrder: 'desc' });
+        }
+        orderBy.push({ name: 'asc' });
+        return this.prisma.brand.findMany({
+            select: { id: true, name: true, nameEn: true, slug: true, logo: true},
+            orderBy,
+            take: limit || undefined
+        });
+    }
+
     async create(dto: BrandDto) {
         return this.prisma.brand.create({
             data: { ...dto },

@@ -30,7 +30,7 @@ export class ReportController {
    * GetAll گزارش‌ها (ادمین view)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/all')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تمام گزارش‌ها (ادمین)' })
@@ -44,7 +44,7 @@ export class ReportController {
    * Get single report by ID
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'جزئیات گزارش' })
@@ -56,7 +56,7 @@ export class ReportController {
    * Update report status (ادمین)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Patch(':id/status')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تغییر وضعیت گزارش' })
@@ -68,7 +68,7 @@ export class ReportController {
    * آمار گزارش‌ها برای ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/stats')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'آمار گزارش‌ها (ادمین)' })
@@ -80,7 +80,7 @@ export class ReportController {
  * آمار تیکت‌ها برای ادمین
  */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف تیکت‌ها (ادمین)' })

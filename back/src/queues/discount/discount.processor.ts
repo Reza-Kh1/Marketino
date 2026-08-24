@@ -19,34 +19,46 @@ export class DiscountProcessor extends WorkerHost {
     super();
   }
 
+  private async checkDiscount(id: string) {
+    const discount = await this.prisma.discountCode.findUnique({ where: { id: id } })
+    return !!discount
+  }
+
   async process(job: Job) {
     switch (job.name) {
-      case 'expire-discount':
+      case 'expire-discount': {
+        const exists = await this.checkDiscount(job.data.discountId);
+        if (!exists) return;
         await this.prisma.discountCode.update({
           where: { id: job.data.discountId },
           data: { isActive: false },
         });
         await this.syncAffectedProducts(job.data.discountId);
         break;
-
-      case 'activate-discount':
+      }
+      case 'activate-discount': {
+        const exists = await this.checkDiscount(job.data.discountId);
+        if (!exists) return;
         await this.prisma.discountCode.update({
           where: { id: job.data.discountId },
           data: { isActive: true },
         });
         await this.syncAffectedProducts(job.data.discountId);
         break;
-
-      case 'sync-discount': // 👈 جدید — برای deactivate دستی
+      }
+      case 'sync-discount': {
+        const exists = await this.checkDiscount(job.data.discountId);
+        if (!exists) return;
         await this.syncAffectedProducts(job.data.discountId);
         break;
-
-      case 'sync-products': // 👈 جدید — برای remove (که دیگه discountId نداره)
+      }
+      case 'sync-products': {
         await this.syncProductsBatch(job.data.productIds);
         break;
-
-      default:
+      }
+      default: {
         this.logger.warn(`Unknown job name received: ${job.name}`)
+      }
     }
   }
 

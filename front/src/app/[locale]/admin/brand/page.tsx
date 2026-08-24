@@ -24,7 +24,6 @@ export default function page() {
     });
 
     const { data: dataBrand, isFetching } = useBrandAdmin()
-    
     const { mutate: CreateMutate, isSuccess: CreateSuccess, isPending: CreatePending } = useCreateBrand()
     const { mutate: DeleteMutate, isSuccess: DeleteSuccess, isPending: DeletePending } = useDeleteBrand()
     const { mutate: UpdateMutate, isSuccess: UpdateSuccess, isPending: UpdatePending } = useUpdateBrand()
@@ -34,7 +33,8 @@ export default function page() {
             nameEn: '',
             slug: '',
             description: '',
-            logo: ''
+            logo: '',
+            sortOrder: 0
         })
     }
 
@@ -69,10 +69,16 @@ export default function page() {
             cell: ({ row }) => <span className="text-xs">{row.original.name || ''}</span>
         },
         {
+            accessorKey: 'sort',
+            id: 'sort',
+            header: 'ترتیب',
+            cell: ({ row }) => <span className="text-xs">{row.original.sortOrder || ''}</span>
+        },
+        {
             accessorKey: 'nameEn',
             id: 'nameEn',
             header: 'نام (انگلیسی)',
-            cell: ({ row }) => <span className="text-xs">{row.original.nameEn || ''}</span>
+            cell: ({ row }) => <span className="text-xs">{row.original.nameEn || 'ثبت نشده !'}</span>
         },
         {
             accessorKey: 'product',
@@ -98,6 +104,7 @@ export default function page() {
                             name: row.original?.name,
                             nameEn: row.original?.nameEn,
                             slug: row.original?.slug,
+                            sortOrder: row.original.sortOrder
                         })
                     }} variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-admin-accent/20"><Pencil className="w-12! text-admin-accent" /></Button>
                     <Button onClick={() => { setOpenModal('delete'), setBrand(row.original) }} variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-admin-destructive/20"><Trash2 className="w-12! text-admin-destructive" /></Button>
@@ -112,7 +119,8 @@ export default function page() {
             nameEn: data.nameEn,
             slug: data.slug,
             description: data.description,
-            logo: data.logo
+            logo: data.logo,
+            sortOrder: data.sortOrder
         }
         if (brand) {
             UpdateMutate({ id: brand.id, data: body })
@@ -190,6 +198,14 @@ export default function page() {
                                 type="textarea"
                                 placeholder="توضیحات مربوطه"
                                 error={errors.description}
+                            />
+                            <InputForm
+                                label="ترتیب نمایش"
+                                register={register}
+                                name="sortOrder"
+                                type="number"
+                                placeholder="بر اساس محبوبیت برند"
+                                error={errors.sortOrder}
                             />
                         </form>
                     </MotionWrapper>

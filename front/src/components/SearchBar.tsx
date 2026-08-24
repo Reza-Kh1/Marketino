@@ -1,60 +1,45 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
-import { Search, Camera, X, Loader2 } from 'lucide-react';
-import { useTranslation } from '@/lib/i18n-context';
+'use client'
+import { useCategories } from '@/hooks/category.hook';
+import { useRouter } from '@/i18n/navigation';
+import { Search } from 'lucide-react';
+import React, { useState } from 'react'
 
-export interface SearchBarProps {
-  onSearch?: (query: string) => void;
-  onImageUpload?: (file: File) => void;
-  placeholder?: string;
-  loading?: boolean;
-  className?: string;
-}
-
-export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
-  ({ onSearch, onImageUpload, placeholder = 'جستجوی محصول، برند یا دسته‌بندی...', loading, className }, ref) => {
-    const [value, setValue] = React.useState('');
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
-    const { locale } = useTranslation();
-    const isFa = locale === 'fa';
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (value.trim()) onSearch?.(value.trim());
-    };
-
-    return (
-      <form onSubmit={handleSubmit} className={cn('relative w-full max-w-2xl', className)}>
-        <div className="relative group">
-          <Search className="absolute rtl:left-4 ltr:right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <input
-            ref={ref}
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            placeholder={placeholder}
-            className="w-full h-14 rtl:pl-12 ltr:pr-12 rtl:pr-28 ltr:pl-28 rounded-2xl bg-white dark:bg-card border-2 border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-base transition-all duration-300 shadow-sm hover:shadow-md"
-          />
-          <div className="absolute rtl:right-2 ltr:left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {value && (
-              <button type="button" onClick={() => setValue('')} className="p-2 rounded-xl hover:bg-muted transition-colors">
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            )}
-            {onImageUpload && (
-              <>
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-xl hover:bg-accent transition-colors text-muted-foreground hover:text-primary" title="جستجو با عکس">
-                  <Camera className="w-4 h-4" />
-                </button>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onImageUpload(f); }} />
-              </>
-            )}
-            <button type="submit" disabled={!value.trim() || loading} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-50">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'جستجو'}
-            </button>
-          </div>
-        </div>
-      </form>
-    );
+export default function SearchBar() {
+  const { data: categoryData } = useCategories({ parentId: 'true' })
+  const route = useRouter()
+  const [value, setValue] = useState('')
+  const handlerSubmit = () => {
+    if (!value.length) return
+    route.push(`/search?q=${value}`)
   }
-);
-SearchBar.displayName = 'SearchBar';
+  return (
+    <div className="mt-8 relative max-w-2xl mx-auto">
+      <div className="relative flex items-center min-h-12 sm:h-14 md:h-16 rounded-2xl bg-white dark:bg-card border-2 border-border/60 shadow-lg shadow-black/[0.04] dark:shadow-black/20 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all duration-300">
+        <Search className="absolute rtl:right-3 sm:rtl:right-4 ltr:left-3 sm:ltr:left-4 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+        <input
+          value={value}
+          onChange={({ target }) => setValue(target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handlerSubmit() }}
+          placeholder="جستجوی محصول، برند یا دسته‌بندی..."
+          className="flex-1 h-full rtl:pr-9 sm:rtl:pr-12 rtl:pl-28 sm:rtl:pl-36 md:rtl:pl-40 ltr:pl-9 sm:ltr:pl-12 ltr:pr-28 sm:ltr:pr-36 md:ltr:pr-40 bg-transparent outline-none text-sm sm:text-base placeholder:text-muted-foreground/50"
+        />
+        <div className="absolute rtl:left-1.5 sm:rtl:left-2.5 ltr:right-1.5 sm:ltr:right-2.5 flex items-center gap-1 sm:gap-1.5">
+          <button onClick={handlerSubmit}
+            className="h-8 sm:h-10 cursor-pointer px-3 sm:px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm transition-colors shadow-md shadow-indigo-500/20">
+            جستجو
+          </button>
+        </div>
+      </div>
+      {categoryData?.length ?
+        <div className="flex items-center justify-center gap-2 mt-3.5 flex-wrap">
+          {categoryData?.map(tag => (
+            <button key={tag.id} onClick={() => route.push(`search?category-${tag.slug}`)}
+              className="px-3.5 cursor-pointer py-2 rounded-full bg-muted/50 hover:bg-muted border border-border/30 hover:border-indigo-200 dark:hover:border-indigo-600 hover:text-indigo-400 text-xs font-medium transition-all">
+              {tag.name}
+            </button>
+          ))}
+        </div>
+        : null}
+    </div>
+  )
+}

@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsNumber, Min, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateAttributeValueDto {
@@ -48,6 +48,7 @@ export class CreateProductVariantDto {
   @ApiPropertyOptional({ description: 'شناسه تخفیف', example: '2026' })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => value === '' ? null : value)
   discountId?: string;
 
   @ApiProperty({ description: 'شناسه محصول والد', example: '001' })

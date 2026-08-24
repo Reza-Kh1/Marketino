@@ -26,7 +26,7 @@ export default function UploadNotic() {
     }
     return (
         <>
-            <button type="button" onClick={() => setOpen(!open)} className="text-xs text-white-p-dark mb-2 hover:text-blue transition-all cursor-pointer">پیش از بارگذاری هرگونه رسانه، قوانین و ضوابط ارسال فایل را مطالعه فرمایید.</button>
+            <button type="button" onClick={() => setOpen(!open)} className="text-xs mb-2 hover:text-blue transition-all cursor-pointer">پیش از بارگذاری هرگونه رسانه، قوانین و ضوابط ارسال فایل را مطالعه فرمایید.</button>
             <Dialog open={open} onOpenChange={() => setOpen(!open)}>
                 <DialogContent showCloseButton={false} className="max-w-2xl! bg-(--admin-bg-sidebar) backdrop-blur-xl border-(--admin-destructive)/20">
                     <DialogHeader>

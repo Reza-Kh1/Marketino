@@ -21,7 +21,7 @@ export class ColorsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('/admin')
   @ApiOperation({ summary: 'لیست رنگ‌ها (ادمین)' })
   async findAllAdmin(@Query() query: ColorSearchDto) {
@@ -36,7 +36,7 @@ export class ColorsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد رنگ جدید (ادمین)' })
@@ -45,7 +45,7 @@ export class ColorsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش رنگ (ادمین)' })
@@ -54,7 +54,7 @@ export class ColorsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف رنگ (ادمین)' })

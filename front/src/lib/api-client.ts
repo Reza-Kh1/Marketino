@@ -1,4 +1,7 @@
 import axios from "axios";
+import { authApi } from "./api";
+import { useRouter } from "@/i18n/navigation";
+import { toast } from "sonner";
 
 export const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_URL_API,
@@ -69,6 +72,7 @@ export const apiCustom = {
 api.interceptors.response.use(
     (res) => res,
     (err) => {
+        const route = useRouter()
         const status = err?.response?.status;
 
         // Network error
@@ -79,6 +83,7 @@ api.interceptors.response.use(
         // Unauthorized
         if (status === 401) {
             localStorage.removeItem('bazarche_auth_token');
+            authApi.logout()
             if (typeof window !== 'undefined') {
                 window.location.href = '/login';
             }
@@ -86,6 +91,11 @@ api.interceptors.response.use(
 
         // Forbidden
         if (status === 403) {
+            localStorage.removeItem('bazarche_auth_token');
+            authApi.logout()
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
             console.warn("No permission");
         }
 

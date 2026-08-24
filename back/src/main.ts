@@ -37,7 +37,7 @@ async function bootstrap() {
       forbidNonWhitelisted: false, // قبول فیلدهای اضافی (برای سازگاری با فرانت‌اند)
       transform: true,            // تبدیل خودکار تایپ‌ها
       transformOptions: {
-        enableImplicitConversion: true, // تبدیل خودکار string به number و غیره
+        // enableImplicitConversion: true, // تبدیل خودکار string به number و غیره
       },
     }),
   );
@@ -77,6 +77,9 @@ async function bootstrap() {
     .addTag('Seller', 'پنل فروشنده')
     .addTag('AI', 'هوش مصنوعی')
     .addTag('Variants', 'تمام ویژگی های مرتبط به محصول')
+    .addTag('Search & Filters', 'سرچ بخش کاربر')
+    .addTag('Settings', 'تنظیمات عمومی سایت')
+    .addTag('Stores', 'تمام تنظیمات فروشگاه و نظرات فروشنده')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

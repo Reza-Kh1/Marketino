@@ -22,7 +22,6 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  isSuperAdmin: boolean;
   permissions: string[];
   login: (username: string, password: string) => Promise<void>;
   register: (data: Record<string, string>) => Promise<void>;
@@ -61,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setState(s => ({ ...s, isLoading: false }));
           return;
         }
-        const res = await authApi.me();        
+        const res = await authApi.me();
         if (res && res.user) {
           setState({
             user: res.user,
@@ -69,13 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading: false,
             isAuthenticated: true,
             isSeller: res.user.role === 'seller',
-            isAdmin: res.user.role === 'admin',
+            isAdmin: res.user.role === 'admin' || res.user.role === 'superAdmin',
           });
           return;
         }
       } catch (err: any) {
         const status = err?.response?.status;
-        const isUnauthorized = status === 401 || err?.message?.includes('Unauthorized');        
+        const isUnauthorized = status === 401 || err?.message?.includes('Unauthorized');
         if (isUnauthorized) {
           await authApi.logout()
           setAuthToken(null);
@@ -153,7 +152,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   }, [router]);
 
-  const isSuperAdmin = state.user?.isSuperAdmin || false;
   const permissions: string[] = (() => {
     const perm = state.user?.permissions;
     if (!perm) return [];
@@ -264,7 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      ...state, isSuperAdmin, permissions,
+      ...state, permissions,
       login, register, logout, refreshUser, updateUser,
       sendEmailOTP, sendPhoneOTP, verifyEmailOTP, verifyPhoneOTP, registerSellerOTP,
     }}>

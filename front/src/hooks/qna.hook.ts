@@ -1,6 +1,7 @@
 // hooks/use-qna.ts
 import { qnaService, QnAEntity, CreateQnaDTO, UpdateQnaDTO, SearchQnaDTO, QnaResponse } from "@/services/qna.service";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import React from "react";
 import { toast } from "sonner";
 
 const QNA_KEYS = {
@@ -19,13 +20,17 @@ const QNA_KEYS = {
 // ============================================
 
 // دریافت Q&A محصول (عمومی)
-export function useProductQnA(productId: string, params?: SearchQnaDTO) {
-  return useQuery<QnaResponse>({
-    queryKey: QNA_KEYS.product(productId),
-    queryFn: () => qnaService.getByProduct(productId, params),
-    enabled: !!productId,
-    staleTime: 5 * 60 * 1000,
+
+export function useProductQnA(productId: string, page: number = 1, enabled: boolean = true) {
+  return useInfiniteQuery<QnaResponse>({
+    queryKey: [...QNA_KEYS.product(productId), page],
+    queryFn: ({ pageParam = 1 }) => qnaService.getByProduct(productId, pageParam),
+    staleTime: 2 * 60 * 1000,
+    initialPageParam: 2,
     refetchOnWindowFocus: false,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.pagination.nextPage ? allPages.length + 2 : undefined;
+    },
   });
 }
 

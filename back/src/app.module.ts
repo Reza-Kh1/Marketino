@@ -21,11 +21,9 @@ import { MessagesModule } from './messages/messages.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DiscountsModule } from './discounts/discounts.module';
-import { SellerModule } from './seller/seller.module';
 import { AdminModule } from './admin/admin.module';
 import { MediaModule } from './media/media.module';
 import { AiModule } from './ai/ai.module';
-import { ShopsModule } from './shops/shops.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BrandsModule } from './brand/brand.module';
@@ -37,6 +35,9 @@ import { ColorsModule } from './colors/colors.module';
 import { RedisModule } from './redis/redis.module';
 import { DiscountQueueModule } from './queues/discount/discount-queue.module';
 import { VariantsModule } from './variants/variants.module';
+import { SearchModule } from './search/search.module';
+import { SettingModule } from './settings/setting.module';
+import { StoreModule } from './store/store.module';
 
 @Module({
   imports: [
@@ -61,18 +62,19 @@ import { VariantsModule } from './variants/variants.module';
     NotificationsModule,
     WalletModule,
     DiscountsModule,
-    SellerModule,
     AdminModule,
     ConfigModules,
     MediaModule,
     AiModule,
-    ShopsModule,
     AddressesModule,
     BrandsModule,
     ReportModule,
     TicketModule,
     QnaModule,
     ColorsModule,
+    SearchModule,
+    SettingModule,
+    StoreModule
   ],
   controllers: [AppController],
   providers: [AppService],

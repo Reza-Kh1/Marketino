@@ -70,7 +70,7 @@ export class OrdersController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin', 'superAdmin')
   @Get('seller/items')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'سفارشات فروشنده' })
@@ -79,7 +79,7 @@ export class OrdersController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin', 'superAdmin')
   @Put(':id/status')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تغییر وضعیت سفارش' })
@@ -88,7 +88,7 @@ export class OrdersController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/all')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تمام سفارشات (ادمین)' })
@@ -97,7 +97,7 @@ export class OrdersController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/stats')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'آمار سفارشات (ادمین)' })
@@ -166,7 +166,7 @@ export class OrdersController {
    * 🆕 پردازش مرجوعی (ادمین)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Patch('refunds/:refundId/process')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'پردازش مرجوعی توسط ادمین' })

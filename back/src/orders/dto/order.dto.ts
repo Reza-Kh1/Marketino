@@ -2,70 +2,108 @@
  * Order DTOs - اشیاء انتقال داده سفارشات
  */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentMethod } from '@prisma/client';
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsUUID, ValidateIf, IsNotEmpty } from 'class-validator';
 
 export class CreateOrderDto {
-  @ApiProperty({ description: 'آدرس ارسال' })
-  @IsString()
-  shippingAddress: string;
-
-  @ApiPropertyOptional({ description: 'شهر' })
+  @ApiPropertyOptional({
+    description: 'شناسه آدرس ذخیره‌شده کاربر (در صورت انتخاب آدرس قبلی)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  shippingCity?: string;
+  @IsUUID()
+  addressId?: string;
 
-  @ApiPropertyOptional({ description: 'استان' })
-  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'نام گیرنده (در صورت عدم انتخاب آدرس قبلی الزامی است)',
+    example: 'علی محمدی',
+  })
+  @ValidateIf((o) => !o.addressId)
+  @IsNotEmpty({ message: 'نام گیرنده الزامی است' })
   @IsString()
-  @MaxLength(100)
-  shippingProvince?: string;
-
-  @ApiPropertyOptional({ description: 'کد پستی' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  shippingPostal?: string;
-
-  @ApiPropertyOptional({ description: 'تلفن گیرنده' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  shippingPhone?: string;
-
-  @ApiPropertyOptional({ description: 'نام گیرنده' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
   shippingName?: string;
 
-  @ApiPropertyOptional({ description: 'یادداشت سفارش' })
+  @ApiPropertyOptional({
+    description: 'شماره تلفن گیرنده (در صورت عدم انتخاب آدرس قبلی الزامی است)',
+    example: '09123456789',
+  })
+  @ValidateIf((o) => !o.addressId)
+  @IsNotEmpty({ message: 'شماره تلفن الزامی است' })
+  @IsString()
+  shippingPhone?: string;
+
+  @ApiPropertyOptional({
+    description: 'شهر (در صورت عدم انتخاب آدرس قبلی الزامی است)',
+    example: 'تهران',
+  })
+  @ValidateIf((o) => !o.addressId)
+  @IsNotEmpty({ message: 'شهر الزامی است' })
+  @IsString()
+  shippingCity?: string;
+
+  @ApiPropertyOptional({
+    description: 'استان (در صورت عدم انتخاب آدرس قبلی الزامی است)',
+    example: 'تهران',
+  })
+  @ValidateIf((o) => !o.addressId)
+  @IsNotEmpty({ message: 'استان الزامی است' })
+  @IsString()
+  shippingProvince?: string;
+
+  @ApiPropertyOptional({
+    description: 'آدرس دقیق (در صورت عدم انتخاب آدرس قبلی الزامی است)',
+    example: 'خیابان ولیعصر، پلاک ۱۲۳، واحد ۵',
+  })
+  @ValidateIf((o) => !o.addressId)
+  @IsNotEmpty({ message: 'آدرس الزامی است' })
+  @IsString()
+  shippingAddress?: string;
+
+  @ApiPropertyOptional({
+    description: 'کد پستی (اختیاری)',
+    example: '1234567890',
+  })
+  @IsOptional()
+  @IsString()
+  shippingPostal?: string;
+
+  @ApiPropertyOptional({
+    description: 'یادداشت سفارش (اختیاری)',
+    example: 'لطفاً قبل از تحویل تماس بگیرید',
+  })
   @IsOptional()
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ description: 'کد تخفیف' })
+  @ApiPropertyOptional({
+    description: 'کد تخفیف (اختیاری)',
+    example: 'SUMMER1405',
+  })
   @IsOptional()
   @IsString()
   discountCode?: string;
 
-  @ApiPropertyOptional({ description: 'روش پرداخت', default: 'card' })
-  @IsOptional()
+  @ApiProperty({
+    description: 'روش ارسال',
+    example: 'standard',
+    required: true,
+  })
   @IsString()
-  paymentMethod?: PaymentMethod;
+  shippingMethod!: string;
 
-
-  @ApiPropertyOptional({ description: 'آیدی آدرس' })
-  @IsOptional()
-  @IsString()
-  addressId?: PaymentMethod;
+  @ApiProperty({
+    description: 'روش پرداخت',
+    enum: ['card', 'wallet', 'cod', 'zarinpal'],
+    example: 'zarinpal',
+    required: true,
+  })
+  @IsIn(['card', 'wallet', 'cod', 'zarinpal'])
+  paymentMethod!: string;
 }
 
 export class UpdateOrderStatusDto {
   @ApiProperty({ description: 'وضعیت جدید', enum: ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] })
   @IsString()
-  status: string;
+  status!: string;
 
   @ApiPropertyOptional({ description: 'کد پیگیری' })
   @IsOptional()
@@ -86,7 +124,7 @@ export class UpdateOrderStatusDto {
 export class CreatePaymentDto {
   @ApiProperty({ description: 'روش پرداخت', enum: ['card', 'wallet', 'zarinpal'] })
   @IsString()
-  method: string;
+  method!: string;
 
   @ApiPropertyOptional({ description: 'شماره ارجاع درگاه' })
   @IsOptional()
@@ -108,5 +146,5 @@ export class ConfirmPaymentDto {
 export class CreateRefundDto {
   @ApiProperty({ description: 'دلیل مرجوعی' })
   @IsString()
-  reason: string;
+  reason!: string;
 }

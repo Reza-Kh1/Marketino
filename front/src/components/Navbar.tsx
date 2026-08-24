@@ -6,13 +6,11 @@ import { useState, useRef, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuth } from '@/lib/auth-context';
-import { useTranslation } from '@/lib/i18n-context';
-import { useWishlist } from '@/lib/use-wishlist';
 import { useChat } from '@/lib/chat-context';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
-import { useLocale, useTranslations } from 'next-intl';
-import { useCart, useCartTotalItems } from '@/hooks/cart.hook';
+import { useTranslations } from 'next-intl';
+import { useCart } from '@/hooks/cart.hook';
+import CategoryMenu from './CategoryMenu';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,15 +18,10 @@ export default function Navbar() {
   const [searchValue, setSearchValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isSeller, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isSeller, isAdmin, logout } = useAuth();  
   const { data: cartData } = useCart();
-
-  const { itemIds } = useWishlist();
-  const wishlistCount = itemIds.length;
-  const { t } = useTranslation();
   const { unreadCount } = useChat();
   const tNav = useTranslations('nav');
   const tCommon = useTranslations('common');
@@ -45,23 +38,15 @@ export default function Navbar() {
   }, []);
 
   const handleSearch = (q: string) => {
-    if (q.trim()) router.push(`/products?q=${encodeURIComponent(q.trim())}`);
-  };
-
-  const handleImageSearch = (file: File) => {
-    setIsSearching(true);
-    toast.success(`🔍 عکس "${file.name}" در حال پردازش...`, { duration: 2500, icon: '📸' });
-    setTimeout(() => {
-      setIsSearching(false);
-      router.push(`/products?imageSearch=true`);
-    }, 1800);
+    if (q.trim()) {
+      router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+      setSearchValue('')
+    }
   };
 
   const navLinks = [
-    { href: '/', label: tNav('home') },
     { href: '/products', label: tNav('products') },
-    { href: '/shops', label: tNav('shops') },
-    { href: '/products?sort=newest', label: tNav('newest') },
+    { href: '/store', label: tNav('shops') },
     { href: '/products?tag=تخفیف', label: tNav('discounts'), highlight: true },
   ];
 
@@ -71,11 +56,11 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-2 sm:gap-3">
           {/* Logo */}
           <Link href="/" className="shrink-0 group">
-            <span className="text-lg xs:text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform inline-block">
+            <span className="text-lg xs:text-xl sm:text-2xl font-black bg-linear-to-r from-indigo-600 via-violet-600 to-purple-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform inline-block">
               بازارچه
             </span>
           </Link>
-
+          <CategoryMenu />
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5 mx-2">
             {navLinks.map(l => (
@@ -121,24 +106,6 @@ export default function Navbar() {
                 )}
                 {/* Image Search Button */}
                 <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-accent-foreground group/image"
-                  title="جستجو با عکس"
-                >
-                  <Camera className="w-4 h-4 group-hover/image:scale-110 transition-transform" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    if (f) { handleImageSearch(f); e.target.value = ''; }
-                  }}
-                />
-                <button
                   type="submit"
                   disabled={!searchValue.trim() || isSearching}
                   className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold 
@@ -158,12 +125,7 @@ export default function Navbar() {
             <ThemeToggle />
             {isAuthenticated && (
               <Link href="/profile/wishlist" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 hidden sm:block relative" aria-label={tCommon('wishlist')}>
-                <Heart className={cn("w-5 h-5 text-muted-foreground hover:text-red-500 transition-colors", wishlistCount > 0 && "text-red-500")} />
-                {/* {wishlistCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
-                  {wishlistCount > 99 ? '99+' : wishlistCount}
-                </span>
-              )} */}
+                <Heart className={cn("w-5 h-5 text-muted-foreground hover:text-red-500 transition-colors")} />
               </Link>
             )}
             {isAuthenticated && (
@@ -192,10 +154,10 @@ export default function Navbar() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-1 pr-2 rounded-xl hover:bg-muted/80 transition-all duration-200"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 via-violet-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
                     {(user.firstName || user.username || '?')[0].toUpperCase()}
                   </div>
-                  <span className="hidden sm:block text-sm font-medium truncate max-w-[80px]">
+                  <span className="hidden sm:block text-sm font-medium truncate max-w-20">
                     {user.firstName || user.username}
                   </span>
                   <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 hidden sm:block', userMenuOpen && 'rotate-180')} />
@@ -203,11 +165,10 @@ export default function Navbar() {
 
                 {userMenuOpen && (
                   <div className="absolute top-full right-0 mt-2 w-56 sm:w-60 bg-card border border-border rounded-2xl shadow-xl shadow-black/5 overflow-hidden animate-scale-in z-50">
-                    <div className="p-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+                    <div className="p-3 border-b border-border bg-linear-to-r from-primary/5 to-transparent">
                       <div className="font-bold text-sm">{user.firstName} {user.lastName}</div>
                       <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                     </div>
-
                     <div className="p-1.5">
                       {[
                         { href: '/profile', icon: User, label: tCommon('profile') },
@@ -222,7 +183,6 @@ export default function Navbar() {
                         </Link>
                       ))}
                     </div>
-
                     {isSeller && (
                       <div className="p-1.5 border-t border-border">
                         <div className="px-3 py-1 text-xs text-muted-foreground font-semibold">{tCommon('seller_panel')}</div>
@@ -240,7 +200,6 @@ export default function Navbar() {
                         ))}
                       </div>
                     )}
-
                     {isAdmin && (
                       <div className="p-1.5 border-t border-border">
                         <Link href="/admin" onClick={() => setUserMenuOpen(false)}
@@ -301,9 +260,6 @@ export default function Navbar() {
                     <X className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 )}
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground" title="جستجو با عکس">
-                  <Camera className="w-4 h-4" />
-                </button>
                 <button
                   type="submit"
                   disabled={!searchValue.trim() || isSearching}

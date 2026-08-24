@@ -194,25 +194,6 @@ export class AuthController {
     return { success: true, user: result.user, isNewUser: result.isNewUser, token: result.token };
   }
 
-  /**
-   * ثبت‌نام فروشنده با OTP
-   */
-  @Public()
-  @Post('register-seller-otp')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'ثبت‌نام فروشنده با کد OTP' })
-  @ApiBody({ type: RegisterSellerOtpDto })
-  async registerSellerOTP(@Body() dto: RegisterSellerOtpDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.registerSellerOTP(dto);
-    res.cookie('token-marketino', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-    return { success: true, user: result.user, token: result.token };
-  }
-
   // ============================================
   // GOOGLE OAUTH
   // ============================================

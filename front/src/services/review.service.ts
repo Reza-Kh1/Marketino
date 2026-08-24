@@ -19,8 +19,8 @@ export interface ReviewProduct {
 }
 
 export enum ReviewModerateStatus {
-  approve = "approve",
-  reject = "reject",
+  approve = "true",
+  reject = "false",
 }
 
 export interface ReviewEntity {
@@ -31,7 +31,6 @@ export interface ReviewEntity {
   isApproved: boolean;
   answerReview: string | null;
   createdAt: string;
-  orderId: string | null;
   product: ReviewProduct;
   user: ReviewUser;
   answer: string | null;
@@ -42,11 +41,10 @@ export interface CreateReviewDTO {
   title?: string;
   body: string;
   productId: string;
-  orderId?: string | null;
 }
 
 export interface ModerateReviewDTO {
-  status: ReviewModerateStatus;
+  isApproved: ReviewModerateStatus;
 }
 
 export interface AnswerReviewDTO {
@@ -63,21 +61,11 @@ export interface ReviewResponse {
   pagination: PaginationType;
 }
 
-export interface ProductReviewResponse {
-  reviews: ReviewEntity[];
-  pagination: PaginationType;
-}
 
 export const reviewService = {
   // دریافت نظرات تاییدشده یک محصول
-  getByProduct: (productId: string, params?: SearchReviewDTO) => {
-    const cleanFilters = Object.fromEntries(
-      Object.entries(params || {})
-        .filter(([_, value]) => value !== undefined && value !== null)
-        .map(([key, value]) => [key, String(value)])
-    );
-    const queryString = new URLSearchParams(cleanFilters).toString();
-    return apiClient.get<ProductReviewResponse>(`${BASE_URL}/product/${productId}${queryString ? `?${queryString}` : ""}`);
+  getByProduct: (productId: string, page?: number | unknown) => {
+    return apiClient.get<ReviewResponse>(`${BASE_URL}/product/${productId}?page=${page}`);
   },
 
   // ثبت نظر جدید توسط کاربر

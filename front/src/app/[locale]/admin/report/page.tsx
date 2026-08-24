@@ -14,7 +14,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TicketStatus } from "@/services/ticket.service";
 import { useTranslations } from 'next-intl';
 import DialogView from '@/components/DialogView';
-import { SearchBar } from '@/components/SearchBar';
 import SearchBox from '@/components/admin/SearchBox';
 import { useSearchParams } from 'next/navigation';
 import { ReportType } from '@/services/report.service';

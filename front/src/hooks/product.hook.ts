@@ -1,4 +1,4 @@
-import { ProductService, FormProductDTO, ProductEntity, FormVariantDTO, VariantType } from "@/services/product.service";
+import { ProductService, FormProductDTO, ProductEntity, FormVariantDTO, VariantType, AllProductsEntity } from "@/services/product.service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -13,7 +13,7 @@ const PRODUCT_KEYS = {
 } as const;
 
 export function useProducts(filter?: any) {
-    return useQuery<ProductEntity[] | []>({
+    return useQuery<AllProductsEntity>({
         queryKey: PRODUCT_KEYS.listWithFilters(filter),
         queryFn: () => ProductService.list(),
         staleTime: 10 * 60 * 1000,

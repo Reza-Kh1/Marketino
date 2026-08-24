@@ -23,24 +23,6 @@ export class AppController {
   }
 
   /**
-   * جستجوی محصولات
-   * پشتیبانی از جستجوی فارسی و انگلیسی
-   */
-  @Get('search')
-  @ApiOperation({ summary: 'جستجوی محصولات' })
-  async search(
-    @Query('q') query: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
-    @Query('category') category?: string,
-    @Query('minPrice') minPrice?: number,
-    @Query('maxPrice') maxPrice?: number,
-    @Query('sort') sort?: string,
-  ) {
-    return this.appService.search(query, page, limit, { category, minPrice, maxPrice, sort });
-  }
-
-  /**
    * Sitemap XML
    * برای موتورهای جستجو - نسخه فارسی
    */

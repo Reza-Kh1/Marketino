@@ -52,7 +52,7 @@ export interface SearchQnaDTO extends SearchDefualtType {
 }
 
 export interface QnaResponse {
-  items: QnAEntity[];
+  qnas: QnAEntity[];
   pagination: PaginationType
 }
 
@@ -63,8 +63,10 @@ export const qnaService = {
   },
 
   // دریافت Q&A محصول (عمومی)
-  getByProduct: (productId: string, params?: SearchQnaDTO) => {
-    return apiClient.get<QnaResponse>(`${BASE_URL}/product/${productId}`, { params });
+  getByProduct: (productId: string, page?: number | unknown) => {
+    console.log(`${BASE_URL}/product/${productId}?page=${page}`);
+    
+    return apiClient.get<QnaResponse>(`${BASE_URL}/product/${productId}?page=${page}`);
   },
 
   // دریافت Q&A محصول (ادمین)

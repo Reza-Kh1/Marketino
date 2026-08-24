@@ -3,23 +3,48 @@
  */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import pagination from '@/common/utils/pagination';
+import { ConfigService } from '@nestjs/config';
+import { productSelector } from '@/products/products.service';
 
 @Injectable()
 export class WishlistService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+
+  ) { }
 
   /** دریافت لیست علاقه‌مندی‌های کاربر */
-  async getUserWishlist(userId: string) {
-    const items = await this.prisma.wishlistItem.findMany({
-      where: { userId },
-      include: {
-        product: {
-          include: { images: { take: 1, orderBy: { sortOrder: 'asc' } }, seller: { select: { storeName: true } } },
+  async getUserWishlist(userId: string, page: number) {
+    const limit = Number(this.configService.get('limit.wishlists'))
+    const skip = (Number(page || 1) - 1) * limit;
+    const [products, total] = await Promise.all([
+      this.prisma.wishlistItem.findMany({
+        where: { userId },
+        include: {
+          product: {
+            select: productSelector,
+          }
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return { items, count: items.length };
+        skip, take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.wishlistItem.count({ where: { userId } }),
+    ]);
+    return {
+      items: products,
+      pagination: pagination(total, page || 1, limit)
+    };
+  }
+
+  async getAllIds(userId: string) {
+    const data = await this.prisma.wishlistItem.findMany({ where: { userId }, select: { productId: true } })
+    let newArray: string[] = []
+    if (data.length) {
+      newArray = data.map((item) => item.productId)
+    }
+    return newArray
   }
 
   /** اضافه کردن به علاقه‌مندی‌ها */

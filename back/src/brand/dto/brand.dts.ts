@@ -2,7 +2,7 @@
  * Category DTOs - اشیاء انتقال داده دسته‌بندی
  */
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, Min, MaxLength, isBoolean, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, MaxLength, isBoolean, IsBoolean, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class BrandDto {
@@ -31,4 +31,21 @@ export class BrandDto {
     @IsOptional()
     @MaxLength(200)
     description?: string;
+
+    @ApiPropertyOptional({ description: 'ترتیب بر اساس' })
+    @IsInt()
+    @IsOptional()
+    sortOrder?: number;
+}
+
+export class SearchBrandDto {
+    @ApiProperty({ description: 'بهترین برند ها', required: false })
+    @IsString()
+    @IsOptional()
+    best?: string;
+
+    @ApiProperty({ description: 'تعداد برند ها', required: false })
+    @IsInt()
+    @IsOptional()
+    limit?: number;
 }

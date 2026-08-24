@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MessageSquare, ChevronDown, Send, AlertTriangle, Clock, AlertCircle, CheckCircle, XCircle, Eye, SendHorizontal, Trash2, Check, X, MessageCircle, Star } from 'lucide-react';
+import { MessageSquare, CircleAlert , Send, AlertTriangle, Clock, CircleCheck  , CheckCircle, XCircle, Eye, SendHorizontal, Trash2, Check, X, MessageCircle, Star, User, ShoppingBag, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminReviews, useDeleteReview, useModerateReview, useAnswerReview } from '@/hooks/review.hook';
 import { ReviewModerateStatus } from '@/services/review.service';
@@ -22,6 +22,10 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CustomButton from '@/components/CustomButton';
+import { Calendar } from 'react-multi-date-picker';
+import { Separator } from 'radix-ui';
+import MotionWrapper from '@/components/motion/MotionWrapper';
+import InputForm from '@/components/inputs/InputForm';
 
 const statusConfig = {
     approved: {
@@ -74,7 +78,7 @@ export default function AdminReviewsPage() {
     };
 
     const moderateReview = (id: string, status: ReviewModerateStatus) => {
-        moderateMutate({ id, data: { status } });
+        moderateMutate({ id, data: { isApproved: status } });
     };
 
     const submitAnswer = () => {
@@ -181,7 +185,7 @@ export default function AdminReviewsPage() {
             header: 'پاسخ',
             cell: ({ row }) => (
                 <span className="text-xs line-clamp-1 max-w-xs">
-                    {row.original?.answer || 'بدون پاسخ'}
+                    {row.original?.answerReview ? <CircleCheck className='w-5 h-5 text-green-500' /> : <CircleAlert className='text-red-500 w-5 h-5' />}
                 </span>
             )
         },
@@ -278,7 +282,6 @@ export default function AdminReviewsPage() {
                     </p>
                 </div>
             </div>
-
             <SearchBox
                 selects={[
                     {
@@ -339,64 +342,145 @@ export default function AdminReviewsPage() {
                     },
                 ]}
             />
-
             {/* Dialog Answer */}
             <Dialog open={modalMode === 'answer'} onOpenChange={() => setModalMode(null)}>
-                <DialogContent className="max-w-lg bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right">
+                <DialogContent dir="rtl" className="max-w-4xl! bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right">
                     <DialogHeader>
-                        <DialogTitle>پاسخ به نظر</DialogTitle>
-                        <DialogDescription>
-                            نظر کاربر: {selectReview?.user?.firstName} {selectReview?.user?.lastName}
-                        </DialogDescription>
+                        <DialogTitle className="text-admin-text-primary text-xl font-bold">
+                            <MotionWrapper className='' delay={0.3} preset='slideUpBlur'>
+                                پاسخ به نظر کاربر
+                            </MotionWrapper>
+                        </DialogTitle>
+                        <MotionWrapper classNameDiv='inline-block' className='inline-block' delay={0.3} preset='slideUpBlur'>
+                            <div className={cn(
+                                "px-3 py-1 rounded-full text-xs font-medium border",
+                                selectReview?.isApproved
+                                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                    : "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                            )}>
+                                {selectReview?.isApproved ? (
+                                    <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" /> تایید شده</span>
+                                ) : (
+                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> در انتظار تایید</span>
+                                )}
+                            </div>
+                        </MotionWrapper>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">متن نظر:</p>
-                            <div className="p-3 bg-muted rounded-md text-sm dir-rtl">
-                                {selectReview?.body}
+                    <div className=' max-h-[50vh] overflow-y-auto no-scrollbar'>
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/20">
+                                    <div className="p-2 rounded-lg bg-primary/5 text-primary">
+                                        <ShoppingBag className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">محصول</p>
+                                        <p className="text-sm font-medium text-foreground line-clamp-1">{selectReview?.product?.title || 'نامشخص'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between flex-wrap gap-2 p-3 rounded-xl bg-muted/20 border border-border/20">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} className={cn(
+                                                "w-4 h-4",
+                                                i < Number(selectReview?.rating)
+                                                    ? "fill-amber-400 text-amber-400"
+                                                    : "text-muted-foreground/20"
+                                            )} />
+                                        ))}
+                                    </div>
+                                    <span className="text-sm font-medium text-foreground">{selectReview?.rating}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <span>{selectReview?.createdAt && new Date(selectReview?.createdAt).toLocaleDateString('fa-IR')}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">
+                                        متن نظر ارسال شده
+                                    </span>
+                                </div>
+                                <div className="p-4 bg-linear-to-br from-muted/40 to-muted/10 border border-border/30 rounded-2xl text-sm leading-relaxed text-foreground/90 max-h-36 overflow-y-auto">
+                                    {selectReview?.body || 'متنی یافت نشد.'}
+                                </div>
+                            </div>
+                            {selectReview?.answerReview && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                                            <Send className="w-3.5 h-3.5 rotate-180" />
+                                        </div>
+                                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tracking-wide">
+                                            پاسخ قبلی
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-linear-to-br from-emerald-50/50 to-emerald-50/20 dark:from-emerald-950/20 dark:to-transparent border border-emerald-200/50 dark:border-emerald-800/30 rounded-2xl text-sm leading-relaxed text-foreground/90">
+                                        {selectReview?.answerReview || selectReview?.answer}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="space-y-2.5">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="text-xs font-semibold text-foreground/80 tracking-wide">
+                                        پاسخ شما
+                                    </span>
+                                    {selectReview?.answerReview && (
+                                        <Badge variant="secondary" className="text-[9px] font-normal bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+                                            پاسخ جدید جایگزین می‌شود
+                                        </Badge>
+                                    )}
+                                </div>
+                                <InputForm
+                                    name='answer'
+                                    value={answerText}
+                                    onChange={(e) => setAnswerText(e.target.value)}
+                                    placeholder="پاسخ خود را بنویسید..."
+                                    type='textarea'
+                                    className='resize-none'
+                                    rows={7}
+                                />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">پاسخ شما</label>
-                            <Textarea
-                                value={answerText}
-                                onChange={(e) => setAnswerText(e.target.value)}
-                                placeholder="پاسخ خود را وارد کنید..."
-                                className="min-h-[120px] dir-rtl"
-                            />
-                        </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex justify-between! items-center w-full">
                         <CustomButton
-                            name="ارسال پاسخ"
-                            iconEnd={<Send className="w-4 h-4" />}
                             onClick={submitAnswer}
                             isPending={pendingAnswer}
+                            name='ارسال پاسخ'
+                            color='white'
+                            iconStart={<Send className="w-4 h-4 rotate-45" />}
                         />
                         <CustomButton
-                            name="انصراف"
                             onClick={() => setModalMode(null)}
+                            isPending={pendingAnswer}
+                            name='انصراف'
+                            color='gray'
+                            iconStart={<X className="w-4 h-4" />}
                         />
                     </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Dialog Delete */}
+                </DialogContent >
+            </Dialog >
             <DialogDelete
-                closeModal={() => setModalMode(null)}
+                closeModal={() => setModalMode(null)
+                }
                 onDelete={() => {
                     if (selectReview?.id) {
                         deleteMutate(selectReview.id, {
-                            onSuccess: () => {
-                                setModalMode(null);
-                            }
+                            onSuccess: () => { setModalMode(null) }
                         });
                     }
                 }}
                 isPending={pendingDelete}
                 open={modalMode === "delete"}
-                helpText={<p>آیا از حذف این نظر مطمئن هستید؟</p>}
+                helpText={< p > آیا از حذف این نظر مطمئن هستید؟</p >}
             />
-        </div>
+        </div >
     );
 }

@@ -1,4 +1,3 @@
-import { SearchBarProps } from "@/components/SearchBar";
 import { PaginationType, SearchDefualtType } from "@/lib/api";
 import { ticketService, Ticket, TicketMessage, TicketStats, TicketStatus, TicketPriority, CreateTicketDto, UpdateTicketDto, AddMessageDto, AllTickets } from "@/services/ticket.service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

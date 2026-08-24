@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateReviewDto {
@@ -7,6 +7,11 @@ export class CreateReviewDto {
   @IsString()
   @IsNotEmpty()
   productId!: string;
+
+  @ApiPropertyOptional({ description: 'شناسه سفارش مرتبط' })
+  @IsString()
+  @IsOptional()
+  orderId?: string;
 
   @ApiProperty({ description: 'امتیاز از ۱ تا ۵', minimum: 1, maximum: 5 })
   @IsInt()
@@ -41,10 +46,25 @@ export class GetReviewsQueryDto {
   limit?: number = 10;
 }
 
+export class ReviewSearchDto extends GetReviewsQueryDto {
+  @ApiPropertyOptional({ description: 'وضعیت تایید (true یا false)' })
+  @IsOptional()
+  @IsString()
+  isApproved?: string;
+
+  @ApiPropertyOptional({ description: 'فیلتر بر اساس محصول' })
+  @IsOptional()
+  @IsString()
+  productId?: string;
+}
+
 export class ModerateReviewDto {
-  @ApiProperty({ description: 'وضعیت تایید نظر' })
-  @IsBoolean()
-  isApproved!: boolean;
+  @ApiProperty({ description: 'وضعیت تایید نظر', enum: ['true', 'false'] })
+  @IsString()
+  @IsIn(['true', 'false'], {
+    message: 'مقدار isApproved باید یکی از مقادیر true یا false باشد',
+  })
+  isApproved!: string;
 }
 
 export class AnswerReviewDto {

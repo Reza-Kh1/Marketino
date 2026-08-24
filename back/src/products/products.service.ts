@@ -7,6 +7,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto, ProductFilterDto } from './dto/product.dto';
 import slugifyLib = require('slugify');
 import { Prisma } from '@prisma/client';
+
+export const productSelector: Prisma.ProductSelect = {
+  id: true, title: true, titleEn: true, slug: true, slugEn: true, categoryId: true,
+  condition: true, status: true, updatedAt: true,
+  isFeatured: true, viewCount: true, saleCount: true, rating: true,
+  reviewCount: true, storeId: true, brandId: true,
+  originalPrice: true, minPrice: true, discountPercent: true,
+  brand: { select: { name: true, nameEn: true, slug: true } },
+  images: { select: { alt: true, sortOrder: true, url: true }, take: 1, orderBy: { sortOrder: 'asc' } },
+  category: { select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true } },
+}
 export interface BreadcrumbItem {
   id: string;
   name: string;
@@ -28,7 +39,7 @@ export class ProductsService {
     const where: Prisma.ProductWhereInput = { status: filters.status || 'approved' };
 
     if (filters.category) where.categoryId = filters.category;
-    if (filters.seller) where.sellerId = filters.seller;
+    if (filters.seller) where.storeId = filters.seller;
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       where.minPrice = {
         ...(filters.minPrice !== undefined && { gte: filters.minPrice }),
@@ -52,18 +63,7 @@ export class ProductsService {
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
-        select: {
-          id: true, title: true, titleEn: true, slug: true, slugEn: true,
-          description: true, descriptionEn: true, categoryId: true,
-          condition: true, status: true, updatedAt: true,
-          isFeatured: true, viewCount: true, saleCount: true, rating: true,
-          reviewCount: true, sellerId: true, brandId: true,
-          originalPrice: true, minPrice: true, discountPercent: true,
-          brand: { select: { name: true, nameEn: true, slug: true } },
-          images: { select: { alt: true, sortOrder: true, url: true }, take: 1, orderBy: { sortOrder: 'asc' } },
-          category: { select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true } },
-          seller: { select: { id: true, storeName: true, storeLogo: true } },
-        },
+        select: productSelector,
         skip, take: limit, orderBy,
       }),
       this.prisma.product.count({ where }),
@@ -86,16 +86,16 @@ export class ProductsService {
         isFeatured: true, slug: true, slugEn: true, metaTitle: true, metaTitleEn: true, productTable: true, productTableEn: true, rating: true,
         saleCount: true, reviewCount: true, originalPrice: true, title: true, titleEn: true, viewCount: true, id: true, discountPercent: true,
         brand: { select: { name: true, nameEn: true, slug: true } },
+        store: { select: { name: true, nameEn: true, logo: true, slug: true, } },
         images: {
           select: { alt: true, url: true, sortOrder: true },
           orderBy: { sortOrder: 'asc' },
         },
-        seller: { select: { storeName: true } },
         reviews: {
-          select: { body: true, answerReview: true, user: { select: { id: true, firstName: true, lastName: true } }, rating: true, updatedAt: true },
+          select: { body: true, answerReview: true, user: { select: { id: true, firstName: true, lastName: true } }, rating: true, createdAt: true },
           where: { isApproved: true },
-          take: 5,
-          orderBy: { updatedAt: 'desc' }
+          take: 3,
+          orderBy: { createdAt: 'desc' }
         },
         category: {
           select: {
@@ -134,18 +134,18 @@ export class ProductsService {
         },
         qnas: {
           select: {
-            id: true, content: true, role: true, updatedAt: true, _count: true,
+            id: true, content: true, role: true, createdAt: true, _count: true,
             replies: {
               where: { status: 'approved' },
-              take: 5,
+              take: 3,
               select: {
-                id: true, content: true, role: true, updatedAt: true,
+                id: true, content: true, role: true, createdAt: true,
               },
             }
           },
           where: { status: 'approved', parentId: null },
-          take: 5,
-          orderBy: { updatedAt: 'desc' },
+          take: 3,
+          orderBy: { createdAt: 'desc' },
         },
         _count: {
           select: {
@@ -200,7 +200,7 @@ export class ProductsService {
             attributes: true,
           }
         },
-        seller: { select: { id: true, username: true, storeName: true, storeLogo: true, storeDescription: true } },
+        store: { select: { id: true, name: true, slug: true, logo: true, description: true } },
         reviews: {
           include: { user: { select: { id: true, username: true, avatar: true, firstName: true, lastName: true } } },
           orderBy: { createdAt: 'desc' }, take: 10
@@ -227,7 +227,7 @@ export class ProductsService {
         ...rest,
         slug,
         slugEn,
-        sellerId: userId,
+        storeId: userId,
         status: 'pending',
         ...(images?.length && {
           images: {

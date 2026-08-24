@@ -23,7 +23,14 @@ export class DiscountQueueService {
     await this.queue.add(
       'expire-discount',
       { discountId },
-      { delay, jobId: `expire-${discountId}` },
+      {
+        delay, jobId: `expire-${discountId}`,
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 24 * 60 * 60,
+          count: 1000,
+        },
+      },
     );
   }
 
@@ -34,7 +41,14 @@ export class DiscountQueueService {
     await this.queue.add(
       'activate-discount',
       { discountId },
-      { delay, jobId: `activate-${discountId}` },
+      {
+        delay, jobId: `activate-${discountId}`,
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 24 * 60 * 60,
+          count: 1000,
+        },
+      },
     );
   }
 
@@ -49,15 +63,29 @@ export class DiscountQueueService {
     await this.queue.add(
       'sync-products',
       { productIds },
-      { jobId: `sync-products-${Date.now()}` },
+      {
+        jobId: `sync-products-${Date.now()}`,
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 24 * 60 * 60,
+          count: 1000,
+        },
+      },
     );
   }
-  
+
   async enqueueImmediateSync(discountId: string) {
     await this.queue.add(
       'sync-discount',
       { discountId },
-      { jobId: `sync-${discountId}-${Date.now()}` }, // بدون delay، فوری اجرا می‌شه
+      {
+        jobId: `sync-${discountId}-${Date.now()}`,
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 24 * 60 * 60,
+          count: 1000,
+        },
+      },
     );
   }
 }

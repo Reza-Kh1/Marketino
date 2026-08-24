@@ -119,8 +119,8 @@ export default async function ProductDetailPage({ params }: PagePropsType) {
                   </div>
 
                   <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                    <LikeButton />
-                    <ShareBtn />
+                    <LikeButton productId={product.id} />
+                    <ShareBtn text={product.description || ''} title={product.title} />
                   </div>
                 </div>
 
@@ -139,11 +139,11 @@ export default async function ProductDetailPage({ params }: PagePropsType) {
                     </>
                   )}
                   <div className="text-[11px] sm:text-xs">
-                    برند: <strong className="text-slate-800 dark:text-cyan-400"><Link href={'/search/brand-' + product.brand.slug}>{product.brand.name}</Link></strong>
+                    برند: <strong className="text-slate-800 dark:text-cyan-400"><Link href={'/search/brand-' + product.brand?.slug}>{product.brand?.name}</Link></strong>
                   </div>
                   <span>•</span>
                   <div className="text-[11px] sm:text-xs">
-                    فروشنده: <Link href={'/search/store-' + product.seller.storeName} className="text-slate-800 dark:text-cyan-400">{product.seller.storeName}</Link>
+                    فروشنده: <Link href={'/search/store-' + product?.store?.name} className="text-slate-800 dark:text-cyan-400">{product?.store?.name}</Link>
                   </div>
                   <span>•</span>
                   <div className="text-[11px] sm:text-xs flex items-center gap-1">
@@ -168,7 +168,7 @@ export default async function ProductDetailPage({ params }: PagePropsType) {
                     </>
                   )}
                 </div>
-                {product.isFeatured && <Featured seller={product.seller} discount={product.discountPercent} />}
+                {product.isFeatured && <Featured seller={product?.store?.name} discount={product.discountPercent} variants={product.variants}/>}
                 {product.description && (
                   <p className="text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                     {product.description}
@@ -177,6 +177,7 @@ export default async function ProductDetailPage({ params }: PagePropsType) {
               </div>
               <div className="mt-4 sm:mt-6">
                 <ProductBuyBox
+                  productId={product.id}
                   variants={product.variants}
                   fallbackOriginalPrice={fallbackOriginalPrice}
                   fallbackMinPrice={fallbackMinPrice}

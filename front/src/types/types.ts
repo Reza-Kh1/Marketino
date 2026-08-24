@@ -25,8 +25,10 @@ export interface ProductBrand {
     slug: string;
 }
 
-export interface ProductSeller {
-    storeName: string;
+export interface ProductStore {
+    name: string;
+    nameEn: string;
+    slug: string
 }
 
 export interface ProductImage {
@@ -68,7 +70,7 @@ export interface ProductVariant {
     quantity: number;
     sku: string;
     saleCount: number;
-    color: VariantColor;
+    color?: VariantColor | null;
     discount: VariantDiscount | null;
     attributes: VariantAttribute[];
 }
@@ -78,6 +80,7 @@ export interface ReviewsType {
     answerReview: string | null
     rating: number
     updatedAt: Date
+    createdAt: Date
     user: {
         id: string
         firstName: string
@@ -91,6 +94,7 @@ export interface QnasType {
     content: string
     role: 'seller' | 'buyer'
     updatedAt: Date
+    createdAt: Date
     _count: { replies: number }
     replies: QnasType[]
 }
@@ -119,7 +123,7 @@ export interface ProductDetail {
     saleCount: number;
     viewCount: number;
     brand: ProductBrand;
-    seller: ProductSeller;
+    store: ProductStore;
     images: ProductImage[];
     isFeatured: boolean;
     metaTitle: string | null;
@@ -136,4 +140,18 @@ export interface ProductDetail {
         slugEn: string;
         ancestorIds: string[];
     };
+}
+
+export interface AllCartType {
+    carts: CartType[]
+    totalItems: 2,
+    totalPrice: 14980000
+}
+
+export interface CartType {
+    id: string
+    quantity: number
+    product: ProductDetail
+    variantId: string
+    variant: ProductVariant
 }

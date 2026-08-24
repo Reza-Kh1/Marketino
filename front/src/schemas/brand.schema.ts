@@ -6,6 +6,7 @@ export const BrandSchema = z.object({
     slug: z.string(),
     logo: z.string().nullable().optional(),
     description: z.string().optional(),
+    sortOrder: z.int().optional()
 });
 
 export type Brand = z.infer<typeof BrandSchema>;

@@ -1,548 +1,401 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
-import { motion } from 'framer-motion';
-import { ShoppingBag, CreditCard, Truck, MapPin, ArrowRight, Check, Plus, Pencil, X } from 'lucide-react';
-import { ordersApi } from '@/lib/api';
-import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CreditCard, Truck, MapPin, Check, Plus, Pencil, X, ShieldCheck, Wallet, ArrowRightLeft, Banknote, Clock, ShoppingBag, Store } from 'lucide-react';
 import { useDefaultAddress, useCreateAddress } from '@/hooks/address.hook';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AddressSchema, FormAddressSchema } from '@/schemas/address.schema';
 import InputForm from '@/components/inputs/InputForm';
 import CustomButton from '@/components/CustomButton';
-import { useValidateDiscount } from '@/hooks/discount.hook';
-import PendingApi from '@/components/PendingApi';
-import { DiscountType } from '@/services/discount.service';
-import { discountChange, useCart } from '@/hooks/cart.hook';
-import { CartType } from '@/services/cart.service';
-import ImgTag from '@/components/ImgTag';
+import { useCart } from '@/hooks/cart.hook';
 import { useCreateOrder } from '@/hooks/order.hook';
-const SHIPPING_METHODS = [
-    { id: 'standard', name: 'پست پیشتاز', cost: 49_000, days: '۳-۵ روز کاری' },
-    { id: 'express', name: 'پیک موتوری', cost: 89_000, days: 'همان روز (تهران)' },
-    { id: 'free', name: 'ارسال رایگان', cost: 0, days: '۵-۷ روز کاری (سفارشات بالای ۵۰۰ هزار تومان)' },
-];
+import { CartType } from '@/types/types';
+import StepperPayment from '@/components/StepperPayment';
+import MotionWrapper from '@/components/motion/MotionWrapper';
+import { SummarySection } from '../profile/cart/SummarySection';
+import { toast } from 'sonner';
+import { useShippingMethods } from '@/hooks/setting.hook';
 
 const PAYMENT_METHODS = [
-    { id: 'zarinpal', name: 'پرداخت آنلاین (زرین‌پال)', icon: CreditCard },
+    {
+        id: 'zarinpal',
+        name: 'پرداخت آنلاین اینترنتی',
+        description: 'اتصال مستقیم به درگاه‌های عضو شتاب',
+        icon: CreditCard,
+        badge: 'پیشنهادی',
+    },
+    {
+        id: 'wallet',
+        name: 'پرداخت از کیف پول',
+        description: 'کسر مستقیم از موجودی کیف پول حساب کاربری',
+        icon: Wallet,
+        badge: 'سریع‌ترین',
+    },
+    {
+        id: 'card',
+        name: 'کارت به کارت',
+        description: 'واریز به شماره حساب و ثبت فیش واریزی',
+        icon: ArrowRightLeft,
+        badge: null,
+    },
+    {
+        id: 'cod',
+        name: 'پرداخت در محل (COD)',
+        description: 'پرداخت با کارتخوان هنگام تحویل مرسوله',
+        icon: Banknote,
+        badge: 'ویژه تهران',
+    },
 ];
-
-const computeTotals = (
-    subtotal: number,
-    shippingCost: number,
-    discountData: DiscountType | null
-) => {
-    let discountAmount = 0;
-    if (discountData) {
-        discountAmount = discountData.type === 'percentage'
-            ? Math.min((subtotal * discountData.value) / 100, discountData.maxDiscount || Infinity)
-            : Math.min(discountData.value, subtotal);
-    }
-    const total = subtotal + shippingCost - discountAmount;
-    return { subtotal, shippingCost, discount: discountAmount, total };
-};
-const getItemTotal = (item: CartType) => discountChange(item.variant.price, item.variant.discount).total * item.quantity;
 
 export default function CheckoutPage() {
     const { data: defaultAddress, isLoading: isLoadingDefault, refetch: refetchDefault } = useDefaultAddress();
-    const { data, isFetching, refetch } = useCart();
-    const { mutate: createAddress, isPending: isCreating } = useCreateAddress();
-    const { mutate: validateDiscount, isPending: isPendingValidate } = useValidateDiscount();
-    const { mutate: orderCreate, isPending: pendingOrder } = useCreateOrder();
-    const [step, setStep] = useState<'cart' | 'shipping' | 'payment' | 'success'>('shipping');
-    const [shippingMethod, setShippingMethod] = useState('standard');
+    const { refetch: refetchCart } = useCart();
+    const { mutate: createAddress, isPending: isCreatingAddress } = useCreateAddress();
+    const { mutate: orderCreate, isPending: isPendingOrder } = useCreateOrder();
+    const { data: shippingData } = useShippingMethods()
+    const [step, setStep] = useState<'checkout' | 'success'>('checkout');
+    const [shippingMethod, setShippingMethod] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('zarinpal');
-    const [discountCode, setDiscountCode] = useState({ message: '', type: 'value', txt: '' });
-    const [idAddress, setIdAdress] = useState<string | null>(null)
-    const [discount, setDiscount] = useState<DiscountType | null>(null);
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [orderNumber, setOrderNumber] = useState('');
-    const [price, setPrice] = useState({
-        total: 0,
-        discount: 0,
-        subtotal: 0,
-        shippingCost: 0
-    });
-    const [shipping, setShipping] = useState({
-        name: '',
-        phone: '',
-        email: '',
-        province: '',
-        city: '',
-        address: '',
-        postal: '',
-        description: '',
-    });
-    const cartItems: CartType[] = data?.carts || [];
-
-    useEffect(() => {
-        const subtotal = cartItems.reduce((sum, item) => sum + getItemTotal(item), 0);
-        const shippingCost = subtotal > 500_000 ? 0 : SHIPPING_METHODS.find(sm => sm.id === shippingMethod)?.cost || 0;
-        setPrice(computeTotals(subtotal, shippingCost, discount));
-    }, [data?.carts]);
-
-    const { handleSubmit, register, reset, formState: { errors } } = useForm({
+    const [discont, setDiscount] = useState('')
+    const addressForm = useForm({
         resolver: zodResolver(AddressSchema),
         defaultValues: {
-            title: "",
-            fullName: "",
-            phone: "",
-            province: "",
-            city: "",
-            address: "",
-            postalCode: "",
+            title: '',
+            fullName: '',
+            phone: '',
+            province: '',
+            city: '',
+            address: '',
+            postalCode: '',
             isDefault: true,
             description: '',
-        }
+        },
     });
 
     useEffect(() => {
         if (defaultAddress) {
-            setShipping({
-                name: defaultAddress.fullName || '',
+            addressForm.reset({
+                title: defaultAddress.title || '',
+                fullName: defaultAddress.fullName || '',
                 phone: defaultAddress.phone || '',
-                email: '',
                 province: defaultAddress.province || '',
                 city: defaultAddress.city || '',
                 address: defaultAddress.address || '',
-                postal: defaultAddress.postalCode || '',
+                postalCode: defaultAddress.postalCode || '',
+                isDefault: true,
                 description: '',
             });
-            setIdAdress(defaultAddress.id)
         }
-    }, [defaultAddress]);
+    }, [defaultAddress, addressForm]);
 
-    const onSubmitAddress = (data: FormAddressSchema) => {
-        const body = {
-            ...data,
-            isDefault: true
-        };
-        createAddress(body, {
+    const handleAddAddress = (formData: FormAddressSchema) => {
+        createAddress(
+            { ...formData, isDefault: true },
+            {
+                onSuccess: () => {
+                    toast.success('آدرس با موفقیت اضافه شد');
+                    setShowAddressForm(false);
+                    refetchDefault();
+                },
+                onError: (error: any) => {
+                    toast.error(error?.response?.data?.message || 'خطا در ثبت آدرس');
+                },
+            }
+        );
+    };
+
+    const handleSubmitOrder = () => {
+        if (!defaultAddress && !showAddressForm) {
+            toast.error('لطفاً آدرس تحویل را تعیین کنید');
+            return;
+        }
+        const addressData = defaultAddress;
+        if (!addressData) return;
+
+        const orderPayload = {
+            shippingAddress: `${addressData.province}، ${addressData.city}، ${addressData.address}`,
+            shippingName: addressData.fullName,
+            shippingPhone: addressData.phone,
+            shippingPostal: addressData.postalCode || '',
+            shippingCity: addressData.city,
+            shippingProvince: addressData.province,
+            notes: addressForm.getValues('description') || '',
+            shippingMethod,
+            addressId: addressData.id,
+            paymentMethod,
+            discountCode: discont,
+        };        
+        orderCreate(orderPayload, {
             onSuccess: ({ data }) => {
-                toast.success('آدرس جدید با موفقیت ثبت شد');
-                setShowAddressForm(false);
-                reset();
-                refetchDefault();
-                setShipping({
-                    name: data.fullName || '',
-                    phone: data.phone || '',
-                    email: '',
-                    province: data.province || '',
-                    city: data.city || '',
-                    address: data.address || '',
-                    postal: data.postalCode || '',
-                    description: '',
-                });
-                setIdAdress(data.id)
+                setOrderNumber(data?.orderNumber || 'ORD-' + Math.floor(100000 + Math.random() * 900000));
+                setStep('success');
+                refetchCart();
             },
-            onError: (error: any) => {
-                const message = error?.response?.data?.message || 'خطا در ثبت آدرس';
-                toast.error(message);
-            }
+            onError: (err: any) => {
+                toast.error(err?.response?.data?.message || 'خطا در ثبت سفارش');
+            },
         });
     };
 
-    const handlePlaceOrder = async () => {
-        if (!shipping.name || !shipping.phone || !shipping.city || !shipping.address) {
-            toast.error('لطفاً اطلاعات ارسال را کامل کنید');
-            return;
-        }
-        if (cartItems.length === 0) {
-            toast.error('سبد خرید خالی است');
-            return;
-        }
-        try {
-            const orderData = {
-                items: cartItems.map((item) => ({
-                    productId: item.productId,
-                    quantity: Number(item.quantity),
-                    price: Number(discountChange(item.variant.price, item.variant.discount).total),
-                })),
-                shippingAddress: `${shipping.province}، ${shipping.city}، ${shipping.address}`,
-                shippingName: shipping.name,
-                shippingPhone: shipping.phone,
-                shippingPostal: shipping.postal,
-                shippingCity: shipping.city,
-                shippingProvince: shipping.province,
-                notes: shipping.description,
-                shippingMethod: shippingMethod,
-                addressId: idAddress,
-                paymentMethod: paymentMethod,
-                discountCode: discount ? discountCode.txt : null,
-            };
-            orderCreate(orderData, {
-                onSuccess: ({ data }) => {
-                    setOrderNumber(data.orderNumber || 'ثبت شد');
-                    setStep('success');
-                    refetch()
-                }
-            })
-        } catch (err: any) {
-            toast.error(err?.message || 'خطا در ثبت سفارش');
-        }
-    };
-
-    const checkDiscount = () => {
-        if (!discountCode.txt) {
-            return setDiscountCode({ type: 'value', message: 'کد تخفیف خود را وارد کنید', txt: '' });
-        }
-        const body = {
-            code: discountCode.txt,
-            orderAmount: price.subtotal
-        };
-        validateDiscount(body, {
-            onSuccess: ({ data }: { data: any }) => {
-                setPrice(computeTotals(price.subtotal, price.shippingCost, data));
-                setDiscount(data);
-            }
-        });
-    };
-
-    const removeDiscount = () => {
-        setDiscount(null);
-        setDiscountCode({ message: '', type: 'value', txt: '' });
-        setPrice(computeTotals(price.subtotal, price.shippingCost, null));
-    };
-
-    const changeShipping = (id: string) => {
-        setShippingMethod(id);
-        const shippingCost = SHIPPING_METHODS.find(sm => sm.id === id)?.cost || 0;
-        setPrice(computeTotals(price.subtotal, shippingCost, discount));
-    };
-
-    if (isFetching) return <PendingApi />;
     return (
-        <div className="max-w-5xl mx-auto px-4 py-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="flex items-center justify-center gap-2 mb-10">
-                    {[
-                        { key: 'cart', label: 'سبد خرید', num: 1 },
-                        { key: 'shipping', label: 'ارسال', num: 2 },
-                        { key: 'payment', label: 'پرداخت', num: 3 },
-                    ].map((s, i) => (
-                        <div key={s.key} className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${step === s.key || (step === 'success' && i <= 2) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                                {step === 'success' && i <= 2 ? '✓' : s.num}
-                            </div>
-                            <span className="text-sm font-bold hidden sm:block">{s.label}</span>
-                            {i < 2 && <div className="w-8 h-0.5 bg-border hidden sm:block" />}
-                        </div>
-                    ))}
-                </div>
-
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
+            <StepperPayment currentStep={step === 'success' ? 'payment' : 'shipping'} />
+            <AnimatePresence mode="wait">
                 {step === 'success' ? (
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className="bg-card border border-border rounded-3xl p-10 text-center max-w-lg mx-auto">
-                        <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
-                            <Check className="w-10 h-10 text-emerald-500" />
+                    <motion.div
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-card border border-border rounded-3xl p-6 sm:p-8 text-center max-w-lg mx-auto shadow-xl"
+                    >
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4 text-emerald-500">
+                            <Check className="w-7 h-7" />
                         </div>
-                        <h1 className="text-3xl font-black mb-2">سفارش با موفقیت ثبت شد! 🎉</h1>
-                        <p className="text-muted-foreground mb-2">شماره سفارش: <span className="font-mono font-bold">{orderNumber}</span></p>
-                        <p className="text-sm text-muted-foreground mb-8">مبلغ قابل پرداخت: <span className="font-black text-primary">{price.total.toLocaleString()} تومان</span></p>
-                        <div className="flex gap-4 justify-center flex-wrap">
-                            <Link replace href="/profile/orders" className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors">پیگیری سفارش</Link>
-                            <Link replace href="/" className="px-6 py-3 rounded-xl border border-border font-bold hover:bg-accent transition-colors">بازگشت به خانه</Link>
+                        <h1 className="text-xl font-bold mb-2">سفارش شما با موفقیت ثبت شد!</h1>
+                        <p className="text-xs text-muted-foreground mb-6">
+                            کد پیگیری سفارش: <span className="font-mono font-bold text-foreground select-all">{orderNumber}</span>
+                        </p>
+                        {/* باکس اطلاع‌رسانی‌های جدید به کاربر */}
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-right mb-6 space-y-2.5">
+                            <p className="text-[11px] text-foreground font-medium flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                ایمیل تأیید به همراه جزئیات فاکتور برای شما ارسال شد.
+                            </p>
+                            <p className="text-[11px] text-foreground font-medium flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                پیامک وضعیت سفارش و کد رهگیری پستی به‌محض تحویل به پست ارسال می‌شود.
+                            </p>
+                            <p className="text-[11px] text-foreground font-medium flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                می‌توانید مراحل پردازش را از بخش «پیگیری سفارش» در حساب کاربری دنبال کنید.
+                            </p>
+                        </div>
+                        <div className="flex gap-3 justify-center">
+                            <CustomButton
+                                link="/profile/orders"
+                                color='white'
+                                name='پیگیری سفارش'
+                                iconEnd={<ShoppingBag className="w-4 h-4" />}
+                            />
+                            <CustomButton
+                                link='/'
+                                color='gray'
+                                name='بازگشت به فروشگاه'
+                                iconEnd={<Store className="w-4 h-4" />}
+                            />
                         </div>
                     </motion.div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-card border border-border rounded-2xl p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-lg font-black flex items-center gap-2">
-                                        <MapPin className="w-5 h-5" /> اطلاعات ارسال
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+                    >
+                        <div className="lg:col-span-7 space-y-5">
+                            <section className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                                <div className="flex justify-between items-center mb-3.5 border-b border-border/60 pb-3">
+                                    <h2 className="text-xs font-bold flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-primary" />
+                                        محل تحویل مرسوله
                                     </h2>
                                     {!showAddressForm && (
                                         <button
-                                            onClick={() => setShowAddressForm(true)}
-                                            className="text-sm text-primary font-bold flex items-center gap-1 hover:underline"
+                                            onClick={() => { setShowAddressForm(true), addressForm.reset({}) }}
+                                            className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer"
                                         >
-                                            <Plus className="w-4 h-4" /> افزودن آدرس جدید
+                                            <Plus className="w-3.5 h-3.5" /> تغییر / افزودن آدرس
                                         </button>
                                     )}
                                 </div>
-
-                                {!showAddressForm && (
+                                {!showAddressForm ? (
                                     <>
                                         {isLoadingDefault ? (
-                                            <div className="h-32 bg-accent animate-pulse rounded-xl" />
+                                            <div className="h-20 bg-muted animate-pulse rounded-xl" />
                                         ) : defaultAddress ? (
-                                            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-                                                <div className="flex items-start justify-between">
+                                            <div className="bg-accent/30 border border-border rounded-xl p-3.5">
+                                                <div className="flex justify-between items-start gap-2">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="font-bold">{defaultAddress.fullName}</span>
-                                                            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">{defaultAddress.title} (پیش‌فرض)</span>
+                                                            <span className="font-bold text-xs">{defaultAddress.fullName}</span>
+                                                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md font-medium">
+                                                                {defaultAddress.title || 'آدرس اصلی'}
+                                                            </span>
                                                         </div>
-                                                        <p className="text-sm text-muted-foreground">{defaultAddress.phone}</p>
-                                                        <p className="text-sm">{defaultAddress.address}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {defaultAddress.province}، {defaultAddress.city}
-                                                            {defaultAddress.postalCode && ` - کد پستی: ${defaultAddress.postalCode}`}
+                                                        <p className="text-[11px] text-muted-foreground leading-relaxed">{defaultAddress.address}</p>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            {defaultAddress.province}، {defaultAddress.city} | همراه: {defaultAddress.phone}
                                                         </p>
                                                     </div>
-                                                    <Link href={'/addresses'}>
-                                                        <button
-                                                            className="text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                                                            title="ویرایش آدرس"
-                                                        >
-                                                            <Pencil className="w-4 h-4" />
-                                                        </button>
+                                                    <Link href="/profile/addresses" className="text-muted-foreground hover:text-foreground p-1">
+                                                        <Pencil className="w-3.5 h-3.5" />
                                                     </Link>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 text-center dark:bg-yellow-200/10 border dark:border-yellow-500/10">
-                                                {/* ✅ اصلاح شد: متن قبلی به‌خاطر یک تایپوی احتمالی encoding به‌صورت
-                                                    "آpresi پیش‌فرضی ثبت نشده است" نمایش داده می‌شد */}
-                                                <p className="text-sm  dark:text-slate-300">آدرس پیش‌فرضی ثبت نشده است</p>
-                                                <button
+                                            <div className="bg-muted/40 border border-dashed border-border rounded-xl p-4 text-center">
+                                                <p className="text-xs text-muted-foreground mb-2">آدرسی انتخاب نشده است</p>
+                                                <CustomButton
                                                     onClick={() => setShowAddressForm(true)}
-                                                    className="mt-2 dark:text-yellow-700 text-yellow-700 text-sm font-bold hover:underline"
-                                                >
-                                                    ثبت آدرس جدید
-                                                </button>
+                                                    color='white'
+                                                    name='افزودن آدرس جدید'
+                                                    iconEnd={<Plus />}
+                                                />
                                             </div>
                                         )}
+                                        <div className="mt-3">
+                                            <InputForm
+                                                name='description'
+                                                register={addressForm.register}
+                                                placeholder="یادداشت برای سفیر ارسال (مثلا: زنگ دوم، تحویل به نگهبانی)..."
+                                                rows={3}
+                                                className='resize-none!'
+                                                type='textarea'
+                                            />
+                                        </div>
                                     </>
-                                )}
-
-                                {showAddressForm && (
-                                    <div className="border border-border rounded-xl p-4 mb-4 bg-background">
+                                ) : (
+                                    /* فرم افزودن آدرس */
+                                    <MotionWrapper preset='slideUpBlur' className="bg-background border border-border rounded-xl p-4">
                                         <div className="flex justify-between items-center mb-3">
-                                            <h3 className="font-bold">ثبت آدرس جدید</h3>
-                                            <button
-                                                onClick={() => {
-                                                    setShowAddressForm(false);
-                                                    reset();
-                                                }}
-                                                className="text-muted-foreground hover:text-foreground transition-colors"
-                                                type="button"
-                                            >
+                                            <span className="text-xs font-bold">ثبت آدرس جدید</span>
+                                            <button onClick={() => setShowAddressForm(false)} className="text-muted-foreground hover:text-foreground">
                                                 <X className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <form onSubmit={handleSubmit(onSubmitAddress)} className="space-y-3">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                <InputForm
-                                                    name="title"
-                                                    register={register}
-                                                    label="عنوان (اختیاری)"
-                                                    placeholder="مثال: خانه، محل کار"
-                                                    error={errors.title}
-                                                />
-                                                <InputForm
-                                                    name="fullName"
-                                                    register={register}
-                                                    label="نام کامل *"
-                                                    placeholder="نام و نام خانوادگی"
-                                                    error={errors.fullName}
-                                                    required
-                                                />
-                                                <InputForm
-                                                    name="phone"
-                                                    register={register}
-                                                    label="شماره تلفن *"
-                                                    placeholder="09123456789"
-                                                    error={errors.phone}
-                                                    required
-                                                />
-                                                <InputForm
-                                                    name="province"
-                                                    register={register}
-                                                    label="استان *"
-                                                    placeholder="استان"
-                                                    error={errors.province}
-                                                    required
-                                                />
-                                                <InputForm
-                                                    name="city"
-                                                    register={register}
-                                                    label="شهر *"
-                                                    placeholder="شهر"
-                                                    error={errors.city}
-                                                    required
-                                                />
-                                                <InputForm
-                                                    name="postalCode"
-                                                    register={register}
-                                                    label="کد پستی"
-                                                    placeholder="کد پستی ۱۰ رقمی"
-                                                    error={errors.postalCode}
-                                                />
-                                            </div>
-                                            <InputForm
-                                                name="address"
-                                                register={register}
-                                                label="آدرس کامل *"
-                                                placeholder="خیابان، پلاک، واحد"
-                                                error={errors.address}
-                                                required
-                                                type='textarea'
-                                                rows={2}
-                                            />
-                                            <div className="flex gap-3 pt-2">
+                                        <form onSubmit={addressForm.handleSubmit(handleAddAddress)} className="space-y-3">
+                                            <MotionWrapper preset='fadeUp' staggerChildren={0.1} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                <InputForm autoComplete name="title" register={addressForm.register} label="عنوان" placeholder="مثلا: خانه" error={addressForm.formState.errors.title} />
+                                                <InputForm autoComplete name="fullName" register={addressForm.register} label="نام تحویل‌گیرنده" placeholder="نام کامل" error={addressForm.formState.errors.fullName} />
+                                                <InputForm autoComplete name="phone" register={addressForm.register} label="شماره تماس" placeholder="0912..." error={addressForm.formState.errors.phone} />
+                                                <InputForm autoComplete name="postalCode" register={addressForm.register} label="کد پستی" placeholder="۱۰ رقمی" error={addressForm.formState.errors.postalCode} />
+                                                <InputForm autoComplete name="province" register={addressForm.register} label="استان" placeholder="مثال: تهران" error={addressForm.formState.errors.province} />
+                                                <InputForm autoComplete name="city" register={addressForm.register} label="شهر" placeholder="مثال: تهران" error={addressForm.formState.errors.city} />
+                                            </MotionWrapper>
+                                            <MotionWrapper preset='fadeUp' delay={0.7}>
+                                                <InputForm name="address" register={addressForm.register} className='resize-none!' label="آدرس دقیق" placeholder="خیابان، کوچه، پلاک، واحد" error={addressForm.formState.errors.address} type="textarea" rows={2} />
+                                            </MotionWrapper>
+                                            <MotionWrapper preset='fadeUp' delay={0.8} className="flex gap-2 pt-1">
+                                                <CustomButton type="submit" color='white' iconEnd={<Plus />} name={isCreatingAddress ? 'در حال ثبت...' : 'ثبت آدرس'} isPending={isCreatingAddress} className="text-xs py-2" />
                                                 <CustomButton
-                                                    type="submit"
-                                                    name={isCreating ? "در حال ثبت..." : "ذخیره آدرس"}
-                                                    color="white"
-                                                    isPending={isCreating}
-                                                    disabled={isCreating}
-                                                    className="flex-1"
+                                                    type='button'
+                                                    onClick={() => setShowAddressForm(false)}
+                                                    color='gray'
+                                                    name='انصراف'
                                                 />
-                                                <CustomButton
-                                                    type="button"
-                                                    name="انصراف"
-                                                    color="gray"
-                                                    onClick={() => {
-                                                        setShowAddressForm(false);
-                                                        reset();
-                                                    }}
-                                                />
-                                            </div>
+                                            </MotionWrapper>
                                         </form>
-                                    </div>
+                                    </MotionWrapper>
                                 )}
-                                {defaultAddress && !showAddressForm && (
-                                    <div>
-                                        <InputForm
-                                            name="description"
-                                            label="توضیحات سفارش"
-                                            value={shipping.description}
-                                            onChange={(e) => setShipping({ ...shipping, description: e.target.value })}
-                                            type='textarea'
-                                            rows={2}
-                                            placeholder="توضیحات اضافی برای سفارش..."
-                                        />
+                            </section>
+                            {shippingData?.length ?
+                                <section className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                                    <h2 className="text-xs font-bold mb-3 flex items-center gap-2 border-b border-border/60 pb-3">
+                                        <Truck className="w-4 h-4 text-primary" />
+                                        شیوه ارسال
+                                    </h2>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        {shippingData?.map((sm) => {
+                                            const isSelected = shippingMethod === sm.id;
+                                            return (
+                                                <label
+                                                    key={sm.id}
+                                                    onClick={() => setShippingMethod(sm.id)}
+                                                    className={`relative flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${isSelected
+                                                        ? 'bg-primary/5 border-primary shadow-sm'
+                                                        : 'bg-background border-border hover:border-muted-foreground/40'
+                                                        }`}
+                                                >
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="text-xs font-bold">{sm.name}</span>
+                                                            {sm.phrase && (
+                                                                <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
+                                                                    {sm.phrase}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+                                                            <Clock className="w-3 h-3 text-muted-foreground/70" />
+                                                            {sm.estimatedDays}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+                                                            {sm.description}
+                                                        </p>
+                                                    </div>
+                                                    <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between">
+                                                        <span className="text-[11px] font-bold text-primary">
+                                                            {sm.cost === 0 ? 'رایگان' : `${sm.cost.toLocaleString()} تومان`}
+                                                        </span>
+                                                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}>
+                                                            {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground stroke-3" />}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
                                     </div>
-                                )}
-                            </div>
-
-                            <div className="bg-card border border-border rounded-2xl p-6">
-                                <h2 className="text-lg font-black mb-4 flex items-center gap-2"><Truck className="w-5 h-5" /> روش ارسال</h2>
-                                <div className="space-y-3">
-                                    {SHIPPING_METHODS.map(sm => (
-                                        <label key={sm.id} className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${shippingMethod === sm.id ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="shipping" checked={shippingMethod === sm.id} onChange={() => changeShipping(sm.id)} className="w-4 h-4" />
-                                                <div>
-                                                    <div className="font-bold text-sm">{sm.name}</div>
-                                                    <div className="text-xs text-muted-foreground">{sm.days}</div>
+                                </section>
+                                : null
+                            }
+                            {/* ۳. شیوه پرداخت */}
+                            <section className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                                <h2 className="text-xs font-bold mb-3 flex items-center gap-2 border-b border-border/60 pb-3">
+                                    <CreditCard className="w-4 h-4 text-primary" />
+                                    شیوه پرداخت
+                                </h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {PAYMENT_METHODS.map((pm) => {
+                                        const isSelected = paymentMethod === pm.id;
+                                        const IconComponent = pm.icon;
+                                        return (
+                                            <label
+                                                key={pm.id}
+                                                onClick={() => setPaymentMethod(pm.id)}
+                                                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${isSelected
+                                                    ? 'bg-primary/5 border-primary shadow-sm'
+                                                    : 'bg-background border-border hover:border-muted-foreground/40'
+                                                    }`}
+                                            >
+                                                <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                                    <IconComponent className="w-4 h-4" />
                                                 </div>
-                                            </div>
-                                            <span className="font-bold text-sm">{sm.cost > 0 ? sm.cost.toLocaleString() + ' تومان' : 'رایگان'}</span>
-                                        </label>
-                                    ))}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold">{pm.name}</span>
+                                                        {pm.badge && (
+                                                            <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                                                                {pm.badge}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                                                        {pm.description}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
                                 </div>
-                            </div>
-
-                            <div className="bg-card border border-border rounded-2xl p-6">
-                                <h2 className="text-lg font-black mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5" /> روش پرداخت</h2>
-                                <div className="space-y-3">
-                                    {PAYMENT_METHODS.map(pm => (
-                                        <label key={pm.id} className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === pm.id ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="payment" checked={paymentMethod === pm.id} onChange={() => setPaymentMethod(pm.id)} className="w-4 h-4" />
-                                                <pm.icon className="w-5 h-5 text-muted-foreground" />
-                                                <span className="font-bold text-sm">{pm.name}</span>
-                                            </div>
-                                        </label>
-                                    ))}
-                                </div>
+                            </section>
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1">
+                                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span>اطلاعات شما به صورت امن و رمزنگاری شده پردازش می‌شوند.</span>
                             </div>
                         </div>
-
-                        <div className="lg:col-span-1">
-                            <div className="bg-card border border-border rounded-2xl p-6 sticky top-24">
-                                <h2 className="text-lg font-black mb-4">خلاصه سفارش</h2>
-                                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                                    {cartItems.map((item) => (
-                                        <div key={item.product?.id || item.id} className="flex items-center gap-3">
-                                            {item.product?.images?.length ? (
-                                                <ImgTag src={item.product.images[0].url} alt={item.product.title} className="w-12 h-12 rounded-lg object-cover" />
-                                            ) : (
-                                                <div className="w-12 h-12 rounded-lg bg-accent flex items-center justify-center">
-                                                    <ShoppingBag className="w-5 h-5 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-bold truncate">{item.product.title}</div>
-                                                <div className="text-xs text-muted-foreground">{item.quantity} عدد</div>
-                                            </div>
-                                            <span className="text-sm font-bold">{getItemTotal(item).toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                    {cartItems.length === 0 && (
-                                        <p className="text-sm text-muted-foreground text-center py-4">سبد خرید خالی است</p>
-                                    )}
-                                </div>
-                                {discount ? (
-                                    <div className="flex items-center justify-between mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20">
-                                        <div className="text-sm">
-                                            <span className="font-bold">{discountCode.txt}</span>
-                                            <span className="text-emerald-600 mr-2">اعمال شد</span>
-                                        </div>
-                                        <button
-                                            onClick={removeDiscount}
-                                            className="text-muted-foreground hover:text-foreground transition-colors"
-                                            type="button"
-                                            title="حذف کد تخفیف"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex gap-2 mb-4">
-                                        <InputForm
-                                            name='discountCode'
-                                            value={discountCode.txt}
-                                            placeholder="کد تخفیف"
-                                            className="flex-1 h-10 px-3 rounded-xl border border-border bg-background text-sm"
-                                            error={discountCode}
-                                            onChange={e => setDiscountCode({ type: 'value', message: '', txt: e.target.value })}
-                                        />
-                                        <CustomButton
-                                            name='اعمال'
-                                            className="h-10 px-4 rounded-xl bg-accent font-bold text-sm hover:bg-muted transition-colors"
-                                            onClick={checkDiscount}
-                                            isPending={isPendingValidate}
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="space-y-2 text-sm border-t border-border pt-4">
-                                    <div className="flex justify-between"><span className="text-muted-foreground">جمع سبد خرید</span><span>{price.subtotal.toLocaleString()} تومان</span></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">هزینه ارسال</span><span>{price.shippingCost > 0 ? price.shippingCost.toLocaleString() + ' تومان' : 'رایگان'}</span></div>
-                                    {price.discount > 0 && <div className="flex justify-between text-emerald-600"><span>تخفیف</span><span>{price.discount.toLocaleString()} تومان</span></div>}
-                                    <div className="flex justify-between text-lg font-black border-t border-border pt-3">
-                                        <span>مبلغ قابل پرداخت</span>
-                                        <span className="text-primary">{price.total.toLocaleString()} تومان</span>
-                                    </div>
-                                </div>
-
-                                <button onClick={handlePlaceOrder} disabled={pendingOrder || cartItems.length === 0}
-                                    className="w-full mt-6 h-12 rounded-xl bg-linear-to-r from-primary to-secondary text-white font-black text-base hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {pendingOrder ? 'در حال پردازش...' : 'ثبت سفارش'}
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-
-                                <div className="mt-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-                                    <ShieldIcon className="w-4 h-4" /> پرداخت امن
-                                </div>
+                        <div className="lg:col-span-5">
+                            <div className="sticky top-6">
+                                <SummarySection setDiscount={setDiscount} showDiscountForm pendingOrder={isPendingOrder} btnIcon={<ShoppingBag className="w-4 h-4" />} onSubmit={handleSubmitOrder} btnName='ثبت سفارش' showPayment showShipping paymentId={paymentMethod}
+                                    shippingMethodId={shippingMethod} />
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
-            </motion.div>
+            </AnimatePresence>
         </div>
-    );
-}
-
-function ShieldIcon(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
     );
 }

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
-import { Star, Eye, ShoppingBag, Store, Sparkles, CheckCircle2, ImageIcon, ArrowLeft, ShoppingBasket } from 'lucide-react';
+import { Star, Eye, ShoppingBag, Sparkles, CheckCircle2, ImageIcon, ArrowLeft, ShoppingBasket, X } from 'lucide-react';
 import ImgTag from '../ImgTag';
 import CustomButton from '../CustomButton';
 import { ProductEntity } from '@/services/product.service';
@@ -40,21 +40,24 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-5 sm:p-7 max-h-[85vh] overflow-y-auto">
             <div className="md:col-span-5 space-y-3 w-full">
-              <div className="relative aspect-4/3 sm:aspect-square rounded-2xl bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 overflow-hidden flex items-center justify-center p-3">
+              <div className="relative aspect-4/3 sm:aspect-square rounded-2xl bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 overflow-hidden">
                 {images.length > 0 ? (
                   <ImgTag
+                    figureClass='h-full'
                     src={images[activeImageIndex]?.url}
                     alt={images[activeImageIndex]?.alt || product.title}
-                    className="w-full h-full object-contain object-center transition-transform duration-500 hover:scale-105"
+                    className="h-full w-full object-cover object-center transition-transform duration-500 hover:scale-105"
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 space-y-1">
+                  <div className="flex h-full w-full flex-col items-center justify-center text-slate-400 dark:text-slate-600 space-y-1">
                     <ImageIcon className="w-12 h-12 stroke-[1.5]" />
                     <span className="text-xs">تصویری ثبت نشده است</span>
                   </div>
                 )}
+
+                {/* بج‌ها */}
                 {hasDiscount && (
-                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-linear-to-tr from-rose-600 to-pink-500 text-white font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-xl shadow-md shadow-rose-500/30">
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-linear-to-tr from-rose-600 to-pink-500 text-white font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-xl shadow-md shadow-rose-500/30 z-10">
                     ٪{discountPercent} تخفیف
                   </div>
                 )}
@@ -132,13 +135,6 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
                     </div>
                     <span className="text-xs text-slate-400">({product.reviewCount || 0} دیدگاه)</span>
                   </div>
-
-                  {product.seller?.storeName && (
-                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                      <Store className="w-3.5 h-3.5 text-slate-400" />
-                      <span>فروشگاه: <strong className="text-slate-700 dark:text-slate-200">{product.seller.storeName}</strong></span>
-                    </span>
-                  )}
                 </div>
 
                 {/* توضیحات */}
@@ -179,22 +175,14 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                   <CustomButton
                     onClick={addOrder}
-                    name='افزودن به سبد خرید'
+                    name='مشاهده محصول'
+                    link={`/product/${product.slug}`}
                     color='blueRadinat'
                     iconEnd={<ShoppingBag className="w-4 h-4" />}
                   />
-                  <Link
-                    href={`/product/${product.slug}`}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm py-2.5 sm:py-3 px-4 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all group shrink-0"
-                  >
-                    <span>مشاهده کامل</span>
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                  </Link>
                 </div>
               </div>
-
             </div>
-
           </div>
         </DialogContent>
       </Dialog>

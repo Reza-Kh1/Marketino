@@ -34,7 +34,7 @@ export class AppService {
           },
           images: { where: { isMain: true }, take: 1 },
           category: { select: { name: true, nameEn: true, id: true, slug: true, slugEn: true, } },
-          seller: { select: { id: true, storeName: true } },
+          store: { select: { id: true, name: true } },
           brand: { select: { name: true, nameEn: true, slug: true } },
           brandId: true,
           id: true,
@@ -71,7 +71,7 @@ export class AppService {
           },
           images: { where: { isMain: true }, take: 1 },
           category: { select: { name: true, nameEn: true, id: true, slug: true, slugEn: true, } },
-          seller: { select: { id: true, storeName: true } },
+          store: { select: { id: true, name: true } },
           brand: { select: { name: true, nameEn: true, slug: true } },
           brandId: true,
           id: true,
@@ -125,84 +125,6 @@ export class AppService {
   }
 
   /**
-   * جستجوی محصولات
-   * جستجو در عنوان، توضیحات و نام فروشنده
-   */
-  async search(
-    query: string,
-    page: number = 1,
-    limit: number = 20,
-    filters?: { category?: string; minPrice?: number; maxPrice?: number; sort?: string },
-  ) {
-    const skip = (page - 1) * limit;
-
-    // ساخت شرط‌های where
-    const where: any = {
-      status: 'approved',
-    };
-
-    if (query) {
-      where.OR = [
-        { title: { contains: query, mode: 'insensitive' } },
-        { titleEn: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { descriptionEn: { contains: query, mode: 'insensitive' } },
-        { brand: { contains: query, mode: 'insensitive' } },
-        { sku: { contains: query, mode: 'insensitive' } },
-      ];
-    }
-
-    if (filters?.category) {
-      where.categoryId = filters.category;
-    }
-
-    if (filters?.minPrice || filters?.maxPrice) {
-      where.price = {};
-      if (filters.minPrice) where.price.gte = filters.minPrice;
-      if (filters.maxPrice) where.price.lte = filters.maxPrice;
-    }
-
-    // ترتیب‌بندی
-    let orderBy: any = { createdAt: 'desc' };
-    if (filters?.sort) {
-      switch (filters.sort) {
-        case 'price_asc': orderBy = { price: 'asc' }; break;
-        case 'price_desc': orderBy = { price: 'desc' }; break;
-        case 'newest': orderBy = { createdAt: 'desc' }; break;
-        case 'oldest': orderBy = { createdAt: 'asc' }; break;
-        case 'popular': orderBy = { saleCount: 'desc' }; break;
-        case 'rating': orderBy = { rating: 'desc' }; break;
-      }
-    }
-
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        include: {
-          images: { where: { isMain: true }, take: 1 },
-          category: true,
-          seller: { select: { id: true, storeName: true } },
-        },
-        skip,
-        take: limit,
-        orderBy,
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    return {
-      products,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasMore: skip + limit < total,
-      },
-    };
-  }
-
-  /**
    * تولید Sitemap برای موتورهای جستجو
    */
   async generateSitemap(lang: string = 'fa') {
@@ -223,8 +145,8 @@ export class AppService {
         select: { slug: true, slugEn: true, updatedAt: true },
       }),
       this.prisma.user.findMany({
-        where: { role: 'seller', sellerStatus: 'approved', isActive: true },
-        select: { storeName: true, updatedAt: true },
+        where: { role: 'seller', store: { status: 'approved' }, isActive: true },
+        select: { store: { select: { name: true } }, updatedAt: true },
       }),
     ]);
 
@@ -255,8 +177,8 @@ export class AppService {
 
     // فروشنده‌ها
     for (const s of sellers) {
-      if (s.storeName) {
-        urls.push(this.buildUrl(baseUrl, `/seller/${encodeURIComponent(s.storeName)}`, 'weekly', '0.5'));
+      if (s.store?.name) {
+        urls.push(this.buildUrl(baseUrl, `/shops/${encodeURIComponent(s.store.name)}`, 'weekly', '0.5'));
       }
     }
 

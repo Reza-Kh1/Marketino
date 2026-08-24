@@ -336,7 +336,7 @@ export default function AdminQnAPage() {
             />
 
             <DynamicTable
-                data={qnaData?.items || []}
+                data={qnaData?.qnas || []}
                 columns={columns}
                 totalRows={qnaData?.pagination.total || 0}
                 isLoading={isFetching}
@@ -372,17 +372,17 @@ export default function AdminQnAPage() {
                     <DialogFooter>
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="flex w-full justify-between pt-2 gap-2">
                             <CustomButton
-                                color="blueLow"
-                                iconEnd={<X className='w-4 h-4' />}
-                                name={'انصراف'}
-                                onClick={closeModal}
-                            />
-                            <CustomButton
                                 form="qna-form"
                                 color="white"
                                 onClick={submitAnswer}
                                 name={"ثبت و ارسال پاسخ"}
                                 iconStart={<Send className={`w-4 h-4 rotate-12`} />}
+                            />
+                            <CustomButton
+                                color="blueLow"
+                                iconEnd={<X className='w-4 h-4' />}
+                                name={'انصراف'}
+                                onClick={closeModal}
                             />
                         </MotionWrapper>
                     </DialogFooter>

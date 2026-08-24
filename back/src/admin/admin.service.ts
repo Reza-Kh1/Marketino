@@ -40,9 +40,9 @@ export class AdminService {
       this.prisma.user.count(),
       this.prisma.user.count({ where: { role: 'buyer' } }),
       this.prisma.user.count({ where: { role: 'seller' } }),
-      this.prisma.user.count({ where: { sellerStatus: 'pending' } }),
-      this.prisma.user.count({ where: { sellerStatus: 'approved' } }),
-      this.prisma.user.count({ where: { sellerStatus: 'rejected' } }),
+      this.prisma.user.count({ where: { role: 'seller', store: { status: 'pending' } } }),
+      this.prisma.user.count({ where: { role: 'seller', store: { status: 'approved' } } }),
+      this.prisma.user.count({ where: { role: 'seller', store: { status: 'rejected' } } }),
       this.prisma.product.count(),
       this.prisma.product.count({ where: { status: 'pending' } }),
       this.prisma.product.count({ where: { status: 'approved' } }),
@@ -72,7 +72,7 @@ export class AdminService {
 
     // Recent users
     const recentUsers = await this.prisma.user.findMany({
-      select: { id: true, username: true, email: true, role: true, sellerStatus: true, isActive: true, createdAt: true },
+      select: { id: true, username: true, email: true, role: true, isActive: true, createdAt: true },
       take: 10,
       orderBy: { createdAt: 'desc' },
     });
@@ -97,42 +97,59 @@ export class AdminService {
       });
     }
 
-    // Top sellers
+    // Top sellers - از طریق Store باrelation
     const topSellers = await this.prisma.user.findMany({
-      where: { role: 'seller', sellerStatus: 'approved' },
+      where: { role: 'seller', store: { status: 'approved' } },
       select: {
-        id: true, storeName: true, storeLogo: true, username: true,
-        _count: { select: { products: true } },
-        products: { select: { _count: { select: { orderItems: true } } } },
-        sellerReviewReceived: { select: { rating: true } },
+        id: true,
+        username: true,
+        store: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            commissionRate: true,
+            products: { select: { _count: { select: { orderItems: true } } } },
+            _count: { select: { products: true } },
+            rating: { select: { avgRating: true, totalReviews: true } },
+            storeReview: { select: { rating: true } },
+          },
+        },
       },
       take: 5,
     });
 
     const topSellersFormatted = topSellers.map(s => {
-      const totalSales = s.products.reduce((sum, p) => sum + p._count.orderItems, 0);
-      const ratings = s.sellerReviewReceived.map(r => r.rating);
-      const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      const store = s.store;
+      if (!store) return null;
+      const totalSales = store.products.reduce((sum: number, p: any) => sum + p._count.orderItems, 0);
+      const ratings = (store.storeReview as any[]).map((r: any) => r.rating);
+      const avgRating = ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0;
       return {
         id: s.id,
-        storeName: s.storeName || s.username,
-        storeLogo: s.storeLogo,
+        storeName: store.name || s.username,
+        storeLogo: store.logo,
         totalSales,
-        productCount: s._count.products,
+        productCount: store._count.products,
         rating: Math.round(avgRating * 10) / 10,
         reviewCount: ratings.length,
       };
-    });
+    }).filter(Boolean);
 
     // Pending sellers
     const pendingSellerList = await this.prisma.user.findMany({
-      where: { sellerStatus: 'pending' },
-      select: { id: true, username: true, storeName: true, businessType: true, createdAt: true },
+      where: { role: 'seller', store: { status: 'pending' } },
+      select: {
+        id: true,
+        username: true,
+        store: { select: { name: true, businessType: true } },
+        createdAt: true,
+      },
       take: 10,
     });
 
     // Count of seller reviews
-    const totalSellerReviews = await this.prisma.sellerReview.count();
+    const totalSellerReviews = await this.prisma.storeReview.count();
 
     return {
       stats: {
@@ -259,44 +276,54 @@ export class AdminService {
     const sellers = await this.prisma.user.findMany({
       where: { role: 'seller' },
       select: {
-        id: true, storeName: true, isVerified: true, sellerStatus: true,
-        _count: { select: { sellerReviewReceived: true } },
-        sellerRating: {
+        id: true,
+        username: true,
+        store: {
           select: {
-            avgRating: true, totalReviews: true, responseRate: true,
-            onTimeDelivery: true, productQuality: true, communication: true,
+            id: true,
+            name: true,
+            isVerified: true,
+            status: true,
+            _count: { select: { storeReview: true } },
+            rating: {
+              select: {
+                avgRating: true, totalReviews: true, responseRate: true,
+                onTimeDelivery: true, productQuality: true, communication: true,
+              },
+            },
+            storeReview: { select: { rating: true } },
           },
         },
-        sellerReviewReceived: { select: { rating: true } },
       },
     });
 
     const totalSellers = sellers.length;
-    const verifiedSellers = sellers.filter(s => s.isVerified).length;
-    const approvedSellers = sellers.filter(s => s.sellerStatus === 'approved').length;
+    const verifiedSellers = sellers.filter(s => s.store?.isVerified).length;
+    const approvedSellers = sellers.filter(s => s.store?.status === 'approved').length;
 
     // Average rating
-    const allRatings = sellers.flatMap(s => s.sellerReviewReceived.map(r => r.rating));
+    const allRatings = sellers.flatMap(s => s.store?.storeReview?.map((r: any) => r.rating) || []);
     const avgRating = allRatings.length > 0 ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length) : 0;
 
     // Average response rate
-    const responseRates = sellers
-      .filter(s => s.sellerRating?.responseRate != null)
-      .map(s => s.sellerRating!.responseRate);
+    const responseRates: number[] = [];
+    const deliveryRates: number[] = [];
+    for (const s of sellers) {
+      const rating = s.store?.rating as any;
+      if (rating) {
+        responseRates.push(rating.responseRate);
+        deliveryRates.push(rating.onTimeDelivery);
+      }
+    }
     const avgResponseRate = responseRates.length > 0
       ? responseRates.reduce((a, b) => a + b, 0) / responseRates.length
       : 0;
-
-    // Average on-time delivery
-    const deliveryRates = sellers
-      .filter(s => s.sellerRating?.onTimeDelivery != null)
-      .map(s => s.sellerRating!.onTimeDelivery);
     const avgOnTimeDelivery = deliveryRates.length > 0
       ? deliveryRates.reduce((a, b) => a + b, 0) / deliveryRates.length
       : 0;
 
     // Total reviews
-    const totalReviews = sellers.reduce((sum, s) => sum + s._count.sellerReviewReceived, 0);
+    const totalReviews = sellers.reduce((sum, s) => sum + (s.store?._count?.storeReview || 0), 0);
 
     // Rating tiers
     const ratingTiers = {
@@ -308,32 +335,36 @@ export class AdminService {
 
     // Top rated sellers (with most reviews)
     const topRatedSellers = sellers
-      .filter(s => s._count.sellerReviewReceived > 0)
-      .sort((a, b) => b._count.sellerReviewReceived - a._count.sellerReviewReceived)
+      .filter(s => s.store && (s.store._count?.storeReview || 0) > 0)
+      .sort((a, b) => ((b.store?._count?.storeReview || 0) - (a.store?._count?.storeReview || 0)))
       .slice(0, 5)
-      .map(s => ({
-        id: s.id,
-        storeName: s.storeName,
-        isVerified: s.isVerified,
-        reviewCount: s._count.sellerReviewReceived,
-        avgRating: Math.round(
-          (s.sellerReviewReceived.reduce((sum, r) => sum + r.rating, 0) / s.sellerReviewReceived.length) * 10,
-        ) / 10,
-      }));
+      .map(s => {
+        const reviews = (s.store?.storeReview || []) as any[];
+        const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+        return {
+          id: s.id,
+          storeName: s.store?.name,
+          isVerified: s.store?.isVerified,
+          reviewCount: s.store?._count?.storeReview || 0,
+          avgRating: Math.round(avg * 10) / 10,
+        };
+      });
 
     // Low rated sellers (needs review)
     const lowRatedSellers = sellers
-      .filter(s => s._count.sellerReviewReceived >= 3)
-      .map(s => ({
-        id: s.id,
-        storeName: s.storeName,
-        isVerified: s.isVerified,
-        reviewCount: s._count.sellerReviewReceived,
-        avgRating: Math.round(
-          (s.sellerReviewReceived.reduce((sum, r) => sum + r.rating, 0) / s.sellerReviewReceived.length) * 10,
-        ) / 10,
-      }))
-      .filter(s => s.avgRating < 3)
+      .filter(s => s.store && (s.store._count?.storeReview || 0) >= 3)
+      .map(s => {
+        const reviews = (s.store?.storeReview || []) as any[];
+        const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+        return {
+          id: s.id,
+          storeName: s.store?.name,
+          isVerified: s.store?.isVerified,
+          reviewCount: s.store?._count?.storeReview || 0,
+          avgRating: Math.round(avg * 10) / 10,
+        };
+      })
+      .filter((s: any) => s.avgRating < 3)
       .sort((a, b) => a.avgRating - b.avgRating)
       .slice(0, 5);
 
@@ -358,12 +389,12 @@ export class AdminService {
 
   async getColleagues(currentUserId: string) {
     const currentUser = await this.prisma.user.findUnique({ where: { id: currentUserId } });
-    if (!currentUser?.isSuperAdmin) {
+    if (!currentUser || currentUser.role !== 'superAdmin') {
       throw new ForbiddenException('فقط مدیر اصلی می‌تواند همکاران را مدیریت کند');
     }
 
     return this.prisma.user.findMany({
-      where: { role: 'admin', isSuperAdmin: false, createdBy: currentUserId },
+      where: { role: 'admin', createdBy: currentUserId },
       select: {
         id: true, username: true, email: true, firstName: true, lastName: true,
         permissions: true, isActive: true, createdAt: true,
@@ -377,7 +408,7 @@ export class AdminService {
     permissions: string[]; firstName?: string; lastName?: string;
   }) {
     const currentUser = await this.prisma.user.findUnique({ where: { id: currentUserId } });
-    if (!currentUser?.isSuperAdmin) {
+    if (!currentUser || currentUser.role !== 'superAdmin') {
       throw new ForbiddenException('فقط مدیر اصلی می‌تواند همکار جدید اضافه کند');
     }
 
@@ -399,7 +430,6 @@ export class AdminService {
         firstName: data.firstName || '',
         lastName: data.lastName || '',
         role: 'admin',
-        isSuperAdmin: false,
         permissions: JSON.stringify(data.permissions),
         createdBy: currentUserId,
         isVerified: true,
@@ -417,12 +447,12 @@ export class AdminService {
 
   async updateColleaguePermissions(currentUserId: string, colleagueId: string, permissions: string[]) {
     const currentUser = await this.prisma.user.findUnique({ where: { id: currentUserId } });
-    if (!currentUser?.isSuperAdmin) {
+    if (!currentUser || currentUser.role !== 'superAdmin') {
       throw new ForbiddenException('فقط مدیر اصلی می‌تواند دسترسی‌ها را تغییر دهد');
     }
 
     const colleague = await this.prisma.user.findFirst({
-      where: { id: colleagueId, role: 'admin', isSuperAdmin: false, createdBy: currentUserId },
+      where: { id: colleagueId, role: 'admin', createdBy: currentUserId },
     });
     if (!colleague) {
       throw new NotFoundException('همکار یافت نشد');
@@ -438,12 +468,12 @@ export class AdminService {
 
   async toggleColleagueActive(currentUserId: string, colleagueId: string) {
     const currentUser = await this.prisma.user.findUnique({ where: { id: currentUserId } });
-    if (!currentUser?.isSuperAdmin) {
+    if (!currentUser || currentUser.role !== 'superAdmin') {
       throw new ForbiddenException('فقط مدیر اصلی می‌تواند وضعیت همکار را تغییر دهد');
     }
 
     const colleague = await this.prisma.user.findFirst({
-      where: { id: colleagueId, role: 'admin', isSuperAdmin: false, createdBy: currentUserId },
+      where: { id: colleagueId, role: 'admin', createdBy: currentUserId },
     });
     if (!colleague) {
       throw new NotFoundException('همکار یافت نشد');
@@ -463,12 +493,12 @@ export class AdminService {
 
   async removeColleague(currentUserId: string, colleagueId: string) {
     const currentUser = await this.prisma.user.findUnique({ where: { id: currentUserId } });
-    if (!currentUser?.isSuperAdmin) {
+    if (!currentUser || currentUser.role !== 'superAdmin') {
       throw new ForbiddenException('فقط مدیر اصلی می‌تواند همکار را حذف کند');
     }
 
     const colleague = await this.prisma.user.findFirst({
-      where: { id: colleagueId, role: 'admin', isSuperAdmin: false, createdBy: currentUserId },
+      where: { id: colleagueId, role: 'admin', createdBy: currentUserId },
     });
     if (!colleague) {
       throw new NotFoundException('همکار یافت نشد');
@@ -487,41 +517,41 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const [reviews, total] = await Promise.all([
-      this.prisma.sellerReview.findMany({
+      this.prisma.storeReview.findMany({
         include: {
-          reviewer: { select: { id: true, username: true, firstName: true, lastName: true } },
-          seller: { select: { id: true, storeName: true, username: true } },
+          user: { select: { id: true, username: true, firstName: true, lastName: true } },
+          store: { select: { id: true, name: true, slug: true } },
         },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.sellerReview.count(),
+      this.prisma.storeReview.count(),
     ]);
 
     return { reviews, total, page, pages: Math.ceil(total / limit) };
   }
 
   async deleteSellerReview(currentUserId: string, reviewId: string) {
-    const review = await this.prisma.sellerReview.findUnique({ where: { id: reviewId } });
+    const review = await this.prisma.storeReview.findUnique({ where: { id: reviewId } });
     if (!review) {
       throw new NotFoundException('نظر یافت نشد');
     }
 
-    await this.prisma.sellerReview.delete({ where: { id: reviewId } });
+    await this.prisma.storeReview.delete({ where: { id: reviewId } });
 
     // Recalculate seller rating
-    const sellerReviews = await this.prisma.sellerReview.findMany({
-      where: { sellerId: review.sellerId },
+    const sellerReviews = await this.prisma.storeReview.findMany({
+      where: { storeId: review.storeId },
       select: { rating: true },
     });
 
     if (sellerReviews.length > 0) {
       const avgRating = sellerReviews.reduce((sum, r) => sum + r.rating, 0) / sellerReviews.length;
-      await this.prisma.sellerRating.upsert({
-        where: { sellerId: review.sellerId },
+      await this.prisma.storeRating.upsert({
+        where: { storeId: review.storeId },
         update: { avgRating, totalReviews: sellerReviews.length },
-        create: { sellerId: review.sellerId, avgRating, totalReviews: sellerReviews.length },
+        create: { storeId: review.storeId, avgRating, totalReviews: sellerReviews.length },
       });
     }
 
@@ -553,9 +583,10 @@ export class AdminService {
         where,
         select: {
           id: true, username: true, email: true, firstName: true, lastName: true,
-          role: true, sellerStatus: true, isActive: true, isVerified: true,
-          isSuperAdmin: true, permissions: true,
-          storeName: true, createdAt: true, _count: { select: { orders: true } },
+          role: true, isActive: true, isVerified: true,
+          permissions: true, createdAt: true,
+          store: { select: { name: true } },
+          _count: { select: { orders: true } },
         },
         skip, take: limit,
         orderBy: { createdAt: 'desc' },
@@ -565,6 +596,7 @@ export class AdminService {
     return {
       users: users.map(u => ({
         ...u,
+        storeName: u.store?.name,
         permissions: u.permissions ? JSON.parse(u.permissions) : [],
         orderCount: u._count.orders,
       })),
@@ -577,11 +609,17 @@ export class AdminService {
       where: { id },
       select: {
         id: true, username: true, email: true, firstName: true, lastName: true,
-        phone: true, avatar: true, role: true, sellerStatus: true, isActive: true,
-        isVerified: true, isSuperAdmin: true, permissions: true,
-        storeName: true, storeLogo: true, storeDescription: true, businessType: true,
-        commissionRate: true, createdAt: true,
-        _count: { select: { orders: true, products: true, sellerReviewReceived: true } },
+        phone: true, avatar: true, role: true, isActive: true,
+        isVerified: true, permissions: true,
+        store: {
+          select: {
+            id: true, name: true, slug: true, logo: true,
+            description: true, businessType: true,
+            commissionRate: true, status: true, isActive: true,
+          },
+        },
+        createdAt: true,
+        _count: { select: { orders: true } },
       },
     });
 
@@ -589,17 +627,22 @@ export class AdminService {
 
     return {
       ...user,
+      storeName: user.store?.name,
+      storeLogo: user.store?.logo,
+      storeDescription: user.store?.description,
+      businessType: user.store?.businessType,
+      commissionRate: user.store?.commissionRate,
+      sellerStatus: user.store?.status,
       permissions: user.permissions ? JSON.parse(user.permissions) : [],
       orderCount: user._count.orders,
-      productCount: user._count.products,
-      reviewCount: user._count.sellerReviewReceived,
+      productCount: 0,
     };
   }
 
   async toggleUserActive(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('کاربر یافت نشد');
-    if (user.isSuperAdmin) throw new BadRequestException('نمی‌توان مدیر اصلی را غیرفعال کرد');
+    if (user.role === 'superAdmin') throw new BadRequestException('نمی‌توان مدیر اصلی را غیرفعال کرد');
 
     const updated = await this.prisma.user.update({
       where: { id },
@@ -614,34 +657,53 @@ export class AdminService {
     if (!user) throw new NotFoundException('کاربر یافت نشد');
     if (user.role !== 'seller') throw new BadRequestException('کاربر فروشنده نیست');
 
-    const updated = await this.prisma.user.update({
-      where: { id },
-      data: {
-        sellerStatus: data.approved ? 'approved' : 'rejected',
-        sellerReason: data.reason || null,
-        isVerified: data.approved,
-        isActive: data.approved,
-      },
-    });
+    // بررسی اینکه آیا store وجود دارد یا خیر
+    let store = await this.prisma.store.findUnique({ where: { ownerId: id } });
+    if (!store) {
+      // ایجاد store اگر وجود ندارد
+      store = await this.prisma.store.create({
+        data: {
+          ownerId: id,
+          name: `${user.firstName || user.username} فروشگاه`,
+          nameEn: `${user.firstName || user.username}'s Store`,
+          slug: `${user.username}-store`,
+          status: data.approved ? 'approved' : 'rejected',
+          statusReason: data.reason || null,
+          isActive: data.approved,
+          isVerified: data.approved,
+          commissionRate: 10,
+        },
+      });
+    } else {
+      store = await this.prisma.store.update({
+        where: { ownerId: id },
+        data: {
+          status: data.approved ? 'approved' : 'rejected',
+          statusReason: data.reason || null,
+          isActive: data.approved,
+          isVerified: data.approved,
+        },
+      });
+    }
 
     // 📧 ارسال ایمیل تأیید / رد فروشگاه
-    if (updated.email) {
+    if (user.email) {
       this.emailService.sendSellerApprovalEmail(
-        updated.email,
-        updated.storeName || 'فروشگاه',
+        user.email,
+        store.name || 'فروشگاه',
         data.approved,
         data.reason,
         'fa',
       ).catch(() => { });
     }
 
-    return { message: data.approved ? 'فروشنده تأیید شد' : 'فروشنده رد شد', user: updated };
+    return { message: data.approved ? 'فروشنده تأیید شد' : 'فروشنده رد شد', user: { ...user, store } };
   }
 
   async changeUserRole(id: string, role: UserRole) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('کاربر یافت نشد');
-    if (user.isSuperAdmin) throw new BadRequestException('نمی‌توان نقش مدیر اصلی را تغییر داد');
+    if (user.role === 'superAdmin') throw new BadRequestException('نمی‌توان نقش مدیر اصلی را تغییر داد');
     if (!Object.values(UserRole).includes(role)) throw new BadRequestException('نقش نامعتبر است');
 
     const updated = await this.prisma.user.update({ where: { id }, data: { role } });
@@ -662,7 +724,7 @@ export class AdminService {
     const where: Prisma.ProductWhereInput = {
       ...(brandId && { brandId }),
       ...(categoryId && { categoryId }),
-      ...(sellerId && { sellerId }),
+      ...(sellerId && { storeId: sellerId }),
       ...((condition && condition !== 'all') && { condition: condition as ProductCondition }),
       ...((status && status !== 'all') && { status: status as ProductStatus }),
       ...((featured && featured === 'true') && { isFeatured: true }),
@@ -718,7 +780,7 @@ export class AdminService {
           orderBy = { updatedAt: 'desc' };
           break;
       }
-    }    
+    }
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
@@ -740,7 +802,7 @@ export class AdminService {
           saleCount: true,
           rating: true,
           reviewCount: true,
-          sellerId: true,
+          storeId: true,
           originalPrice: true,
           minPrice: true,
           discountPercent: true,
@@ -763,7 +825,7 @@ export class AdminService {
               parentId: true,
             },
           },
-          seller: { select: { id: true, storeName: true } },
+          store: { select: { id: true, name: true } },
 
           variants: {
             where: {
@@ -893,7 +955,6 @@ export class AdminService {
               lastName: true,
               role: true,
               avatar: true,
-              businessType: true,
               email: true,
               phone: true,
               id: true,
@@ -927,7 +988,7 @@ export class AdminService {
         where,
         include: {
           user: { select: { id: true, username: true, firstName: true, lastName: true } },
-          items: { include: { seller: { select: { storeName: true } } } },
+          items: { include: { seller: { select: { id: true, store: { select: { name: true } } } } } },
         },
         skip, take: limit,
         orderBy: { createdAt: 'desc' },
@@ -957,11 +1018,20 @@ export class AdminService {
 
   async getSellerList() {
     const sellers = await this.prisma.user.findMany({
-      where: {},
-      select: { id: true, username: true, storeName: true },
+      where: { role: 'seller' },
+      select: {
+        id: true,
+        username: true,
+        store: { select: { id: true, name: true, slug: true } },
+      },
       orderBy: { createdAt: 'desc' },
-    })
-    return sellers;
+    });
+    return sellers.map(s => ({
+      id: s.id,
+      username: s.username,
+      storeName: s.store?.name,
+      storeSlug: s.store?.slug,
+    }));
   }
 
   async getSellers(params: { page?: number; status?: string }) {
@@ -970,18 +1040,30 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: any = { role: 'seller' };
-    if (params.status) where.sellerStatus = params.status;
+    if (params.status) where.store = { status: params.status };
 
     const [sellers, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
         select: {
           id: true, username: true, email: true, firstName: true, lastName: true,
-          storeName: true, storeLogo: true, businessType: true,
-          sellerStatus: true, isActive: true, isVerified: true,
-          commissionRate: true, createdAt: true,
-          _count: { select: { products: true, orders: true } },
-          sellerReviewReceived: { select: { rating: true } },
+          isActive: true, isVerified: true, createdAt: true,
+          store: {
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+              slug: true,
+              businessType: true,
+              status: true,
+              isActive: true,
+              isVerified: true,
+              commissionRate: true,
+              _count: { select: { products: true, storeReview: true } },
+              rating: { select: { avgRating: true, totalReviews: true } },
+              storeReview: { select: { rating: true } },
+            },
+          },
         },
         skip, take: limit,
         orderBy: { createdAt: 'desc' },
@@ -990,19 +1072,29 @@ export class AdminService {
     ]);
 
     const sellersFormatted = sellers.map(s => {
-      const ratings = s.sellerReviewReceived.map(r => r.rating);
+      const store = s.store;
+      const ratings = store?.storeReview?.map(r => r.rating) || [];
       const avgRating = ratings.length > 0
-        ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
+        ? Math.round((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length) * 10) / 10
         : 0;
 
       return {
-        id: s.id, username: s.username, email: s.email,
-        firstName: s.firstName, lastName: s.lastName,
-        storeName: s.storeName, storeLogo: s.storeLogo, businessType: s.businessType,
-        sellerStatus: s.sellerStatus, isActive: s.isActive, isVerified: s.isVerified,
-        commissionRate: s.commissionRate, createdAt: s.createdAt,
-        productCount: s._count.products,
-        totalSales: s._count.orders,
+        id: s.id,
+        username: s.username,
+        email: s.email,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        storeName: store?.name,
+        storeLogo: store?.logo,
+        storeSlug: store?.slug,
+        businessType: store?.businessType,
+        sellerStatus: store?.status,
+        isActive: store?.isActive ?? s.isActive,
+        isVerified: store?.isVerified ?? s.isVerified,
+        commissionRate: store?.commissionRate,
+        createdAt: s.createdAt,
+        productCount: store?._count.products,
+        totalSales: store?._count.storeReview,
         rating: avgRating,
         reviewCount: ratings.length,
       };

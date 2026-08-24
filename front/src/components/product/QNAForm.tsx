@@ -9,21 +9,22 @@ import { useAuth } from "@/lib/auth-context";
 import IsLoginUser from "../IsLoginUser";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
+import { useCreateQnA } from "@/hooks/qna.hook";
 
 type QNAFormType = {
     minimal?: boolean;
     productId: string;
     answer?: boolean;
-    id: string
+    parentId: string
 }
 
-export default function QNAForm({ minimal = false, productId, answer = false, id }: QNAFormType) {
+export default function QNAForm({ minimal = false, productId, answer = false, parentId }: QNAFormType) {
     const { user } = useAuth();
     const locale = useLocale();
     const isEn = locale === 'en';
-
     const [openDialog, setOpenDialog] = useState<boolean>(false);
     const [isLogin, setIsLogin] = useState(false);
+    const { mutate, isPending } = useCreateQnA()
     const [formData, setFormData] = useState({
         comment: "",
     });
@@ -57,11 +58,17 @@ export default function QNAForm({ minimal = false, productId, answer = false, id
     };
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.comment.trim()) return;
-        toast.success(titles.toastSuccess);
-        setFormData({ comment: "" });
-        setOpenDialog(false);
+        const body = {
+            content: formData.comment,
+            productId,
+            ...(answer && { parentId })
+        }
+        mutate(body, {
+            onSuccess: () => {
+                setFormData({ comment: "" });
+                setOpenDialog(false);
+            }
+        })
     };
 
     const handleOpenModal = () => {
@@ -74,7 +81,6 @@ export default function QNAForm({ minimal = false, productId, answer = false, id
 
     return (
         <>
-            {/* ۱. دکمه باز کردن دیالوگ (مینیمال یا دکمه اصلی) */}
             {minimal ? (
                 <button
                     onClick={handleOpenModal}
@@ -92,11 +98,7 @@ export default function QNAForm({ minimal = false, productId, answer = false, id
                     iconStart={answer ? <Reply className={`w-4 h-4 ${isEn ? '' : 'rotate-180'}`} /> : <MessageSquare className="w-4 h-4" />}
                 />
             )}
-
-            {/* ۲. مودال چک کردن لاگین */}
             <IsLoginUser open={isLogin} setOpen={setIsLogin} />
-
-            {/* ۳. دیالوگ فرم پرسش و پاسخ */}
             <Dialog onOpenChange={(val) => setOpenDialog(val)} open={openDialog}>
                 <DialogContent className={`max-w-2xl! w-full bg-admin-bg-sidebar backdrop-blur-xl border-admin-border ${isEn ? 'text-left' : 'text-right'}`}>
                     <DialogHeader>
@@ -106,9 +108,7 @@ export default function QNAForm({ minimal = false, productId, answer = false, id
                             </MotionWrapper>
                         </DialogTitle>
                     </DialogHeader>
-
-                    {/* فرم اصلی */}
-                    <form id="qna-form" onSubmit={handleSubmit} className="space-y-4 my-2">
+                    <div id="qna-form" onSubmit={handleSubmit} className="space-y-4 my-2">
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
                             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
                                 {titles.label} <span className="text-rose-500">*</span>
@@ -122,21 +122,22 @@ export default function QNAForm({ minimal = false, productId, answer = false, id
                                 className="w-full p-4 resize-none text-sm rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all min-h-30"
                             />
                         </MotionWrapper>
-                    </form>
-
+                    </div>
                     <DialogFooter>
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="flex w-full justify-between pt-2 gap-2">
                             <CustomButton
-                                type="submit"
                                 form="qna-form"
-                                color="neon"
+                                color="white"
+                                onClick={handleSubmit}
                                 name={titles.submitBtn}
+                                isPending={isPending}
                                 iconStart={<Send className={`w-4 h-4 ${isEn ? '-rotate-0' : 'rotate-45'}`} />}
                             />
                             <CustomButton
                                 color="blueLow"
                                 iconEnd={<X className='w-4 h-4' />}
                                 name={titles.cancelBtn}
+                                isPending={isPending}
                                 onClick={() => setOpenDialog(false)}
                             />
                         </MotionWrapper>

@@ -2,7 +2,7 @@
  * Discount DTOs
  */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsDateString, Min, Max, MaxLength, IsEnum } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString, Min, Max, MaxLength, IsEnum, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DiscountType } from '@prisma/client';
 
@@ -54,4 +54,13 @@ export class CreateDiscountDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({
+    description: 'وضعیت تخفیف (فعال/غیرفعال)',
+    example: true,
+    type: Boolean,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

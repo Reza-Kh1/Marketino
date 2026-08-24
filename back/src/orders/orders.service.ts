@@ -2,12 +2,56 @@
  * OrdersService - سرویس مدیریت سفارشات
  * ایجاد سفارش، تغییر وضعیت، مدیریت سفارشات فروشنده و ادمین
  */
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
 import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto';
+import { Prisma } from '@prisma/client';
+
+export function calculateShippingCost(subtotal: number, method: Prisma.ShippingMethodWhereInput): number {
+  if (Number(method.freeThreshold) === 0) return Number(method.cost)
+  if (subtotal >= Number(method.freeThreshold)) return 0;
+  return Number(method.cost);
+}
+
+interface VariantDiscount {
+  isActive: boolean;
+  value: number;
+  type: string; // 'percentage' | 'fixed' | 'amount'
+  startsAt?: Date | null;
+  endsAt?: Date | null;
+  maxDiscount?: number | null;
+}
+
+export function getVariantFinalPrice(rawPrice: number, discount: VariantDiscount | null | undefined) {
+  const originalPrice = rawPrice;
+
+  if (!discount) {
+    return { finalPrice: originalPrice, originalPrice, hasDiscount: false };
+  }
+
+  const now = new Date();
+  const isValid =
+    discount.isActive &&
+    (!discount.startsAt || now >= discount.startsAt) &&
+    (!discount.endsAt || now <= discount.endsAt);
+
+  if (!isValid) {
+    return { finalPrice: originalPrice, originalPrice, hasDiscount: false };
+  }
+
+  let finalPrice = originalPrice;
+  if (discount.type === 'percentage') {
+    const cut = originalPrice * (discount.value / 100);
+    finalPrice = originalPrice - (discount.maxDiscount ? Math.min(cut, discount.maxDiscount) : cut);
+  } else {
+    finalPrice = Math.max(0, originalPrice - discount.value);
+  }
+
+  return { finalPrice, originalPrice, hasDiscount: true };
+}
 
 @Injectable()
 export class OrdersService {
@@ -21,37 +65,105 @@ export class OrdersService {
    * ایجاد سفارش جدید از سبد خرید کاربر
    */
   async createOrder(userId: string, dto: CreateOrderDto) {
-    // دریافت سبد خرید (includes variant for pricing/stock)    
+    const shippingOrder = await this.prisma.shippingMethod.findUnique({ where: { id: dto.shippingMethod } })
+    if (!shippingOrder) {
+      throw new ForbiddenException('روش ارسال معتبر نیست')
+    }
     const cartItems = await this.prisma.cartItem.findMany({
       where: { userId },
-      include: { product: { include: { images: true } }, variant: true },
+      include: {
+        product: { include: { images: true } },
+        variant: {
+          include: {
+            color: true,
+            discount: true,
+            attributes: { include: { attribute: true } },
+          },
+        },
+      },
     });
 
     if (cartItems.length === 0) {
       throw new BadRequestException('سبد خرید خالی است');
     }
 
-    // بررسی موجودی و محاسبه قیمت‌ها (از Variant)
+    // ---------------------------------------------------------
+    // ۲. آدرس: اگه addressId اومده، باید مالِ همین کاربر باشه —
+    //    و منبع حقیقتِ فیلدهای آدرس، خودِ رکورد ذخیره‌شده‌ست نه چیزی که فرانت فرستاده
+    // ---------------------------------------------------------
+    let resolvedAddress: {
+      name: string;
+      phone: string;
+      city: string;
+      province: string;
+      address: string;
+      postal: string | null;
+    };
+
+    if (dto.addressId) {
+      const address = await this.prisma.address.findFirst({
+        where: { id: dto.addressId, userId },
+      });
+      if (!address) {
+        throw new ForbiddenException('آدرس انتخاب‌شده معتبر نیست');
+      }
+      resolvedAddress = {
+        name: address.fullName,
+        phone: address.phone,
+        city: address.city,
+        province: address.province,
+        address: address.address,
+        postal: address.postalCode,
+      };
+    } else {
+      resolvedAddress = {
+        name: dto.shippingName!,
+        phone: dto.shippingPhone!,
+        city: dto.shippingCity!,
+        province: dto.shippingProvince!,
+        address: dto.shippingAddress!,
+        postal: dto.shippingPostal ?? null,
+      };
+    }
+
+    // ---------------------------------------------------------
+    // ۳. ساخت snapshot هر آیتم (قیمت، تخفیف variant، رنگ، attributeها)
+    // ---------------------------------------------------------
     let subtotal = 0;
     const orderItems = cartItems.map(item => {
-      const price = item.variant?.price ?? 0;
-      const total = Number(price) * item.quantity;
+      const rawPrice = Number(item.variant?.price ?? 0);
+      if (!item.variant?.price) {
+        throw new BadRequestException(`قیمت "${item.product.title}" نامعتبر است`);
+      }
+
+      const { finalPrice, originalPrice, hasDiscount } = getVariantFinalPrice(rawPrice, item.variant.discount);
+      const total = finalPrice * item.quantity;
       subtotal += total;
+
       return {
         title: item.product.title,
-        price,
+        price: finalPrice,
+        originalPrice: hasDiscount ? originalPrice : null,
         quantity: item.quantity,
         total,
         productId: item.productId,
-        sellerId: item.product.sellerId,
-        sku: item.variant?.sku ?? '',
-        variantName: item.variant?.name ?? 'پیش‌فرض',
-        image: item.product.images?.[0]?.url || null,
+        sellerId: item.product.storeId || '',
+        sku: item.variant.sku ?? '',
+        variantName: item.variant.name ?? 'پیش‌فرض',
         variantId: item.variantId,
+        image: item.product.images?.[0]?.url || null,
+        colorName: item.variant.color?.name ?? null,
+        colorHex: item.variant.color?.hexCode ?? null,
+        attributes: item.variant.attributes.map(a => ({
+          key: a.attribute.key,
+          label: a.attribute.label,
+          value: a.value,
+        })),
       };
     });
 
-    // بررسی موجودی از طریق Variant
+    // بررسی موجودی — یه پیش‌چک سریع برای UX خوب (خطای زودهنگام قبل از رفتن به تراکنش)
+    // منبع حقیقتِ نهایی، چک اتمیک داخل تراکنشه (پایین‌تر)
     for (const item of cartItems) {
       const stock = item.variant?.quantity ?? 0;
       if (stock < item.quantity) {
@@ -59,106 +171,126 @@ export class OrdersService {
       }
     }
 
-    // محاسبه تخفیف
+    // ---------------------------------------------------------
+    // ۴. هزینه ارسال — همیشه سمت سرور حساب می‌شه، به فرانت اعتماد نمی‌کنیم
+    // ---------------------------------------------------------
+    const shippingCost = calculateShippingCost(subtotal, shippingOrder);
+
+    // ---------------------------------------------------------
+    // ۵. اعتبارسنجی کد تخفیف (بدون اعمال هنوز — اعمال اتمیک داخل تراکنش انجام می‌شه)
+    // ---------------------------------------------------------
     let discountAmount = 0;
     let discountId: string | null = null;
 
     if (dto.discountCode) {
       const discount = await this.prisma.discountCode.findUnique({ where: { code: dto.discountCode } });
-      if (discount && discount.isActive && new Date() >= discount.startsAt && new Date() <= discount.endsAt) {
-        if (discount.usageLimit === 0 || discount.usedCount < discount.usageLimit) {
-          if (subtotal >= discount.minOrderAmount) {
-            if (discount.type === 'percentage') {
-              discountAmount = subtotal * (discount.value / 100);
-              if (discount.maxDiscount) discountAmount = Math.min(discountAmount, discount.maxDiscount);
-            } else {
-              discountAmount = discount.value;
-            }
-            discountId = discount.id;
-            await this.prisma.discountCode.update({
-              where: { id: discount.id },
-              data: { usedCount: { increment: 1 } },
-            });
-          }
-        }
+      const now = new Date();
+      const isUsable =
+        discount &&
+        discount.isActive &&
+        now >= discount.startsAt &&
+        now <= discount.endsAt &&
+        subtotal >= discount.minOrderAmount &&
+        (discount.usageLimit === 0 || discount.usedCount < discount.usageLimit);
+
+      if (!isUsable) {
+        throw new BadRequestException('کد تخفیف نامعتبر یا منقضی‌شده است');
       }
+
+      discountAmount = discount.type === 'percentage'
+        ? Math.min((subtotal * discount.value) / 100, discount.maxDiscount || Infinity)
+        : Math.min(discount.value, subtotal);
+      discountId = discount.id;
     }
 
-    const shippingCost = 0; // TODO: محاسبه هزینه ارسال
     const total = subtotal - discountAmount + shippingCost;
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    // ایجاد سفارش + کاهش موجودی + پاک کردن سبد — همه در یک تراکنشن
-    const order = await this.prisma.$transaction(async (tx) => {
-      const createdOrder = await tx.order.create({
-        data: {
-          orderNumber,
-          userId,
-          subtotal,
-          shippingCost,
-          discountAmount,
-          total,
-          addressId: dto.addressId || undefined,
-          shippingAddress: dto.shippingAddress,
-          shippingCity: dto.shippingCity,
-          shippingProvince: dto.shippingProvince,
-          shippingPostal: dto.shippingPostal,
-          shippingPhone: dto.shippingPhone,
-          shippingName: dto.shippingName,
-          notes: dto.notes,
-          paymentMethod: dto.paymentMethod || 'card',
-          discountId,
-          // items: { create: orderItems },
-        },
-        include: { items: true },
-      });
-
-      // کاهش موجودی Variant — اتمیک با تراکنشن
+    // ---------------------------------------------------------
+    // ۶. تراکنش اصلی — همه‌چیز اتمیک: موجودی، مصرف کد تخفیف، ساخت سفارش، خالی‌کردن سبد
+    // ---------------------------------------------------------
+    const order = await this.prisma.$transaction(async tx => {
+      // کاهش موجودی به‌صورت شرطی و اتمیک — جلوگیری از over-selling در همزمانی
       for (const item of cartItems) {
-        if (item.variantId) {
-          await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: {
-              quantity: { decrement: item.quantity },
-            },
-          });
+        const result = await tx.productVariant.updateMany({
+          where: { id: item.variantId, quantity: { gte: item.quantity } },
+          data: { quantity: { decrement: item.quantity } },
+        });
+        if (result.count === 0) {
+          throw new BadRequestException(`موجودی "${item.product.title}" هم‌زمان توسط کاربر دیگری تمام شد`);
         }
-        // Update product saleCount
         await tx.product.update({
           where: { id: item.productId },
           data: { saleCount: { increment: item.quantity } },
         });
       }
 
-      // خالی کردن سبد خرید
+      // مصرف کد تخفیف — شرطی و اتمیک با raw SQL، چون updateMany نمی‌تونه دو ستون
+      // (used_count < usage_limit) رو مستقیم با هم مقایسه کنه
+      if (discountId) {
+        const updatedRows: number = await tx.$executeRaw`
+          UPDATE discount_codes
+          SET used_count = used_count + 1
+          WHERE id = ${discountId}
+            AND (usage_limit = 0 OR used_count < usage_limit)
+        `;
+        if (updatedRows === 0) {
+          throw new BadRequestException('ظرفیت استفاده از این کد تخفیف هم‌زمان تکمیل شد');
+        }
+      }
+      const createdOrder = await tx.order.create({
+        data: {
+          orderNumber,
+          userId,
+          subtotal,
+          shippingCost,
+          shippingMethodId: shippingOrder.id,
+          discountAmount,
+          total,
+          addressId: dto.addressId || undefined,
+          shippingAddress: resolvedAddress.address,
+          shippingCity: resolvedAddress.city,
+          shippingProvince: resolvedAddress.province,
+          shippingPostal: resolvedAddress.postal || undefined,
+          shippingPhone: resolvedAddress.phone,
+          shippingName: resolvedAddress.name,
+          notes: dto.notes,
+          paymentMethod: dto.paymentMethod as any,
+          discountId,
+          items: { create: orderItems },
+        },
+        include: { items: true },
+      });
+
       await tx.cartItem.deleteMany({ where: { userId } });
 
       return createdOrder;
+    }, {
+      timeout: 10_000,
+      maxWait: 5_000,
     });
 
-    // ارسال ایمیل تأیید سفارش (خارج از تراکنشن)
+    // ---------------------------------------------------------
+    // ۷. ایمیل تأیید — خارج از تراکنش، هیچ‌وقت سفارش رو fail نمی‌کنه
+    // ---------------------------------------------------------
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
       if (user?.email) {
         await this.emailService.sendOrderConfirmationEmail(user.email, {
           orderId: orderNumber,
           customerName: user.username,
-          items: orderItems.map(i => ({ name: i.title, quantity: i.quantity, price: Number(i.price) })),
+          items: orderItems.map(i => ({ name: i.title, quantity: i.quantity, price: i.price })),
           total,
           orderDate: new Date().toLocaleDateString('fa-IR'),
         }, 'fa');
       }
     } catch (emailErr) {
-      // Never fail the order creation due to email failure
       this.logEmailError(emailErr);
     }
 
     return order;
   }
 
-  /**
-   * دریافت سفارشات کاربر
-   */
   async getUserOrders(userId: string, query: DefaultQueryDto) {
     const { limit, page = 1, order } = query
     const limitOrder = Number(limit || this.configService.get('limit.orders'))
@@ -303,7 +435,7 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({
       where: { orderNumber },
       include: {
-        items: { include: { seller: { select: { storeName: true, id: true } }, product: { select: { id: true, images: { take: 1 } } } } },
+        items: { include: { product: { select: { id: true, storeId: true, images: { take: 1 } }, include: { store: { select: { name: true, id: true } } } } } },
         trackingEvents: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -339,7 +471,7 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        items: { include: { seller: { select: { storeName: true, id: true } }, product: { select: { id: true, images: { take: 1 } } } } },
+        items: { include: { product: { select: { id: true, storeId: true, images: { take: 1 } }, include: { store: { select: { name: true, id: true } } } } } },
         trackingEvents: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -348,7 +480,7 @@ export class OrdersService {
     // Allow both buyer and seller to track
     // Check if user is buyer or seller
     const isBuyer = order.userId === userId;
-    const isSeller = order.items.some(item => item.sellerId === userId);
+    const isSeller = order.items?.some(item => item.sellerId === userId);
     if (!isBuyer && !isSeller) throw new NotFoundException('دسترسی ندارید');
 
     const timeline = this.buildTrackingTimeline(order);

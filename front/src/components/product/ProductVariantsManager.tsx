@@ -294,6 +294,8 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                 const attInfo = attributeData.data.find(
                   (a) => a.id === field.attributeId
                 );
+                console.log(field);
+
                 return (
                   <div key={field.id} className="space-y-1">
                     <input
@@ -303,7 +305,7 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                     />
 
                     <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      {attInfo?.label}
+                      {`${attInfo?.label}(${attInfo?.key})`}
                     </label>
 
                     <input
@@ -341,7 +343,7 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
           )}
           <CustomButton
             type='button'
-            color='neon'
+            color='white'
             isPending={pendingCreate || pendingUpdate}
             name={idVariant ? 'بروزرسانی تنوع' : 'افزودن تنوع'}
             onClick={handleSubmit(onSubmit)}

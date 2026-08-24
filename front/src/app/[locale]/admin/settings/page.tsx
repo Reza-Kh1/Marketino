@@ -6,6 +6,7 @@ import { Settings, Save, Loader2, Globe, Shield, ShoppingBag, Truck, Palette, Us
 import { cn } from '@/lib/utils';
 import { adminApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import ShippingSettings from '@/components/settings/ShippingSettings';
 
 const SETTING_SECTIONS = [
   {
@@ -32,20 +33,20 @@ const SETTING_SECTIONS = [
       { key: 'auto_approve_products', label: 'تأیید خودکار محصولات', type: 'toggle', description: 'محصولات جدید بدون بررسی تأیید شوند' },
     ],
   },
-  {
-    id: 'shipping',
-    label: 'تنظیمات ارسال',
-    icon: Truck,
-    fields: [
-      { key: 'default_shipping_cost', label: 'نام (فارسی)', type: 'text', placeholder: '' },
-      { key: 'default_shipping_cost', label: 'نام (انگلیسی)', type: 'text', placeholder: '' },
-      { key: 'default_shipping_cost', label: 'هزینه ارسال پیش‌فرض (تومان)', type: 'number', placeholder: 'مثلاً: ۴۵۰۰۰' },
-      { key: 'free_shipping_threshold', label: 'حداقل سفارش برای ارسال رایگان (تومان)', type: 'number', placeholder: 'مثلاً: ۵۰۰۰۰۰' },
-      { key: 'max_delivery_days', label: 'حداکثر روزهای تحویل', type: 'number', placeholder: 'مثلاً: ۱۴' },
-      { key: 'tracking_enabled', label: 'ترتیب نمایش', type: 'number', description: 'اولیت نمایش ارسال' },
-      { key: 'tracking_enabled', label: 'فعال بودن تخفیف', type: 'toggle', description: 'فعال یا غیر فعال سازی ارسال' },
-    ],
-  },
+  // {
+  //   id: 'shipping',
+  //   label: 'تنظیمات ارسال',
+  //   icon: Truck,
+  //   fields: [
+  //     { key: 'default_shipping_cost', label: 'نام (فارسی)', type: 'text', placeholder: '' },
+  //     { key: 'default_shipping_cost', label: 'نام (انگلیسی)', type: 'text', placeholder: '' },
+  //     { key: 'default_shipping_cost', label: 'هزینه ارسال پیش‌فرض (تومان)', type: 'number', placeholder: 'مثلاً: ۴۵۰۰۰' },
+  //     { key: 'free_shipping_threshold', label: 'حداقل سفارش برای ارسال رایگان (تومان)', type: 'number', placeholder: 'مثلاً: ۵۰۰۰۰۰' },
+  //     { key: 'max_delivery_days', label: 'حداکثر روزهای تحویل', type: 'number', placeholder: 'مثلاً: ۱۴' },
+  //     { key: 'tracking_enabled', label: 'ترتیب نمایش', type: 'number', description: 'اولیت نمایش ارسال' },
+  //     { key: 'tracking_enabled', label: 'فعال بودن تخفیف', type: 'toggle', description: 'فعال یا غیر فعال سازی ارسال' },
+  //   ],
+  // },
   {
     id: 'appearance',
     label: 'ظاهر',
@@ -289,7 +290,7 @@ export default function AdminSettingsPage() {
           </motion.div>
         ))}
       </div>
-
+      <ShippingSettings />
       {/* Bottom save button */}
       <div className="mt-8 flex justify-end">
         <button

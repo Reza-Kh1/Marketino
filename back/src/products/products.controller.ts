@@ -60,7 +60,7 @@ export class ProductsController {
    * ایجاد محصول جدید - نیاز به ورود
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد محصول جدید' })
@@ -72,7 +72,7 @@ export class ProductsController {
    * ویرایش محصول - فقط فروشنده خود محصول
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش محصول' })
@@ -84,7 +84,7 @@ export class ProductsController {
    * حذف محصول - فقط فروشنده خود محصول
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @Roles('seller', 'admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف محصول' })
@@ -96,7 +96,7 @@ export class ProductsController {
    * تأیید محصول - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id/approve')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تأیید محصول توسط ادمین' })
@@ -108,7 +108,7 @@ export class ProductsController {
    * ویژه کردن محصول - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id/feature')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تغییر وضعیت ویژه محصول' })

@@ -1,11 +1,16 @@
 import { apiClient, api } from "@/lib/api-client";
 import { CategorysTypes } from "./category.service";
 import { TableData } from "@/components/inputs/ProductTable";
-import { ProductImage } from "@/lib/api";
+import { PaginationType, ProductImage } from "@/lib/api";
 import { BrandType } from "./brand.service";
 
 const BASE_URL = "/products";
 const VARIANT_URL = "variants";
+
+export interface AllProductsEntity {
+    products: ProductEntity[]
+    pagination: PaginationType
+}
 
 export interface VariantType {
     id: string;
@@ -35,9 +40,10 @@ export interface FormVariantDTO {
     productId: string;
 }
 
-export interface Seller {
-    id: string;
-    storeName: string;
+export interface StoreProduct {
+    id: string
+    name: string
+    nameEn: string
 }
 
 export interface ProductEntity {
@@ -52,14 +58,9 @@ export interface ProductEntity {
     descriptionEn: string | null;
     price: number;
     discountPrice: number | null;
-    discountStart: string | null;
-    discountEnd: string | null;
     quantity: number;
-    sku: string | null;
     brandId: string | null;
     brand: BrandType
-    weight: number | null;
-    dimensions: string | null;
     condition: 'new' | 'used';
     status: 'pending' | 'approved' | 'inactive';
     isFeatured: string;
@@ -75,18 +76,15 @@ export interface ProductEntity {
     contentEn: string | null;
     createdAt: string;
     updatedAt: string;
-    sellerId: string;
+    storeId: string;
     categoryId: string;
     images: ProductImage[];
     category: CategorysTypes;
-    seller: Seller;
+    store: StoreProduct;
     originalPrice: number | null
     minPrice: number | null
     discountPercent: number | null
 }
-
-
-
 export interface FormProductDTO {
     title: string;
     titleEn: string;
@@ -111,7 +109,7 @@ export interface FormProductDTO {
 
 export const ProductService = {
     list: () => {
-        return apiClient.get<ProductEntity[]>(BASE_URL);
+        return apiClient.get<AllProductsEntity>(BASE_URL);
     },
     getBySlug: (slug: string) => {
         return apiClient.get<ProductEntity>(`${BASE_URL}/${slug}`);

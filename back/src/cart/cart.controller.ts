@@ -13,7 +13,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(private readonly cartService: CartService) { }
 
   @Get()
   @ApiOperation({ summary: 'مشاهده سبد خرید' })
@@ -33,16 +33,16 @@ export class CartController {
     return this.cartService.addItem(userId, dto);
   }
 
-  @Put(':productId')
+  @Put(':id')
   @ApiOperation({ summary: 'به‌روزرسانی تعداد آیتم' })
-  async updateItem(@CurrentUser('id') userId: string, @Param('productId') productId: string, @Body() dto: UpdateCartItemDto) {
-    return this.cartService.updateItem(userId, productId, dto);
+  async updateItem(@Param('id') id: string, @Body() dto: UpdateCartItemDto) {
+    return this.cartService.updateItem(id, dto);
   }
 
-  @Delete(':productId')
+  @Delete('/:id')
   @ApiOperation({ summary: 'حذف آیتم از سبد خرید' })
-  async removeItem(@CurrentUser('id') userId: string, @Param('productId') productId: string) {
-    return this.cartService.removeItem(userId, productId);
+  async removeItem(@Param('id') id: string) {
+    return this.cartService.removeItem(id);
   }
 
   @Delete()

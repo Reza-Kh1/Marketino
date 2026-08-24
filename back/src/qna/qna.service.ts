@@ -26,33 +26,40 @@ export class QnaService {
     await this.prisma.qna.create({
       data: {
         content: dto.content, productId: dto.productId, parentId: dto.parentId ?? null,
-        userId, role, status: role === "admin" ? ReviewApproval.approved : ReviewApproval.pending
+        userId, role, status: role === "admin" || role === "superAdmin" ? ReviewApproval.approved : ReviewApproval.pending
       },
     });
     return { success: true }
   }
 
   async findByProduct(productId: string, query: SearchQnaDto) {
-    const { limit, order, page = 1 } = query
-    const limitPage = Number(limit) || Number(this.configService.get('limit.qna'))
-    const skip = (page - 1) * limitPage;
+    const page = Number(query.page) || 1;
+    // const limit = Number(this.configService.get('limit.qna'))
+    const limit = 3
+    const skip = (page - 2) * limit + 3;
     const where = { productId, status: ReviewApproval.approved, parentId: null };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.qna.findMany({
-        where, skip, take: limit, orderBy: { createdAt: order },
-        include: {
+        where, skip, take: limit, orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, content: true, role: true, createdAt: true, _count: true,
           replies: {
-            where: { status: ReviewApproval.approved },
-            orderBy: { createdAt: 'asc' },
-            include: { sender: { select: { id: true, firstName: true, lastName: true } } }
+            where: { status: 'approved' },
+            take: 3,
+            select: {
+              id: true, content: true, role: true, createdAt: true,
+            },
           }
-        }
+        },
       }),
       this.prisma.qna.count({ where })
     ]);
     return {
-      items,
-      pagination: pagination(total, page, limitPage),
+      qnas: items,
+      pagination: {
+        nextPage: total >= (skip + limit),
+        totla: total
+      },
     };
   }
 

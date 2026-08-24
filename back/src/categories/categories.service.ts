@@ -1,11 +1,8 @@
-/**
- * CategoriesService - سرویس مدیریت دسته‌بندی‌ها
- * عملیات CRUD برای دسته‌بندی‌های درختی
- */
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+import { CreateCategoryDto, SearchCategoryPublic, UpdateCategoryDto } from './dto/category.dto';
 import slugify = require('slugify');
+import { BreadcrumbItem } from '@/products/products.service';
 
 @Injectable()
 export class CategoriesService {
@@ -18,12 +15,70 @@ export class CategoriesService {
   async findAll() {
     return this.prisma.category.findMany({
       where: { parentId: null, isActive: true },
-      include: {
+      select: {
+        name: true,
+        nameEn: true,
+        slug: true,
+        slugEn: true,
+        icon: true,
+        id: true,
+        image: true,
+        parentId: true,
+        sortOrder: true,
         children: {
-          where: { isActive: true },
+          select: {
+            name: true,
+            nameEn: true,
+            slug: true,
+            slugEn: true,
+            icon: true,
+            id: true,
+            image: true,
+            parentId: true,
+            sortOrder: true,
+            children: {
+              where: { isActive: true },
+              orderBy: { sortOrder: 'asc' },
+              select: {
+                name: true,
+                nameEn: true,
+                slug: true,
+                slugEn: true,
+                icon: true,
+                id: true,
+                image: true,
+                parentId: true,
+                sortOrder: true,
+              }
+            },
+          },
           orderBy: { sortOrder: 'asc' },
-          include: { children: { orderBy: { sortOrder: 'asc' } } }
         },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async findNotChildren(query: SearchCategoryPublic) {
+    const { parentId } = query
+    const where = {
+      ...(parentId === 'true' && { parentId: null }),
+      children: {
+        none: {},
+      }, isActive: true
+    }
+    return this.prisma.category.findMany({
+      where,
+      select: {
+        updatedAt: true,
+        id: true,
+        name: true,
+        image: true,
+        icon: true,
+        nameEn: true,
+        slug: true,
+        slugEn: true,
+        sortOrder: true,
       },
       orderBy: { sortOrder: 'asc' },
     });
@@ -75,15 +130,33 @@ export class CategoriesService {
       where: { OR: [{ slug }, { slugEn: slug }] },
       include: {
         children: { where: { isActive: true } },
-        products: {
-          where: { status: 'approved' },
-          include: { images: { take: 1, orderBy: { sortOrder: 'asc' } }, seller: { select: { storeName: true } } },
-          take: 20,
-        },
       },
     });
+
     if (!category) throw new NotFoundException('دسته‌بندی یافت نشد');
-    return category;
+    let breadcrumbs: BreadcrumbItem[] = [];
+    if (category.id) {
+      const { ancestorIds } = category;
+      const parentCategories = await this.prisma.category.findMany({
+        where: { id: { in: ancestorIds } },
+        select: { id: true, name: true, nameEn: true, slug: true, slugEn: true },
+      });
+      const parentMap = new Map(parentCategories.map((c) => [c.id, c]));
+      const sortedParents = ancestorIds
+        .map((ancestorId) => parentMap.get(ancestorId))
+        .filter((item): item is BreadcrumbItem => Boolean(item));
+      breadcrumbs = [
+        ...sortedParents,
+        {
+          id: category.id,
+          name: category.name,
+          nameEn: category.nameEn,
+          slug: category.slug,
+          slugEn: category.slugEn,
+        },
+      ];
+    }
+    return { ...category, breadcrumbs };
   }
 
   async create(dto: CreateCategoryDto) {

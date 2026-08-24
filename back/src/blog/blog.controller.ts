@@ -31,7 +31,7 @@ export class BlogController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد پست جدید (ادمین)' })
@@ -40,7 +40,7 @@ export class BlogController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش پست (ادمین)' })
@@ -49,7 +49,7 @@ export class BlogController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف پست (ادمین)' })
@@ -58,7 +58,7 @@ export class BlogController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/all')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تمام پست‌ها (ادمین)' })

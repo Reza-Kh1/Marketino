@@ -1,10 +1,10 @@
 /**
  * CategoriesController - کنترلر دسته‌بندی‌ها
  */
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
-import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+import { CreateCategoryDto, SearchCategoryPublic, UpdateCategoryDto } from './dto/category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -26,10 +26,20 @@ export class CategoriesController {
   }
 
   /**
+ * دریافت تمام دسته‌بندی‌های فعال - عمومی
+ */
+  @Public()
+  @Get('/products')
+  @ApiOperation({ summary: 'لیست دسته‌بندی‌های محصول دار' })
+  async findNotChildren(@Query() query: SearchCategoryPublic) {
+    return this.categoriesService.findNotChildren(query);
+  }
+
+  /**
  *دریافت تمام دسته‌بندی ادمین
  */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('/admin')
   @ApiOperation({ summary: 'لیست دسته‌بندی‌های توسط ادمین' })
   async findAllAdmin() {
@@ -50,7 +60,7 @@ export class CategoriesController {
    * ایجاد دسته‌بندی جدید - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد دسته‌بندی جدید (ادمین)' })
@@ -62,7 +72,7 @@ export class CategoriesController {
    * ویرایش دسته‌بندی - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش دسته‌بندی (ادمین)' })
@@ -74,7 +84,7 @@ export class CategoriesController {
    * حذف دسته‌بندی - فقط ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف دسته‌بندی (ادمین)' })

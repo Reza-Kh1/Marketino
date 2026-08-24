@@ -19,15 +19,14 @@ import SearchBox from '@/components/admin/SearchBox';
 import { useColors } from '@/hooks/color.hook';
 import { useDiscountsList } from '@/hooks/discount.hook';
 import { CategorysTypes } from '@/services/category.service';
-import { useCategoriesAdmin } from '@/hooks/category.hook';
+import { useCategoriesAdmin, useCategoriesProducts } from '@/hooks/category.hook';
 import { useBrandAdmin } from '@/hooks/brand.hook';
 import { ProductEntity } from '@/services/product.service';
-import SearchPrice from '@/components/admin/SearchPrice';
 
 export default function AdminProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductEntity | null>(null);
   const { data: discountData, isLoading: loadingDiscount } = useDiscountsList()
-  const { data: dataCategory, isFetching: loadCategories } = useCategoriesAdmin()
+  const { data: dataCategory, isFetching: loadCategories } = useCategoriesProducts()
   const { data: dataBrand, isFetching: loadingBrand } = useBrandAdmin()
   const { data: dataSeller, isLoading: loadingSeller } = useAdminSellerList()
   const approveMutation = useApproveProduct();
@@ -39,7 +38,7 @@ export default function AdminProductsPage() {
     const limitParam = searchParams.get('limit');
     const pageParam = searchParams.get('page');
     const minPrice = Number(searchParams.get('minPrice'));
-    const maxPrice = Number(searchParams.get('maxPrice'));    
+    const maxPrice = Number(searchParams.get('maxPrice'));
     return {
       limit: limitParam && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined,
       page: pageParam && !isNaN(Number(pageParam)) ? Number(pageParam) : undefined,
@@ -98,21 +97,6 @@ export default function AdminProductsPage() {
     })) || [];
   }, [discountData]);
 
-  function formatCategories(categories: CategorysTypes[] | [] | undefined) {
-    if (!categories?.length) return
-    const result = [] as CategorysTypes[];
-    function traverse(catss: CategorysTypes[]) {
-      for (const cat of catss) {
-        result.push(cat);
-        if (cat.children && cat.children.length > 0) {
-          traverse(cat.children);
-        }
-      }
-    }
-    traverse(categories);
-    return result;
-  }
-
   const columns: ColumnDef<ProductEntity>[] = useMemo(() => [
     {
       id: 'select',
@@ -147,7 +131,7 @@ export default function AdminProductsPage() {
       accessorKey: 'sellerId',
       id: 'sellerId',
       header: 'فروشنده',
-      cell: ({ row }) => <span className="text-xs">{row.original?.seller?.storeName || '-'}</span>
+      cell: ({ row }) => <span className="text-xs">{row.original?.store?.name || '-'}</span>
     },
     {
       accessorKey: 'price',
@@ -298,7 +282,7 @@ export default function AdminProductsPage() {
         autocomplete={[
           {
             label: 'دسته',
-            options: formatCategories(dataCategory || []) || [],
+            options: dataCategory || [],
             placeholder: loadCategories ? 'صبر کنید ...' : 'انتخاب کنید',
             setValue: 'categoryId',
           },
@@ -394,8 +378,12 @@ export default function AdminProductsPage() {
                 value: selectedProduct?.category?.name || '-'
               },
               {
-                name: 'فروشنده',
-                value: selectedProduct?.seller?.storeName || '-'
+                name: 'فروشنده ',
+                value: selectedProduct?.store?.name || '-'
+              },
+              {
+                name: 'فروشنده (انگلیسی)',
+                value: selectedProduct?.store?.nameEn || '-'
               },
               {
                 name: 'توضیحات (فارسی)',

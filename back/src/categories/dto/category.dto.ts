@@ -67,4 +67,12 @@ export class CreateCategoryDto {
   isActive?: boolean;
 }
 
+export class SearchCategoryPublic {
+  @ApiProperty({ description: 'دسته های اصلی' })
+  @IsString()
+  @IsOptional()
+  parentId?: string;
+}
+
+
 export class UpdateCategoryDto extends PartialType(CreateCategoryDto) { }

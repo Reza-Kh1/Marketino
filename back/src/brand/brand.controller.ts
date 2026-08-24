@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { BrandService } from './brand.service';
-import { BrandDto } from './dto/brand.dts';
+import { BrandDto, SearchBrandDto } from './dto/brand.dts';
 
 @ApiTags('Brand')
 @Controller('brand')
@@ -18,15 +18,15 @@ export class BrandsController {
     @Public()
     @Get()
     @ApiOperation({ summary: 'لیست برند‌های فعال (درختی)' })
-    async findAll() {
-        return this.brandsService.findAll();
+    async findAll(@Query() query: SearchBrandDto) {
+        return this.brandsService.findAll(query);
     }
 
     /**
  * دریافت تمام برند‌های ادمین
  */
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superAdmin')
     @Get('/admin')
     @ApiOperation({ summary: 'لیست برند‌های admin' })
     async findAllAdmin() {
@@ -37,7 +37,7 @@ export class BrandsController {
      * ایجاد برند جدید - فقط ادمین
      */
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superAdmin')
     @Post()
     @ApiBearerAuth()
     @ApiOperation({ summary: 'ایجاد برند جدید (ادمین)' })
@@ -49,7 +49,7 @@ export class BrandsController {
      * ویرایش برند - فقط ادمین
      */
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superAdmin')
     @Put(':id')
     @ApiBearerAuth()
     @ApiOperation({ summary: 'ویرایش برند (ادمین)' })
@@ -61,7 +61,7 @@ export class BrandsController {
      * حذف برند - فقط ادمین
      */
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superAdmin')
     @Delete(':id')
     @ApiBearerAuth()
     @ApiOperation({ summary: 'حذف برند (ادمین)' })

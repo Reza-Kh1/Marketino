@@ -15,38 +15,58 @@ export class CartService {
   async getCart(userId: string) {
     const items = await this.prisma.cartItem.findMany({
       where: { userId: userId },
-      include: {
+      select: {
+        id: true,
+        quantity: true,
+        createdAt: true,
+        variantId: true,
         product: {
           select: {
+            id: true,
             title: true,
             titleEn: true,
-            id: true,
-            images: { take: 1, orderBy: { sortOrder: 'asc' } }, seller: { select: { storeName: true } }
-          },
+            condition: true,
+            images: { select: { alt: true, url: true }, take: 1, orderBy: { createdAt: 'desc' } }
+          }
         },
         variant: {
           select: {
-            discount: { select: { id: true, type: true, value: true, } },
-            id: true,
-            discountId: true,
-            image: true,
             name: true,
             nameEn: true,
+            id: true,
+            color: { select: { name: true, nameEn: true } },
             price: true,
             sku: true,
+            attributes: { select: { value: true, id: true, attribute: { select: { key: true, label: true, id: true } } } },
+            discount: { select: { isActive: true, value: true, id: true, type: true, endsAt: true } }
           }
-        },
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
 
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
     const totalPrice = items.reduce((sum, item) => {
-      const price = item.variant?.price ?? 0;
-      return sum + Number(price) * item.quantity;
+      const rawPrice = Number(item.variant?.price ?? 0);
+      const discount = item.variant?.discount;
+      let finalUnitPrice = rawPrice;
+      const isDiscountValid =
+        discount &&
+        discount.isActive &&
+        (!discount.endsAt || new Date(discount.endsAt) > new Date());
+      if (isDiscountValid) {
+        if (discount.type === 'percentage') {
+          finalUnitPrice = rawPrice - (rawPrice * (discount.value / 100));
+        } else if (discount.type === 'fixed' || discount.type === 'amount') {
+          finalUnitPrice = Math.max(0, rawPrice - discount.value);
+        }
+      }
+
+      return sum + (finalUnitPrice * item.quantity);
     }, 0);
 
-    return { carts: items, totalItems, totalPrice };
+    return { carts: items, totalItems: totalItems || 0, totalPrice };
   }
 
   /**
@@ -57,47 +77,26 @@ export class CartService {
     if (!product || product.status !== 'approved') throw new NotFoundException('محصول یافت نشد');
 
     // Get default variant for stock check
-    const variant = await this.prisma.productVariant.findFirst({
-      where: { productId: dto.productId },
-      orderBy: { createdAt: 'asc' },
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: dto.variantId },
     });
     if (!variant) throw new NotFoundException('محصول تنوع ندارد');
     if (variant.quantity < 1) throw new BadRequestException('محصول ناموجود است');
 
     const addQty = dto.quantity || 1;
 
-    const existing = await this.prisma.cartItem.findUnique({
-      where: { userId_productId: { userId, productId: dto.productId } },
+    await this.prisma.cartItem.create({
+      data: { userId, productId: dto.productId, variantId: variant.id, quantity: addQty }
     });
-
-    if (existing) {
-      const newTotal = existing.quantity + addQty;
-      if (newTotal > variant.quantity) {
-        throw new BadRequestException(`موجودی کافی نیست. موجود فعلی: ${variant.quantity}`);
-      }
-      return this.prisma.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: newTotal },
-        include: { product: { include: { images: { take: 1 } } } },
-      });
-    }
-
-    if (addQty > variant.quantity) {
-      throw new BadRequestException(`موجودی کافی نیست. موجود فعلی: ${variant.quantity}`);
-    }
-
-    return this.prisma.cartItem.create({
-      data: { userId, productId: dto.productId, variantId: variant.id, quantity: addQty },
-      include: { product: { include: { images: { take: 1 } } } },
-    });
+    return { success: true }
   }
 
   /**
    * به‌روزرسانی تعداد یک آیتم (با productId)
    */
-  async updateItem(userId: string, productId: string, dto: UpdateCartItemDto) {
+  async updateItem(id: string, dto: UpdateCartItemDto) {
     const item = await this.prisma.cartItem.findUnique({
-      where: { userId_productId: { userId, productId } },
+      where: { id },
       include: { product: true, variant: true },
     });
     if (!item) throw new NotFoundException('آیتم در سبد خرید یافت نشد');
@@ -114,16 +113,17 @@ export class CartService {
       throw new BadRequestException(`موجودی کافی نیست. موجود فعلی: ${item.variant.quantity}`);
     }
 
-    return this.prisma.cartItem.update({ where: { id: item.id }, data: { quantity: dto.quantity } });
+    await this.prisma.cartItem.update({ where: { id: item.id }, data: { quantity: dto.quantity } });
+    return { suceess: true }
   }
 
   /**
    * حذف یک آیتم از سبد خرید (با productId)
    */
-  async removeItem(userId: string, productId: string) {
-    const item = await this.prisma.cartItem.findUnique({ where: { userId_productId: { userId, productId } } });
+  async removeItem(id: string) {
+    const item = await this.prisma.cartItem.delete({ where: { id } });
     if (!item) throw new NotFoundException('آیتم در سبد خرید یافت نشد');
-    return this.prisma.cartItem.delete({ where: { id: item.id } });
+    return { success: true }
   }
 
   /**

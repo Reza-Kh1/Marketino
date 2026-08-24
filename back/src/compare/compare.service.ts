@@ -14,7 +14,7 @@ export class CompareService {
       where: { userId },
       include: {
         product: {
-          include: { images: { take: 1, orderBy: { sortOrder: 'asc' } }, category: true, seller: { select: { storeName: true } } },
+          include: { images: { take: 1, orderBy: { sortOrder: 'asc' } }, category: true, store: { select: { name: true } } },
         },
       },
       orderBy: { createdAt: 'asc' },

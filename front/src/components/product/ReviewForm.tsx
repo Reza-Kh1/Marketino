@@ -9,23 +9,34 @@ import { useAuth } from "@/lib/auth-context";
 import LoginForm from "@/app/[locale]/login/LoginForm";
 import IsLoginUser from "../IsLoginUser";
 import { toast } from "sonner";
+import { useCreateReview } from "@/hooks/review.hook";
 
-export default function ReviewForm() {
+export default function ReviewForm({ productId }: { productId: string }) {
     const { user } = useAuth()
     const [rating, setRating] = useState<number>(5);
     const [hoverRating, setHoverRating] = useState<number>(0);
     const [opendDialog, setOpenDialog] = useState<boolean>(false)
     const [isLogin, setIsLogin] = useState(false)
+    const { mutate, isPending } = useCreateReview()
     const [formData, setFormData] = useState({
         comment: "",
     });
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log("Review Submitted:", { ...formData, rating });
-        toast("نظر شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.");
-        setFormData({ comment: "" });
-        setRating(5);
+        const body = {
+            rating: rating,
+            title: '',
+            body: formData.comment,
+            productId,
+        }
+        mutate(body, {
+            onSuccess: () => {
+                setFormData({ comment: "" });
+                setRating(5);
+                setOpenDialog(false)
+            }
+        })
+
     };
 
     return (
@@ -52,7 +63,7 @@ export default function ReviewForm() {
                             </MotionWrapper>
                         </DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-6">
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                                 امتیاز شما به این محصول:
@@ -93,18 +104,21 @@ export default function ReviewForm() {
                                 className="w-full p-4 resize-none text-sm rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all min-h-30"
                             />
                         </MotionWrapper>
-                    </form>
+                    </div>
                     <DialogFooter>
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="flex w-full justify-between pt-2">
                             <CustomButton
-                                color="neon"
+                                color="white"
                                 name="ثبت و ارسال دیدگاه"
+                                onClick={handleSubmit}
+                                isPending={isPending}
                                 iconStart={<Send className="w-4 h-4 rotate-45" />}
                             />
                             <CustomButton
                                 color="blueLow"
                                 iconEnd={<X className='w-4 h-4' />}
                                 name='انصراف'
+                                isPending={isPending}
                                 onClick={() => setOpenDialog(false)}
                             />
                         </MotionWrapper>

@@ -22,7 +22,7 @@ export function useCart() {
     return useQuery<AllCartsEntity>({
         queryKey: CART_KEYS.all,
         queryFn: () => cartService.list(),
-        staleTime: 5 * 60 * 1000, // 5 دقیقه
+        staleTime: 50 * 60 * 1000, // 50 دقیقه
         refetchOnWindowFocus: false,
         enabled: !!user
     });

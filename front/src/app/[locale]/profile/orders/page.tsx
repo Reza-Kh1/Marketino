@@ -79,7 +79,6 @@ export default function OrdersPage() {
       </div>
     );
   }
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -213,16 +212,17 @@ export default function OrdersPage() {
         open={!!idOrder}
         onDelete={() => {
           if (idOrder) {
-            cancelOrder(idOrder,{onSuccess:()=>{
-              setIdOrder(null)
-            }})
+            cancelOrder(idOrder, {
+              onSuccess: () => {
+                setIdOrder(null)
+              }
+            })
           }
         }}
         closeModal={() => setIdOrder(null)}
         isPending={isPending}
         helpText="آیا از لغو این سفارش اطمینان دارین؟"
       />
-
       <DialogView
         open={selectedOrder?.id ? true : false}
         onOpenChange={() => setSelectedOrder(null)}
@@ -418,7 +418,7 @@ export default function OrdersPage() {
               },
               {
                 name: 'تعداد فروشنده‌ها',
-                value: selectedOrder?.items ? new Set(selectedOrder.items.map((i: any) => i.sellerId)).size : 0
+                value: selectedOrder?.items ? new Set(selectedOrder.items.map((i: any) => i.storeId)).size : 0
               },
               {
                 name: 'وضعیت نهایی',

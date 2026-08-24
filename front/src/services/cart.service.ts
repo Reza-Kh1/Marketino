@@ -1,36 +1,6 @@
-import { ProductImage } from "@/lib/api";
-import { apiClient, api } from "@/lib/api-client";
-import { number } from "zod";
-
+import { apiClient } from "@/lib/api-client";
+import { CartType } from "@/types/types";
 const BASE_URL = "/cart";
-export interface CartType {
-    id: string;
-    quantity: number;
-    createdAt: string;
-    updatedAt: string;
-    userId: string;
-    productId: string;
-    variantId: string;
-    product: {
-        title: string;
-        titleEn: string;
-        id: string;
-        images: ProductImage[];
-        seller: {
-            storeName: string;
-        };
-    };
-    variant: {
-        discount: null | any;
-        id: string;
-        discountId: string | null;
-        image: string | null;
-        name: string;
-        nameEn: string;
-        price: number;
-        sku: string;
-    };
-}
 
 export interface AllCartsEntity {
     carts: CartType[]

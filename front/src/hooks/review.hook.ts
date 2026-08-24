@@ -1,5 +1,5 @@
 import { reviewService, ReviewEntity, ReviewResponse, CreateReviewDTO, ModerateReviewDTO, AnswerReviewDTO, SearchReviewDTO } from "@/services/review.service";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const REVIEW_KEYS = {
@@ -24,14 +24,16 @@ export function useAdminReviews(params?: SearchReviewDTO) {
   });
 }
 
-// دریافت نظرات تاییدشده یک محصول
-export function useProductReviews(productId: string, params?: SearchReviewDTO) {
-  return useQuery<ReviewResponse>({
+export function useProductReviews(productId: string, page: number = 1, enabled: boolean = true) {
+  return useInfiniteQuery<ReviewResponse>({
     queryKey: REVIEW_KEYS.product(productId),
-    queryFn: () => reviewService.getByProduct(productId, params),
-    enabled: !!productId,
-    staleTime: 5 * 60 * 1000,
+    queryFn: ({ pageParam = 1 }) => reviewService.getByProduct(productId, pageParam),
+    staleTime: 2 * 60 * 1000,
+    initialPageParam: 2,
     refetchOnWindowFocus: false,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.pagination.nextPage ? allPages.length + 2 : undefined;
+    },
   });
 }
 

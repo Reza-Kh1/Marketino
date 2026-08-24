@@ -94,7 +94,7 @@ export class TicketController {
    * GetAll تیکت‌ها (ادمین/فروشنده - admin view)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/all')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تمام تیکت‌ها (ادمین)' })
@@ -109,7 +109,7 @@ export class TicketController {
    * آمار تیکت‌ها برای ادمین
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/stats')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'آمار تیکت‌ها (ادمین)' })
@@ -121,7 +121,7 @@ export class TicketController {
  * آمار تیکت‌ها برای ادمین
  */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف تیکت‌ها (ادمین)' })

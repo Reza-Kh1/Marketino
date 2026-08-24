@@ -16,7 +16,7 @@ export interface Conversation {
   productId: string;
   productTitle: string;
   productImage: string;
-  sellerId: string;
+  storeId: string;
   sellerName: string;
   sellerAvatar?: string;
   buyerId: string;
@@ -99,7 +99,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         productId: product.id,
         productTitle: product.title,
         productImage: product.image,
-        sellerId: product.sellerId,
+        storeId: product.sellerId,
         sellerName: product.sellerName,
         sellerAvatar: undefined,
         buyerId: 'current_user',
@@ -163,7 +163,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const autoReply: Message = {
         id: generateId(),
         text: `سلام! ممنون از پیامتون. چطور می‌تونم درباره ${activeConversation.productTitle} کمکتون کنم؟`,
-        senderId: activeConversation.sellerId,
+        senderId: activeConversation.storeId,
         senderName: activeConversation.sellerName,
         createdAt: new Date().toISOString(),
         isRead: false,

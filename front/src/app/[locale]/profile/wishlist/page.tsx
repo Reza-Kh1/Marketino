@@ -1,39 +1,19 @@
 'use client';
-import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { motion } from 'framer-motion';
-import { Heart, ArrowLeft, ShoppingCart, Trash2, RefreshCw, HeartOff } from 'lucide-react';
+import { Heart, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { useWishlist } from '@/lib/use-wishlist';
-import { useCart } from '@/lib/use-cart';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
-import ImgTag from '@/components/ImgTag';
-import CustomButton from '@/components/CustomButton';
+import ProductCard from '@/components/product/ProductCard';
+import PaginationBar from '@/components/admin/PaginationBar';
+import { useFetchWishlistIds, useWishlist } from '@/hooks/wishList.hook';
+import { useSearchParams } from 'next/navigation';
 
 export default function WishlistPage() {
   const { isAuthenticated } = useAuth();
-  const { items: wishlistItems, toggleWishlist, removeFromWishlist, refresh, loading } = useWishlist();
-  const { addToCart } = useCart();
-
-  const handleRemove = (id: string) => {
-    if (isAuthenticated) {
-      removeFromWishlist(id);
-    } else {
-      removeFromWishlist(id);
-    }
-  };
-
-  const handleAddToCart = (productId: string) => {
-    addToCart(productId);
-  };
-
-  // Safe accessor for item properties
-  const imgSrc = (item: any) => item.image || '/placeholder-product.png';
-  const itemTitle = (item: any) => item.title || 'محصول بدون نام';
-  const formatPrice = (price: number | undefined | null) =>
-    (price ?? 0).toLocaleString('fa-IR');
-
+  const pages = useSearchParams().get('page')
+  const { data: wishListData, isLoading } = useWishlist(Number(pages || 1))
+  const { refetch, data } = useFetchWishlistIds()
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -44,59 +24,28 @@ export default function WishlistPage() {
               <Heart className="w-8 h-8 text-red-500" /> علاقه‌مندی‌ها
             </h1>
             {isAuthenticated && (
-              <button onClick={refresh} disabled={loading}
+              <button onClick={() => refetch()} disabled={isLoading}
                 className="p-2 rounded-xl hover:bg-muted transition-colors"
                 title="بروزرسانی">
-                <RefreshCw className={cn("w-5 h-5 text-muted-foreground", loading && "animate-spin")} />
+                <RefreshCw className={cn("w-5 h-5 text-muted-foreground", isLoading && "animate-spin")} />
               </button>
             )}
           </div>
         </div>
-
-        <p className="text-muted-foreground mb-8">{wishlistItems.length} محصول در لیست علاقه‌مندی‌ها</p>
-
-        {wishlistItems.length > 0 ? (
+        <p className="text-muted-foreground mb-8">{wishListData?.pagination.total} محصول در لیست علاقه‌مندی‌ها</p>
+        {wishListData?.items.length ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {wishlistItems.map((item, i) => (
-              <motion.div key={item.id as string} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="bg-card border border-border rounded-2xl overflow-hidden group hover:shadow-lg transition-all">
-                <Link href={`/products/${item.id}`} className="block relative">
-                  <ImgTag src={imgSrc(item)} alt={itemTitle(item)} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500 bg-muted" />
-                  <CustomButton onClick={(e) => { e.preventDefault(); handleRemove(item.id as string); }}
-                    className="absolute top-3 left-3 p-2 rounded-xl bg-white/90 dark:bg-black/60 text-red-500 hover:bg-red-50 transition-colors"
-                    iconStart={<HeartOff className="w-4 h-4" />}
-                    color='icon'
-                    isPending={loading}
-                  />
-                </Link>
-                <div className="p-4">
-                  <Link href={`/products/${item.id}`}>
-                    <h3 className="font-bold text-sm truncate hover:text-primary transition-colors">{itemTitle(item)}</h3>
-                  </Link>
-                  <div className="flex items-center justify-between mt-2">
-                    <div>
-                      {(item.discountPrice as number) ? (
-                        <div>
-                          <span className="font-black">{formatPrice(item.discountPrice)}</span>
-                          <span className="text-xs text-muted-foreground line-through mr-2">{formatPrice(item.price)}</span>
-                        </div>
-                      ) : (
-                        <span className="font-black">{formatPrice(item.price)} تومان</span>
-                      )}
-                    </div>
-                  </div>
-                  <button onClick={() => handleAddToCart(item.id as string)}
-                    className="w-full mt-3 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
-                    <ShoppingCart className="w-4 h-4" /> افزودن به سبد
-                  </button>
-                </div>
-              </motion.div>
+            {wishListData?.items?.map((item, i) => (
+              <ProductCard
+                key={i++}
+                product={item.product}
+              />
             ))}
           </div>
         ) : (
           <div className={cn(
             "text-center py-20 bg-card border border-border rounded-3xl",
-            loading && "opacity-60"
+            isLoading && "opacity-60"
           )}>
             <Heart className="w-20 h-20 text-muted-foreground/20 mx-auto mb-4" />
             <h2 className="text-2xl font-black mb-2">لیست علاقه‌مندی‌ها خالی است!</h2>
@@ -106,6 +55,7 @@ export default function WishlistPage() {
             </Link>
           </div>
         )}
+        <PaginationBar pagination={wishListData?.pagination} />
       </motion.div>
     </div>
   );

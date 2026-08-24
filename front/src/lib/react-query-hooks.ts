@@ -6,8 +6,8 @@
  */
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import {
-  authApi, adminApi, productsApi, categoriesApi, cartApi, ordersApi,
-  reviewsApi, wishlistApi, uploadApi,
+  authApi, adminApi, productsApi, categoriesApi, ordersApi,
+  reviewsApi, uploadApi,
   sellerApi, shopsApi,
   PaginationType,
   SearchDefualtType,
@@ -241,25 +241,6 @@ export function useDeleteAdminProduct() {
   });
 }
 
-// ────────────────────────────────────────────
-// 🛒 Cart Hooks
-// ────────────────────────────────────────────
-
-export function useCart() {
-  return useQuery({
-    queryKey: ['cart'],
-    queryFn: () => cartApi.get(),
-  });
-}
-
-export function useAddToCart() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ productId, quantity = 1 }: { productId: string; quantity?: number }) =>
-      cartApi.add(productId, quantity),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cart'] }),
-  });
-}
 
 // ────────────────────────────────────────────
 // 📁 Upload Hook
@@ -310,24 +291,5 @@ export function useCreateReview() {
   return useMutation({
     mutationFn: (data: any) => reviewsApi.create(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['reviews'] }),
-  });
-}
-
-// ────────────────────────────────────────────
-// ❤️ Wishlist Hooks
-// ────────────────────────────────────────────
-
-export function useWishlist() {
-  return useQuery({
-    queryKey: ['wishlist'],
-    queryFn: () => wishlistApi.get(),
-  });
-}
-
-export function useToggleWishlist() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (productId: string) => wishlistApi.add(productId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['wishlist'] }),
   });
 }
