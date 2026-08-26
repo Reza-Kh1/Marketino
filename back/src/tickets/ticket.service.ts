@@ -84,11 +84,9 @@ export class TicketService {
   async getUserTickets(userId: string, query: QueryTicketsDto) {
     const { page = 1, limit = 10, status, priority } = query;
     const skip = (page - 1) * limit;
-
     const where: any = { userId };
     if (status) where.status = status;
     if (priority) where.priority = priority;
-
     const [tickets, total] = await Promise.all([
       this.prisma.ticket.findMany({
         where,
@@ -144,7 +142,7 @@ export class TicketService {
       where: { id },
       include: {
         user: { select: { id: true, username: true, role: true, firstName: true, lastName: true, phone: true } },
-        order: { select: { id: true, orderNumber: true, total: true, shippingAddress: true } },
+        order: { select: { id: true, orderNumber: true, total: true } },
         ticketMessages: {
           include: {
             images: { select: { url: true, id: true } },

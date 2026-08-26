@@ -22,7 +22,7 @@ const configServices = () => ({
     qna: process.env.ALL_QNA || 10,
     color: process.env.ALL_COLOR || 10,
     store: process.env.ALL_STORE || 10,
-
+    storeReview: process.env.ALL_STORE_REVIEWS || 10,
   }
 });
 

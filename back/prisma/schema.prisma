@@ -1,8 +1,8 @@
 // update with migration ==>
 // npx prisma format
-// npx prisma migrate dev --name add_reviews
+// npx prisma migrate dev --name add_wallet_returns_shipping
 // npx prisma generate
-// in product ==> npx prisma migrate deploy 
+// in product ==> npx prisma migrate deploy
 generator client {
   provider = "prisma-client-js"
 }
@@ -38,32 +38,34 @@ model User {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  addresses          Address[]
-  blogPosts          BlogPost[]
-  cartItems          CartItem[]
-  compareItems       CompareItem[]
-  notifications      Notification[]
-  sellerOrderItems   OrderItem[]
-  orders             Order[]
-  reviews            Review[]            @relation("ReviewUser")
-  reviewAnswers      Review[]            @relation("ReviewAnswer")
-  storeReview        StoreReview[]
-  ticket             Ticket[]
-  createdAdmins      User[]              @relation("AdminCreatedBy")
-  creator            User?               @relation("AdminCreatedBy", fields: [createdBy], references: [id])
-  walletTransactions WalletTransaction[]
-  wishlistItems      WishlistItem[]
-  qnas               Qna[]
-  store              Store?
+  addresses            Address[]
+  cartItems            CartItem[]
+  orders               Order[]
+  reviews              Review[]            @relation("ReviewUser")
+  reviewAnswers        Review[]            @relation("ReviewAnswer")
+  storeReview          StoreReview[]
+  ticket               Ticket[]
+  createdAdmins        User[]              @relation("AdminCreatedBy")
+  creator              User?               @relation("AdminCreatedBy", fields: [createdBy], references: [id])
+  walletTransactions   WalletTransaction[]
+  wallet               Wallet?
+  withdrawRequests     WithdrawRequest[]
+  bankAccounts         BankAccount[]
+  wishlistItems        WishlistItem[]
+  qnas                 Qna[]
+  store                Store?
+  returnRequests       ReturnRequest[]
+  discountCodesCreated DiscountCode[]      @relation("DiscountCodeCreator")
+  ticketMessages       TicketMessage[]
+  checkouts            Checkout[]
 
   buyerConversations  Conversation[] @relation("ConversationBuyer")
   sellerConversations Conversation[] @relation("ConversationSeller")
   receivedMessages    Message[]      @relation("ReceivedMessages")
   sentMessages        Message[]      @relation("SentMessages")
-
-  discountCodesCreated DiscountCode[]  @relation("DiscountCodeCreator")
-  ticketMessages       TicketMessage[]
-  checkouts            Checkout[]
+  blogPosts           BlogPost[]
+  compareItems        CompareItem[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -93,18 +95,25 @@ model Store {
   email            String?     @map("email")
   instagram        String?     @map("instagram")
   telegram         String?     @map("telegram")
+  whatsApp         String?     @map("whats_app")
+  bale             String?     @map("bale")
+  robika           String?     @map("robika")
+  shippingTime     String?     @map("shipping_time")
   workingHours     String?     @map("working_hours")
   hasPhysicalStore Boolean     @default(false) @map("has_physical_store")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  products      Product[]
-  discountCodes DiscountCode[]
-  rating        StoreRating?
-  storeReview   StoreReview[]
-  orders        Order[]
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products        Product[]
+  discountCodes   DiscountCode[]
+  rating          StoreRating?
+  storeReview     StoreReview[]
+  orders          Order[]
+  orderItems      OrderItem[]
+  shippingMethods ShippingMethod[]
+  bankAccounts    BankAccount[]
 
   @@index([isActive, isVerified])
   @@index([isActive, isVerified, name])
@@ -112,25 +121,32 @@ model Store {
 }
 
 model StoreRating {
-  id                    String @id @default(uuid())
-  avgRating             Float  @default(0) @map("avg_rating")
-  totalReviews          Int    @default(0) @map("total_reviews")
-  productCount          Int    @default(0) @map("product_count")
-  productQuality        Float  @default(5) @map("product_quality")
-  productQualityTotal   Float  @default(0) @map("product_quality_total")
-  productQualityCount   Int    @default(0) @map("product_quality_count")
-  totalResponseRequests Int    @default(0) @map("total_response_requests")
-  answeredResponses     Int    @default(0) @map("answered_responses")
-  totalResponseTime     Float  @default(0) @map("total_response_time")
-  responseRate          Float  @default(100) @map("response_rate")
-  responseTime          Float  @default(0) @map("response_time")
-  saleCount             Int    @default(0) @map("sale_count")
-  onTimeDelivery        Float? @map("on_time_delivery")
-  communication         Float? @map("communication")
+  id           String @id @default(uuid())
+  avgRating    Float  @default(0) @map("avg_rating")
+  ratingTotal  Float  @default(0) @map("rating_total")
+  totalReviews Int    @default(0) @map("total_reviews")
+
+  productCount        Int   @default(0) @map("product_count")
+  productQuality      Float @default(5) @map("product_quality")
+  productQualityTotal Float @default(0) @map("product_quality_total")
+  productQualityCount Int   @default(0) @map("product_quality_count")
+
+  totalResponseRequests Int   @default(0) @map("total_response_requests")
+  answeredResponses     Int   @default(0) @map("answered_responses")
+  totalResponseTime     Float @default(0) @map("total_response_time")
+  responseRate          Float @default(100) @map("response_rate")
+  responseTime          Float @default(0) @map("response_time")
+
+  saleCount   Int @default(0) @map("sale_count")
+  returnCount Int @default(0) @map("return_count")
+
+  onTimeDelivery Float? @default(0) @map("on_time_delivery")
+  communication  Float? @default(0) @map("communication")
 
   updatedAt DateTime @updatedAt @map("updated_at")
-  storeId   String   @unique @map("seller_id")
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  storeId String @unique @map("seller_id")
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@index([avgRating])
   @@index([totalReviews])
@@ -310,9 +326,11 @@ model ProductImage {
   productId       String?        @map("product_id")
   reportsId       String?
   ticketMessageId String?
+  returnRequestId String?
   product         Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
   reports         Reports?       @relation(fields: [reportsId], references: [id])
   ticketMessage   TicketMessage? @relation(fields: [ticketMessageId], references: [id])
+  returnRequest   ReturnRequest? @relation(fields: [returnRequestId], references: [id])
 
   @@index([productId])
   @@map("product_images")
@@ -370,21 +388,24 @@ model Order {
   discountAmount   Float       @default(0) @map("discount_amount")
   deliveredAt      DateTime?   @map("delivered_at")
   cancelledAt      DateTime?   @map("cancelled_at")
+  // بعد از این تاریخ دیگه امکان درخواست مرجوعی برای این سفارش نیست (deliveredAt + بازه‌ی برگشت)
+  returnDeadline   DateTime?   @map("return_deadline")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
-  discountCodeId String?         @map("discount_code_id")
-  userId         String          @map("user_id")
-  checkout       Checkout        @relation(fields: [checkoutId], references: [id])
-  store          Store           @relation(fields: [storeId], references: [id])
-  user           User            @relation(fields: [userId], references: [id]) // نگه دار برای کوئری سریع‌تر
-  items          OrderItem[]
-  invoice        Invoice?
-  refund         Refund?
-  ticket         Ticket?
-  trackingEvents TrackingEvent[]
-  discountCode   DiscountCode?   @relation(fields: [discountCodeId], references: [id])
-  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+  discountCodeId     String?             @map("discount_code_id")
+  userId             String              @map("user_id")
+  checkout           Checkout            @relation(fields: [checkoutId], references: [id])
+  store              Store               @relation(fields: [storeId], references: [id])
+  user               User                @relation(fields: [userId], references: [id]) // نگه دار برای کوئری سریع‌تر
+  items              OrderItem[]
+  invoice            Invoice?
+  returnRequests     ReturnRequest[]
+  ticket             Ticket?
+  trackingEvents     TrackingEvent[]
+  discountCode       DiscountCode?       @relation(fields: [discountCodeId], references: [id])
+  shippingMethod     ShippingMethod?     @relation(fields: [shippingMethodId], references: [id])
+  walletTransactions WalletTransaction[]
 
   @@index([userId])
   @@index([storeId])
@@ -398,12 +419,13 @@ model OrderItem {
   title         String
   price         Float
   quantity      Int
+  returnedQty   Int            @default(0) @map("returned_qty")
   total         Float
   image         String?
   createdAt     DateTime       @default(now()) @map("created_at")
   orderId       String         @map("order_id")
   productId     String         @map("product_id")
-  sellerId      String         @map("seller_id")
+  storeId       String         @map("store_id")
   sku           String         @map("sku")
   attributes    Json?          @map("attributes")
   colorName     String?        @map("color_name")
@@ -413,11 +435,12 @@ model OrderItem {
   variantId     String         @map("variant_id")
   order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product       Product        @relation(fields: [productId], references: [id])
-  seller        User           @relation(fields: [sellerId], references: [id])
+  store         Store          @relation(fields: [storeId], references: [id])
   variant       ProductVariant @relation(fields: [variantId], references: [id])
+  returnItems   ReturnItem[]
 
   @@index([orderId])
-  @@index([sellerId])
+  @@index([storeId])
   @@map("order_items")
 }
 
@@ -475,17 +498,51 @@ model Invoice {
   @@map("invoices")
 }
 
-model Refund {
-  id          String        @id @default(uuid())
-  amount      Float
-  reason      String
-  status      InvoiceStatus @default(pending)
-  processedAt DateTime?     @map("processed_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  orderId     String        @unique @map("order_id")
-  order       Order         @relation(fields: [orderId], references: [id])
+model ReturnRequest {
+  id                 String        @id @default(uuid())
+  requestNumber      String        @unique @map("request_number")
+  orderId            String        @map("order_id")
+  userId             String        @map("user_id")
+  status             ReturnStatus  @default(requested)
+  reason             String        @map("reason")
+  reasonDetail       String?       @map("reason_detail")
+  refundMethod       RefundMethod? @map("refund_method")
+  refundAmount       Float?        @map("refund_amount")
+  returnShippingCost Float?        @map("return_shipping_cost")
+  adminNote          String?       @map("admin_note")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  resolvedAt         DateTime?     @map("resolved_at")
 
-  @@map("refunds")
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id])
+  items              ReturnItem[]
+  images             ProductImage[]
+  walletTransactions WalletTransaction[]
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("return_requests")
+}
+
+model ReturnItem {
+  id              String   @id @default(uuid())
+  returnRequestId String   @map("return_request_id")
+  orderItemId     String   @map("order_item_id")
+  quantity        Int
+  reason          String?
+  condition       String? // سالم / آسیب‌دیده / بازکرده و... برای بررسی انبار فروشنده
+  unitRefund      Float?   @map("unit_refund")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  orderItem     OrderItem     @relation(fields: [orderItemId], references: [id])
+
+  @@index([returnRequestId])
+  @@index([orderItemId])
+  @@map("return_items")
 }
 
 model Review {
@@ -524,13 +581,18 @@ model StoreReview {
   productQuality   Int?        @map("product_quality")
   productName      String?     @map("product_name")
   status           StoreStatus @default(pending) @map("status")
-  answerReview     String?     @map("answer_review")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @updatedAt @map("updated_at")
-  storeId          String      @map("store_id")
-  answerAt         DateTime?   @map("answer_at")
-  user             User        @relation(fields: [userId], references: [id])
-  store            Store       @relation(fields: [storeId], references: [id])
+
+  answerReview String?   @map("answer_review")
+  answerAt     DateTime? @map("answer_at")
+  responseAt   DateTime? @map("response_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  storeId String @map("store_id")
+
+  user  User  @relation(fields: [userId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
 
   @@index([storeId])
   @@index([userId])
@@ -547,58 +609,6 @@ model WishlistItem {
 
   @@unique([userId, productId])
   @@map("wishlist_items")
-}
-
-model CompareItem {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
-  userId    String   @map("user_id")
-  productId String   @map("product_id")
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId])
-  @@map("compare_items")
-}
-
-model Conversation {
-  id            String    @id @default(uuid())
-  subject       String?
-  lastMessage   String?   @map("last_message")
-  lastMessageAt DateTime? @map("last_message_at")
-  isRead        Boolean   @default(false) @map("is_read")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  productId     String?   @map("product_id")
-  buyerId       String    @map("buyer_id")
-  sellerId      String    @map("seller_id")
-  buyer         User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
-  product       Product?  @relation(fields: [productId], references: [id])
-  seller        User      @relation("ConversationSeller", fields: [sellerId], references: [id])
-  messages      Message[]
-
-  @@index([buyerId])
-  @@index([sellerId])
-  @@map("conversations")
-}
-
-model Message {
-  id             String       @id @default(uuid())
-  text           String
-  isRead         Boolean      @default(false) @map("is_read")
-  readAt         DateTime?    @map("read_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  conversationId String       @map("conversation_id")
-  senderId       String       @map("sender_id")
-  receiverId     String       @map("receiver_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
-
-  @@index([conversationId])
-  @@index([senderId])
-  @@index([receiverId])
-  @@map("messages")
 }
 
 model Notification {
@@ -620,22 +630,99 @@ model Notification {
   @@map("notifications")
 }
 
+model Wallet {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  balance        Float    @default(0)
+  pendingBalance Float    @default(0) @map("pending_balance")
+  frozenBalance  Float    @default(0) @map("frozen_balance")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions     WalletTransaction[]
+  withdrawRequests WithdrawRequest[]
+
+  @@map("wallets")
+}
+
 model WalletTransaction {
-  id            String                  @id @default(uuid())
-  type          WalletTransactionType
-  amount        Float
-  balanceBefore Float                   @map("balance_before")
-  balanceAfter  Float                   @map("balance_after")
-  description   String?
-  status        WalletTransactionStatus @default(completed)
-  reference     String?
-  createdAt     DateTime                @default(now()) @map("created_at")
-  userId        String                  @map("user_id")
-  user          User                    @relation(fields: [userId], references: [id])
+  id                String                  @id @default(uuid())
+  walletId          String                  @map("wallet_id")
+  userId            String                  @map("user_id")
+  type              WalletTransactionType
+  amount            Float
+  balanceBefore     Float                   @map("balance_before")
+  balanceAfter      Float                   @map("balance_after")
+  description       String?
+  status            WalletTransactionStatus @default(completed)
+  reference         String?
+  orderId           String?                 @map("order_id")
+  returnRequestId   String?                 @map("return_request_id")
+  withdrawRequestId String?                 @map("withdraw_request_id")
+  createdAt         DateTime                @default(now()) @map("created_at")
+
+  wallet          Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id])
+  order           Order?           @relation(fields: [orderId], references: [id])
+  returnRequest   ReturnRequest?   @relation(fields: [returnRequestId], references: [id])
+  withdrawRequest WithdrawRequest? @relation(fields: [withdrawRequestId], references: [id])
 
   @@index([userId])
+  @@index([walletId])
   @@index([type])
+  @@index([orderId])
+  @@index([withdrawRequestId])
+  @@index([userId, createdAt])
   @@map("wallet_transactions")
+}
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  storeId       String   @map("user_id")
+  bankName      String?  @map("bank_name")
+  accountHolder String   @map("account_holder")
+  iban          String   @map("iban")
+  cardNumber    String?  @map("card_number")
+  isDefault     Boolean  @default(false) @map("is_default")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  store            Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  withdrawRequests WithdrawRequest[]
+  user             User?             @relation(fields: [userId], references: [id])
+  userId           String?
+
+  @@index([storeId])
+  @@map("bank_accounts")
+}
+
+model WithdrawRequest {
+  id            String       @id @default(uuid())
+  requestNumber String       @unique @map("request_number")
+  walletId      String       @map("wallet_id")
+  userId        String       @map("user_id")
+  bankAccountId String       @map("bank_account_id")
+  amount        Float
+  status        PayoutStatus @default(pending)
+  adminNote     String?      @map("admin_note")
+  reviewedById  String?      @map("reviewed_by_id")
+  reviewedAt    DateTime?    @map("reviewed_at")
+  paidAt        DateTime?    @map("paid_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  wallet       Wallet              @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id])
+  bankAccount  BankAccount         @relation(fields: [bankAccountId], references: [id])
+  transactions WalletTransaction[]
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("withdraw_requests")
 }
 
 model DiscountCode {
@@ -699,9 +786,88 @@ model ShippingMethod {
   sortOrder       Int      @default(0) @map("sort_order")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
-  orders          Order[]
 
+  store  Store[]
+  orders Order[]
+
+  @@index([isActive])
   @@map("shipping_methods")
+}
+
+model Ticket {
+  id             String          @id @default(uuid())
+  status         TicketStatus    @default(PENDING)
+  priority       TicketPriority
+  title          String
+  trackingCode   String
+  isUserRead     Boolean         @default(false)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  userId         String          @map("user_id")
+  orderId        String?         @unique @map("order_id") // ✅ unique می‌ماند
+  ticketMessages TicketMessage[]
+  order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String         @id @default(cuid())
+  content   String
+  ticketId  String
+  senderId  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  images    ProductImage[]
+  sender    User           @relation(fields: [senderId], references: [id])
+  ticket    Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("ticket_messages")
+}
+
+model Reports {
+  id           String         @id @default(uuid())
+  nameSeller   String?
+  content      String
+  title        String
+  orderCode    String?
+  trackingCode String?
+  status       ReportsStatus  @default(PENDING)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  images       ProductImage[]
+
+  @@index([status])
+  @@map("reports")
+}
+
+model Qna {
+  id        String         @id @default(uuid())
+  content   String
+  role      UserRole       @default(buyer)
+  status    ReviewApproval @default(pending)
+  userId    String
+  parentId  String?
+  productId String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  parent  Qna?    @relation("QnaReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Qna[]   @relation("QnaReplies")
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([parentId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model BlogPost {
@@ -790,80 +956,56 @@ model TrackingEvent {
   @@map("tracking_events")
 }
 
-model Ticket {
-  id             String          @id @default(uuid())
-  status         TicketStatus    @default(PENDING)
-  priority       TicketPriority
-  title          String
-  trackingCode   String
-  isUserRead     Boolean         @default(false)
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  userId         String          @map("user_id")
-  orderId        String?         @unique @map("order_id") // ✅ unique می‌ماند
-  ticketMessages TicketMessage[]
-  order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+model CompareItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String   @map("user_id")
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([status])
-  @@index([priority])
-  @@map("tickets")
+  @@unique([userId, productId])
+  @@map("compare_items")
 }
 
-model TicketMessage {
-  id        String         @id @default(cuid())
-  content   String
-  ticketId  String
-  senderId  String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  images    ProductImage[]
-  sender    User           @relation(fields: [senderId], references: [id])
-  ticket    Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+model Conversation {
+  id            String    @id @default(uuid())
+  subject       String?
+  lastMessage   String?   @map("last_message")
+  lastMessageAt DateTime? @map("last_message_at")
+  isRead        Boolean   @default(false) @map("is_read")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  productId     String?   @map("product_id")
+  buyerId       String    @map("buyer_id")
+  sellerId      String    @map("seller_id")
+  buyer         User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
+  product       Product?  @relation(fields: [productId], references: [id])
+  seller        User      @relation("ConversationSeller", fields: [sellerId], references: [id])
+  messages      Message[]
 
-  @@index([ticketId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  text           String
+  isRead         Boolean      @default(false) @map("is_read")
+  readAt         DateTime?    @map("read_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  receiverId     String       @map("receiver_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId])
   @@index([senderId])
-  @@index([createdAt])
-  @@map("ticket_messages")
-}
-
-model Reports {
-  id           String         @id @default(uuid())
-  nameSeller   String?
-  content      String
-  title        String
-  orderCode    String?
-  trackingCode String?
-  status       ReportsStatus  @default(PENDING)
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  images       ProductImage[]
-
-  @@index([status])
-  @@map("reports")
-}
-
-model Qna {
-  id        String         @id @default(uuid())
-  content   String
-  role      UserRole       @default(buyer)
-  status    ReviewApproval @default(pending)
-  userId    String
-  parentId  String?
-  productId String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  parent  Qna?    @relation("QnaReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies Qna[]   @relation("QnaReplies")
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sender  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([parentId])
-  @@index([status])
-  @@index([createdAt])
+  @@index([receiverId])
+  @@map("messages")
 }
 
 enum UserRole {
@@ -938,12 +1080,37 @@ enum WalletTransactionType {
   commission
   refund
   purchase
+  // واریز خودکار به فروشنده بابت تسویه‌ی یک سفارش
+  sale_settlement
+  // کسر از کیف‌پول فروشنده بابت مرجوعی کالا
+  return_deduction
 }
 
 enum WalletTransactionStatus {
   pending
   completed
   failed
+}
+
+enum PayoutStatus {
+  pending
+  approved
+  rejected
+  failed
+}
+
+enum ReturnStatus {
+  requested
+  approved
+  rejected
+  item_received
+  refunded
+  closed
+}
+
+enum RefundMethod {
+  wallet
+  original_payment
 }
 
 enum BlogPostStatus {

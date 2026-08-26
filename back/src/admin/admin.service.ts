@@ -988,7 +988,7 @@ export class AdminService {
         where,
         include: {
           user: { select: { id: true, username: true, firstName: true, lastName: true } },
-          items: { include: { seller: { select: { id: true, store: { select: { name: true } } } } } },
+          items: { include: { store: { select: { id: true, name: true } } } },
         },
         skip, take: limit,
         orderBy: { createdAt: 'desc' },

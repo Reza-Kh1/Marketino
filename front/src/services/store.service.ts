@@ -32,16 +32,21 @@ export interface Store {
   instagram: string | null;
   telegram: string | null;
   workingHours: string | null;
+  shippingTime: null | string
+  bale: null | string
+  robika: null | string
   createdAt: Date;
   updatedAt: Date;
   rating?: StoreRating;
   products?: ProductEntity[]
+  storeReview: StoreReview[]
 }
 
 export interface StoreRating {
   productCount: number | null
   id: string;
   avgRating: number;
+  returnCount: number
   totalReviews: number;
   productQuality: number;
   productQualityTotal: number;
@@ -60,15 +65,21 @@ export interface StoreRating {
 
 export interface StoreReview {
   id: string;
-  rating: number;
   body: string;
+  createdAt: string;
+  productName: string | null;
   productQuality: number;
-  status: "pending" | "approved" | "rejected";
-  answer: string | null;
-  storeId: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  rating: number;
+  user: {
+    firstName: string;
+    lastName: string;
+  };
+  verifiedPurchase: boolean;
+  answerAt: string | null;
+  answerReview: string | null;
+  storeId: string
+  store: StoreResponseEntity
+  status: 'pending' | 'approved' | 'rejected'
 }
 
 export interface FormStoreDTO {
@@ -145,6 +156,11 @@ export interface AllStoreResponseEntity {
   stores: StoreResponseEntity[]
 }
 
+export interface AllStoreReviewEntity {
+  pagination: PaginationType
+  storesReview: StoreReview[]
+}
+
 
 export const storeService = {
   list: (params?: Record<string, any>) => {
@@ -166,6 +182,17 @@ export const storeService = {
   update: (id: string, data: FormStoreDTO) => { return apiClient.put<Store>(`${BASE_URL}/${id}`, data) },
   updateStatus: (id: string, status: string) => apiClient.put<Store>(`${BASE_URL}/${id}/status`, { status }),
   delete: (id: string) => apiClient.delete<{ message: string }>(`${BASE_URL}/${id}`),
+  // review
+  listReview: (storeId: string, page: string | unknown) => apiClient.get<AllStoreReviewEntity>(`${BASE_URL}/reviews/${storeId}?page=${page || 1}`),
+  listReviewAdmin: (filter: any) => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filter || {})
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => [key, String(value)])
+    );
+    const queryString = new URLSearchParams(cleanFilters).toString();
+    return apiClient.get<AllStoreReviewEntity>(`${BASE_URL}/reviews-admin?${queryString}`)
+  },
   createReview: (storeId: string, data: FormStoreReviewDTO) => apiClient.post<StoreReview>(`${BASE_URL}/${storeId}/reviews`, data),
   approveReview: (reviewId: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/approve`, {}),
   rejectReview: (reviewId: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/reject`, {}),

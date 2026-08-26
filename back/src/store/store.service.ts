@@ -1,85 +1,122 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma, StoreStatus } from '@prisma/client'
+import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../prisma/prisma.service'
 import {
   CreateStoreDto,
   CreateStoreReviewDto,
   SearchAdminStore,
+  SearchAdminStoreReview,
   SearchUserStore,
   SortOptionStore,
   UpdateStoreDto,
   UpdateStoreStatusDto,
 } from './dto/store.dto'
-import { ConfigService } from '@nestjs/config'
 import pagination from '@/common/utils/pagination'
 import { productSelector } from '@/products/products.service'
+import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto'
 
 @Injectable()
 export class StoreService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) { }
 
-  private buildStoreOrderBy(sortBy: SortOptionStore): Prisma.StoreOrderByWithRelationInput {
+  private buildStoreOrderBy(
+    sortBy: SortOptionStore,
+  ): Prisma.StoreOrderByWithRelationInput {
     switch (sortBy) {
       case SortOptionStore.OLDEST:
-        return { createdAt: 'asc' };
+        return { createdAt: 'asc' }
+
       case SortOptionStore.NEWEST:
-        return { createdAt: 'desc' };
+        return { createdAt: 'desc' }
+
       case SortOptionStore.BEST_SELLING:
-        return { rating: { saleCount: 'desc' } };
+        return { rating: { saleCount: 'desc' } }
+
       case SortOptionStore.BAD_SELLING:
-        return { rating: { saleCount: 'asc' } };
+        return { rating: { saleCount: 'asc' } }
+
       case SortOptionStore.MORE_REVIEWS:
-        return { rating: { totalReviews: 'desc' } };
+        return { rating: { totalReviews: 'desc' } }
+
       case SortOptionStore.LOW_REVIEWS:
-        return { rating: { totalReviews: 'asc' } };
+        return { rating: { totalReviews: 'asc' } }
+
       case SortOptionStore.MORE_RATE:
-        return { rating: { avgRating: 'desc' } };
+        return { rating: { avgRating: 'desc' } }
+
       case SortOptionStore.LOW_RATE:
-        return { rating: { avgRating: 'asc' } };
+        return { rating: { avgRating: 'asc' } }
+
       case SortOptionStore.MORE_QUALITY:
-        return { rating: { productQuality: 'desc' } };
+        return { rating: { productQuality: 'desc' } }
+
       case SortOptionStore.LOW_QUALITY:
-        return { rating: { productQuality: 'asc' } };
+        return { rating: { productQuality: 'asc' } }
+
       case SortOptionStore.BEST_RESPONSE_RATE:
-        return { rating: { responseRate: 'desc' } };
+        return { rating: { responseRate: 'desc' } }
+
       case SortOptionStore.LOW_RESPONSE_RATE:
-        return { rating: { responseRate: 'asc' } };
+        return { rating: { responseRate: 'asc' } }
+
       case SortOptionStore.LOW_ANSWERED:
-        return { rating: { answeredResponses: 'asc' } };
+        return { rating: { answeredResponses: 'asc' } }
+
       case SortOptionStore.MORE_PRODUCTS:
-        return { rating: { productCount: 'desc' } };
+        return { rating: { productCount: 'desc' } }
+
       case SortOptionStore.LOW_PRODUCTS:
-        return { rating: { productCount: 'asc' } };
+        return { rating: { productCount: 'asc' } }
+
       default:
-        return { createdAt: 'desc' };
+        return { createdAt: 'desc' }
     }
   }
 
   async getStoreAdmin(query: SearchAdminStore) {
-    const { search, page = 1, sortBy = SortOptionStore.NEWEST, isActive, isVerified, status } = query;
-    const limit = Number(query.limit) || Number(this.configService.get('limit.store'));
-    const skip = (page - 1) * limit;
+    const {
+      search,
+      page = 1,
+      sortBy = SortOptionStore.NEWEST,
+      isActive,
+      isVerified,
+      status,
+    } = query
+
+    const limit =
+      Number(query.limit) ||
+      Number(this.configService.get('limit.store'))
+
+    const skip = (page - 1) * limit
+
     const where: Prisma.StoreWhereInput = {
-      ...(search
-        ? {
-          OR: [
-            { name: { contains: search as string, mode: 'insensitive' } },
-            { nameEn: { contains: search as string, mode: 'insensitive' } },
-          ],
-        }
-        : {}),
-      ...(status !== undefined ? { status } : {}),
-      ...(isActive !== undefined ? { isActive } : {}),
-      ...(isVerified !== undefined ? { isVerified } : {}),
-    };
-    const orderBy = this.buildStoreOrderBy(sortBy);
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            nameEn: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
+      ...(status !== undefined && { status }),
+      ...(isActive !== undefined && { isActive }),
+      ...(isVerified !== undefined && { isVerified }),
+    }
+
+    const orderBy = this.buildStoreOrderBy(sortBy)
+
     const [stores, total] = await Promise.all([
       this.prisma.store.findMany({
         where,
@@ -103,7 +140,10 @@ export class StoreService {
           createdAt: true,
           updatedAt: true,
           owner: {
-            select: { id: true, username: true },
+            select: {
+              id: true,
+              username: true,
+            },
           },
           rating: {
             select: {
@@ -115,42 +155,73 @@ export class StoreService {
               responseRate: true,
               responseTime: true,
               saleCount: true,
+              returnCount: true,
             },
           },
         },
       }),
+
       this.prisma.store.count({ where }),
-    ]);
+    ])
+
     return {
       stores,
       pagination: pagination(total, page, limit),
-    };
+    }
   }
 
   async getStoreUsers(query: SearchUserStore) {
-    const { search, page = 1, sortBy = SortOptionStore.NEWEST, forSelect } = query;
-    const limit = Number(query.limit) || Number(this.configService.get('limit.store'));
-    const skip = (page - 1) * limit;
+    const {
+      search,
+      page = 1,
+      sortBy = SortOptionStore.NEWEST,
+      forSelect,
+    } = query
+
+    const limit =
+      Number(query.limit) ||
+      Number(this.configService.get('limit.store'))
+
+    const skip = (page - 1) * limit
+
     if (forSelect === 'true') {
       return this.prisma.store.findMany({
-        where: { isActive: true, status: 'approved' },
+        where: {
+          isActive: true,
+          status: StoreStatus.approved,
+        },
         select: {
-          name: true, nameEn: true, id: true,
-        }
+          id: true,
+          name: true,
+          nameEn: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
       })
     }
+
     const where: Prisma.StoreWhereInput = {
-      ...(search
-        ? {
-          OR: [
-            { name: { contains: search as string, mode: 'insensitive' } },
-            { nameEn: { contains: search as string, mode: 'insensitive' } },
-          ],
-        }
-        : {}),
-      status: StoreStatus.approved
-    };
-    const orderBy = this.buildStoreOrderBy(sortBy);
+      status: StoreStatus.approved,
+      isActive: true,
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            nameEn: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
+    }
+    const orderBy = this.buildStoreOrderBy(sortBy)
     const [stores, total] = await Promise.all([
       this.prisma.store.findMany({
         where,
@@ -175,66 +246,108 @@ export class StoreService {
               avgRating: true,
               totalReviews: true,
               responseRate: true,
+              responseTime: true,
               saleCount: true,
+              returnCount: true,
             },
           },
         },
       }),
+
       this.prisma.store.count({ where }),
-    ]);
+    ])
+
     return {
       stores,
       pagination: pagination(total, page, limit),
-    };
-
+    }
   }
 
-  async createStore(ownerId: string, dto: CreateStoreDto) {
-    const existingStore = await this.prisma.store.findUnique({
-      where: { ownerId },
-      select: { id: true },
-    })
+  async createStore(
+    ownerId: string,
+    dto: CreateStoreDto,
+  ) {
+    try {
+      return await this.prisma.store.create({
+        data: {
+          ...dto,
+          ownerId,
+          status: StoreStatus.pending,
+          isActive: false,
+          isVerified: false,
+          commissionRate: 0,
+          rating: {
+            create: {},
+          },
+        },
+      })
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException(
+          'Store owner or slug already exists',
+        )
+      }
 
-    if (existingStore) {
-      throw new BadRequestException('User already has a store')
+      throw error
     }
-
-    const slugExists = await this.prisma.store.findUnique({
-      where: { slug: dto.slug },
-      select: { id: true },
-    })
-
-    if (slugExists) {
-      throw new BadRequestException('Store slug already exists')
-    }
-
-    return this.prisma.store.create({
-      data: {
-        ...dto,
-        ownerId,
-        status: StoreStatus.pending,
-        isActive: false,
-        isVerified: false,
-        commissionRate: 0,
-        rating: { create: {} }
-      },
-    })
   }
 
   async getStore(slug: string) {
     const store = await this.prisma.store.findUnique({
       where: { slug },
-      include: {
-        rating: true,
+      select: {
+        bale: true, banner: true, city: true, businessType: true, description: true, descriptionEn: true, email: true, hasPhysicalStore: true, instagram: true, isActive: true, isVerified: true, createdAt: true,
+        logo: true, id: true, name: true, nameEn: true, phone: true, province: true, robika: true, slug: true, status: true, telegram: true, workingHours: true, whatsApp: true, shippingTime: true, address: true,
+        rating: {
+          select: {
+            totalReviews: true,
+            answeredResponses: true,
+            returnCount: true,
+            responseTime: true,
+            productQuality: true,
+            responseRate: true,
+            productCount: true,
+            saleCount: true,
+            updatedAt: true, avgRating: true,
+            ratingTotal: true,
+          }
+        },
         products: {
           select: productSelector,
           take: 6,
-          orderBy: { createdAt: 'desc' }
+          orderBy: {
+            createdAt: 'desc',
+          },
         },
         storeReview: {
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        }
+          where: {
+            status: StoreStatus.approved,
+          },
+          select: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+            answerAt: true,
+            responseAt: true,
+            body: true,
+            answerReview: true,
+            createdAt: true,
+            productName: true,
+            productQuality: true,
+            rating: true,
+            verifiedPurchase: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10,
+        },
       },
     })
     if (!store) {
@@ -243,7 +356,10 @@ export class StoreService {
     return store
   }
 
-  async updateStore(id: string, dto: UpdateStoreDto) {
+  async updateStore(
+    id: string,
+    dto: UpdateStoreDto,
+  ) {
     return this.prisma.store.update({
       where: { id },
       data: dto,
@@ -254,7 +370,8 @@ export class StoreService {
     id: string,
     dto: UpdateStoreStatusDto,
   ) {
-    const isApproved = dto.status === StoreStatus.approved
+    const isApproved =
+      dto.status === StoreStatus.approved
 
     return this.prisma.store.update({
       where: { id },
@@ -270,18 +387,108 @@ export class StoreService {
   // Store Review
   // -------------------------------------------------------
 
+  async getStoreReviewAdmin(query: SearchAdminStoreReview) {    
+    const { status, storId, verifiedPurchase } = query
+    const page = Number(query.page || 1)
+    const limit = Number(query.limit) || Number(this.configService.get('limit.storeReview'))
+    const skip = (page - 1) * limit;
+    const verify = (verifiedPurchase === 'true' || true) ? true : verifiedPurchase === 'false' || false ? false : undefined
+    const where = {
+      ...(status !== 'All' && { status }),
+      ...(verify && { verifiedPurchase: verify }),
+      ...(storId && { storId }),
+    }
+    const [review, total] = await Promise.all([
+      this.prisma.storeReview.findMany({
+        where,
+        select: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+          answerAt: true,
+          responseAt: true,
+          body: true,
+          answerReview: true,
+          createdAt: true,
+          productName: true,
+          productQuality: true,
+          rating: true,
+          verifiedPurchase: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.prisma.storeReview.count({ where }),
+    ]);
+    return {
+      storeReview: review,
+      pagination: pagination(total, page, limit)
+    }
+  }
+
+  async getStoreReview(storeId: string, pageNumber: string) {    
+    const page = Number(pageNumber || 1) + 1
+    const limit = Number(this.configService.get('limit.storeReview'))
+    const skip = (page - 1) * limit;
+    const [review, total] = await Promise.all([
+      this.prisma.storeReview.findMany({
+        where: {
+          id: storeId,
+          status: 'approved'
+        },
+        select: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+          answerAt: true,
+          responseAt: true,
+          body: true,
+          answerReview: true,
+          createdAt: true,
+          productName: true,
+          productQuality: true,
+          rating: true,
+          verifiedPurchase: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.prisma.storeReview.count({ where: { id: storeId } }),
+    ]);
+    return {
+      storeReview: review,
+      pagination: pagination(total, page, limit)
+    }
+  }
+
   async createStoreReview(
     userId: string,
     storeId: string,
     dto: CreateStoreReviewDto,
   ) {
-    const store = await this.prisma.store.findUnique({
-      where: { id: storeId },
-      select: { id: true },
+    const store = await this.prisma.store.findFirst({
+      where: {
+        id: storeId,
+        status: StoreStatus.approved,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
     })
 
     if (!store) {
-      throw new NotFoundException('Store not found')
+      throw new NotFoundException(
+        'Store not found',
+      )
     }
 
     return this.prisma.storeReview.create({
@@ -296,18 +503,6 @@ export class StoreService {
     })
   }
 
-  /**
-   * Approve Store Review
-   *
-   * فقط Reviewهای approved وارد:
-   * - avgRating
-   * - totalReviews
-   * - productQuality
-   * می‌شوند.
-   *
-   * اگر Review قبلاً پاسخ داشته باشد، همان لحظه
-   * Response Statistics هم وارد محاسبه می‌شود.
-   */
   async approveStoreReview(reviewId: string) {
     return this.prisma.$transaction(async (tx) => {
       const review = await tx.storeReview.findUnique({
@@ -319,42 +514,53 @@ export class StoreService {
           rating: true,
           productQuality: true,
           answerAt: true,
+          responseAt: true,
           createdAt: true,
-          answerReview: true,
         },
       })
 
       if (!review) {
-        throw new NotFoundException('Store review not found')
+        throw new NotFoundException(
+          'Store review not found',
+        )
       }
 
       if (review.status === StoreStatus.approved) {
         return review
       }
 
-      const approvedReview = await tx.storeReview.update({
+      const responseAt =
+        review.responseAt ??
+        review.answerAt ??
+        new Date()
+
+      await this.addReviewRating(tx, {
+        storeId: review.storeId,
+        rating: review.rating,
+        productQuality: review.productQuality,
+      })
+
+      await this.addResponseRequest(
+        tx,
+        review.storeId,
+        true,
+        this.getResponseTime(
+          review.createdAt,
+          responseAt,
+        ),
+      )
+
+      return tx.storeReview.update({
         where: { id: reviewId },
         data: {
           status: StoreStatus.approved,
+          responseAt,
         },
       })
-
-      await this.recalculateRatingAfterReviewApproval(tx, review)
-
-      return approvedReview
     })
   }
 
-  /**
-   * Reject Store Review
-   *
-   * اگر Review قبلاً approved بوده:
-   * آمار مربوط به همان Review از StoreRating برگردانده می‌شود.
-   */
-  async rejectStoreReview(
-    reviewId: string,
-    statusReason?: string,
-  ) {
+  async rejectStoreReview(reviewId: string) {
     return this.prisma.$transaction(async (tx) => {
       const review = await tx.storeReview.findUnique({
         where: { id: reviewId },
@@ -364,14 +570,15 @@ export class StoreService {
           status: true,
           rating: true,
           productQuality: true,
-          answerAt: true,
+          responseAt: true,
           createdAt: true,
-          answerReview: true,
         },
       })
 
       if (!review) {
-        throw new NotFoundException('Store review not found')
+        throw new NotFoundException(
+          'Store review not found',
+        )
       }
 
       if (review.status === StoreStatus.rejected) {
@@ -379,7 +586,24 @@ export class StoreService {
       }
 
       if (review.status === StoreStatus.approved) {
-        await this.removeReviewFromRating(tx, review)
+        await this.removeReviewRating(tx, {
+          storeId: review.storeId,
+          rating: review.rating,
+          productQuality: review.productQuality,
+        })
+
+        const responseTime = review.responseAt
+          ? this.getResponseTime(
+            review.createdAt,
+            review.responseAt,
+          )
+          : null
+
+        await this.removeResponseRequest(
+          tx,
+          review.storeId,
+          responseTime,
+        )
       }
 
       return tx.storeReview.update({
@@ -391,12 +615,6 @@ export class StoreService {
     })
   }
 
-  /**
-   * فروشنده پاسخ Review را ثبت می‌کند.
-   *
-   * این تابع فقط Rating را زمانی تغییر می‌دهد
-   * که Review قبلاً approved باشد.
-   */
   async answerStoreReview(
     reviewId: string,
     answerReview: string,
@@ -410,12 +628,23 @@ export class StoreService {
           status: true,
           answerReview: true,
           answerAt: true,
+          responseAt: true,
+          rating: true,
+          productQuality: true,
           createdAt: true,
         },
       })
 
       if (!review) {
-        throw new NotFoundException('Store review not found')
+        throw new NotFoundException(
+          'Store review not found',
+        )
+      }
+
+      if (review.status === StoreStatus.rejected) {
+        throw new BadRequestException(
+          'Rejected store review cannot be answered',
+        )
       }
 
       if (review.answerReview) {
@@ -426,375 +655,206 @@ export class StoreService {
 
       const answerAt = new Date()
 
-      const updatedReview = await tx.storeReview.update({
+      if (review.status === StoreStatus.approved) {
+        return tx.storeReview.update({
+          where: { id: reviewId },
+          data: {
+            answerReview,
+            answerAt,
+          },
+        })
+      }
+
+      await this.addReviewRating(tx, {
+        storeId: review.storeId,
+        rating: review.rating,
+        productQuality: review.productQuality,
+      })
+
+      await this.addResponseRequest(
+        tx,
+        review.storeId,
+        true,
+        this.getResponseTime(
+          review.createdAt,
+          answerAt,
+        ),
+      )
+
+      return tx.storeReview.update({
         where: { id: reviewId },
         data: {
           answerReview,
           answerAt,
-        },
-      })
-
-      // Review هنوز تأیید نشده.
-      // پس Response Statistics نباید تغییر کند.
-      if (review.status !== StoreStatus.approved) {
-        return updatedReview
-      }
-
-      const responseTime = this.getResponseTime(
-        review.createdAt,
-        answerAt,
-      )
-
-      await this.incrementResponseStats(
-        tx,
-        review.storeId,
-        responseTime,
-      )
-
-      return updatedReview
-    })
-  }
-
-  // -------------------------------------------------------
-  // Qna Response
-  // -------------------------------------------------------
-
-  /**
-   * این تابع را QnaService بعد از ساخت پاسخ فروشنده صدا می‌زند.
-   *
-   * فقط replyId لازم است.
-   *
-   * ساختار Qna:
-   *
-   * question
-   *   id = A
-   *   parentId = null
-   *
-   * seller reply
-   *   id = B
-   *   parentId = A
-   *
-   * تابع از replyId به question می‌رسد.
-   */
-  async registerQnaResponse(replyId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const reply = await tx.qna.findUnique({
-        where: { id: replyId },
-        select: {
-          id: true,
-          parentId: true,
-          role: true,
-          createdAt: true,
-          parent: {
-            select: {
-              id: true,
-              status: true,
-              createdAt: true,
-              product: {
-                select: {
-                  storeId: true,
-                },
-              },
-            },
-          },
-        },
-      })
-
-      if (!reply || !reply.parent) {
-        throw new NotFoundException('Qna reply not found')
-      }
-
-      /**
-       * QnaService خودش seller بودن را چک می‌کند.
-       * اینجا فقط ساختار پاسخ را بررسی می‌کنیم.
-       */
-      if (reply.role !== 'seller') {
-        throw new BadRequestException(
-          'Qna reply is not from seller',
-        )
-      }
-
-      const question = reply.parent
-
-      /**
-       * Question باید approved باشد.
-       */
-      if (question.status !== 'approved') {
-        return {
-          counted: false,
-          reason: 'Qna is not approved',
-        }
-      }
-
-      if (!question.product.storeId) {
-        throw new BadRequestException(
-          'Product does not belong to a store',
-        )
-      }
-
-      const responseTime = this.getResponseTime(
-        question.createdAt,
-        reply.createdAt,
-      )
-
-      await this.incrementResponseStats(
-        tx,
-        question.product.storeId,
-        responseTime,
-      )
-
-      return {
-        counted: true,
-        responseTime,
-      }
-    })
-  }
-
-  /**
-   * وقتی سؤال Qna approved می‌شود.
-   *
-   * اگر قبلاً فروشنده پاسخ داده باشد،
-   * همان پاسخ باید وارد Response Statistics شود.
-   */
-  async approveQna(qnaId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const question = await tx.qna.findUnique({
-        where: { id: qnaId },
-        select: {
-          id: true,
-          parentId: true,
-          status: true,
-          createdAt: true,
-          product: {
-            select: {
-              storeId: true,
-            },
-          },
-          replies: {
-            where: {
-              role: 'seller',
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
-            take: 1,
-            select: {
-              id: true,
-              createdAt: true,
-            },
-          },
-        },
-      })
-
-      if (!question) {
-        throw new NotFoundException('Qna not found')
-      }
-
-      if (question.status === 'approved') {
-        return question
-      }
-
-      const updated = await tx.qna.update({
-        where: { id: qnaId },
-        data: {
-          status: 'approved',
-        },
-      })
-
-      /**
-       * اگر seller قبلاً جواب داده باشد،
-       * حالا که سؤال approved شده باید محاسبه شود.
-       */
-      const sellerReply = question.replies[0]
-
-      if (sellerReply && question.product.storeId) {
-        const responseTime = this.getResponseTime(
-          question.createdAt,
-          sellerReply.createdAt,
-        )
-
-        await this.incrementResponseStats(
-          tx,
-          question.product.storeId,
-          responseTime,
-        )
-      }
-
-      return updated
-    })
-  }
-
-  /**
-   * Reject Qna
-   *
-   * اگر قبلاً approved بوده و پاسخ فروشنده داشته،
-   * آمار Response باید برگردد.
-   */
-  async rejectQna(qnaId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const question = await tx.qna.findUnique({
-        where: { id: qnaId },
-        select: {
-          id: true,
-          status: true,
-          createdAt: true,
-          product: {
-            select: {
-              storeId: true,
-            },
-          },
-          replies: {
-            where: {
-              role: 'seller',
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
-            take: 1,
-            select: {
-              id: true,
-              createdAt: true,
-            },
-          },
-        },
-      })
-
-      if (!question) {
-        throw new NotFoundException('Qna not found')
-      }
-
-      if (question.status === 'rejected') {
-        return question
-      }
-
-      if (
-        question.status === 'approved' &&
-        question.replies[0] &&
-        question.product.storeId
-      ) {
-        const responseTime = this.getResponseTime(
-          question.createdAt,
-          question.replies[0].createdAt,
-        )
-
-        await this.decrementResponseStats(
-          tx,
-          question.product.storeId,
-          responseTime,
-        )
-      }
-
-      return tx.qna.update({
-        where: { id: qnaId },
-        data: {
-          status: 'rejected',
+          responseAt: answerAt,
+          status: StoreStatus.approved,
         },
       })
     })
   }
 
   // -------------------------------------------------------
-  // Rating
+  // Qna
   // -------------------------------------------------------
 
   /**
-   * این متد Public Controller ندارد.
+   * QnaService بعد از ثبت پاسخ فروشنده صدا می‌زند.
    *
-   * StoreRating مستقیماً Update نمی‌شود.
+   * اینجا دیگر Qna را Query نمی‌کنیم.
+   * QnaService از قبل این اطلاعات را دارد.
    */
-  private async incrementResponseStats(
-    tx: Prisma.TransactionClient,
+  async registerQnaResponse(
     storeId: string,
-    responseTime: number,
+    questionCreatedAt: Date,
+    answeredAt: Date,
   ) {
-    const rating = await tx.storeRating.upsert({
-      where: {
-        storeId: storeId,
-      },
-      create: {
-        storeId: storeId,
-        totalResponseRequests: 1,
-        answeredResponses: 1,
-        totalResponseTime: responseTime,
-        responseRate: 100,
-        responseTime: responseTime,
-      },
-      update: {
-        totalResponseRequests: {
-          increment: 1,
-        },
-        answeredResponses: {
-          increment: 1,
-        },
-        totalResponseTime: {
-          increment: responseTime,
-        },
-      },
-      select: {
-        totalResponseRequests: true,
-        answeredResponses: true,
-        totalResponseTime: true,
-      },
-    })
+    const responseTime = this.getResponseTime(
+      questionCreatedAt,
+      answeredAt,
+    )
 
-    await this.updateResponseValues(tx, storeId, rating)
+    await this.registerResponseAnswer(
+      storeId,
+      responseTime,
+    )
+
+    return {
+      counted: true,
+      responseTime,
+    }
   }
 
   /**
-   * برای Qna/Review جدیدی که هنوز جواب داده نشده.
+   * وقتی Qna approved می‌شود.
    *
-   * مثلاً User یک Review approved ثبت می‌کند.
+   * اگر seller قبلاً جواب داده:
+   * request + answer همزمان ثبت می‌شود.
+   *
+   * اگر جواب نداده:
+   * فقط request ثبت می‌شود.
+   *
+   * اطلاعات reply را QnaService یا Controller
+   * می‌تواند به این متد بدهد.
    */
-  private async incrementResponseRequest(
-    tx: Prisma.TransactionClient,
+  async registerApprovedQna(
     storeId: string,
+    questionCreatedAt: Date,
+    sellerAnsweredAt?: Date,
   ) {
-    const rating = await tx.storeRating.upsert({
-      where: {
-        storeId: storeId,
-      },
-      create: {
-        storeId: storeId,
-        totalResponseRequests: 1,
-        answeredResponses: 0,
-        totalResponseTime: 0,
-        responseRate: 0,
-        responseTime: 0,
-      },
-      update: {
-        totalResponseRequests: {
-          increment: 1,
-        },
-      },
-      select: {
-        totalResponseRequests: true,
-        answeredResponses: true,
-        totalResponseTime: true,
-      },
+    const answered = Boolean(sellerAnsweredAt)
+
+    const responseTime = answered
+      ? this.getResponseTime(
+        questionCreatedAt,
+        sellerAnsweredAt!,
+      )
+      : 0
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.addResponseRequest(
+        tx,
+        storeId,
+        answered,
+        responseTime,
+      )
     })
 
-    await this.updateResponseValues(tx, storeId, rating)
+    return {
+      counted: true,
+      answered,
+      responseTime,
+    }
   }
 
-  private async decrementResponseStats(
+  // -------------------------------------------------------
+  // Rating - Response
+  // -------------------------------------------------------
+
+  private async addResponseRequest(
     tx: Prisma.TransactionClient,
     storeId: string,
-    responseTime: number,
+    answered: boolean,
+    responseTime = 0,
   ) {
     const rating = await tx.storeRating.update({
-      where: {
-        storeId: storeId,
+      where: { storeId },
+      data: {
+        totalResponseRequests: {
+          increment: 1,
+        },
+
+        ...(answered && {
+          answeredResponses: {
+            increment: 1,
+          },
+          totalResponseTime: {
+            increment: responseTime,
+          },
+        }),
       },
+      select: {
+        totalResponseRequests: true,
+        answeredResponses: true,
+        totalResponseTime: true,
+      },
+    })
+
+    await this.updateResponseValues(
+      tx,
+      storeId,
+      rating,
+    )
+  }
+
+  private async registerResponseAnswer(
+    storeId: string,
+    responseTime: number,
+  ) {
+    const rating =
+      await this.prisma.storeRating.update({
+        where: { storeId },
+        data: {
+          answeredResponses: {
+            increment: 1,
+          },
+          totalResponseTime: {
+            increment: responseTime,
+          },
+        },
+        select: {
+          totalResponseRequests: true,
+          answeredResponses: true,
+          totalResponseTime: true,
+        },
+      })
+
+    await this.updateResponseValues(
+      this.prisma,
+      storeId,
+      rating,
+    )
+  }
+
+  private async removeResponseRequest(
+    tx: Prisma.TransactionClient,
+    storeId: string,
+    responseTime: number | null,
+  ) {
+    const rating = await tx.storeRating.update({
+      where: { storeId },
       data: {
         totalResponseRequests: {
           decrement: 1,
         },
-        answeredResponses: {
-          decrement: 1,
-        },
-        totalResponseTime: {
-          decrement: responseTime,
-        },
+
+        ...(responseTime !== null && {
+          answeredResponses: {
+            decrement: 1,
+          },
+          totalResponseTime: {
+            decrement: responseTime,
+          },
+        }),
       },
       select: {
         totalResponseRequests: true,
@@ -803,11 +863,15 @@ export class StoreService {
       },
     })
 
-    await this.updateResponseValues(tx, storeId, rating)
+    await this.updateResponseValues(
+      tx,
+      storeId,
+      rating,
+    )
   }
 
   private async updateResponseValues(
-    tx: Prisma.TransactionClient,
+    tx: Prisma.TransactionClient | PrismaService,
     storeId: string,
     data: {
       totalResponseRequests: number
@@ -824,13 +888,12 @@ export class StoreService {
 
     const responseTime =
       data.answeredResponses > 0
-        ? data.totalResponseTime / data.answeredResponses
+        ? data.totalResponseTime /
+        data.answeredResponses
         : 0
 
     await tx.storeRating.update({
-      where: {
-        storeId: storeId,
-      },
+      where: { storeId },
       data: {
         responseRate,
         responseTime,
@@ -839,174 +902,58 @@ export class StoreService {
   }
 
   // -------------------------------------------------------
-  // Review Rating
+  // Rating - Review
   // -------------------------------------------------------
 
-  private async recalculateRatingAfterReviewApproval(
+  private async addReviewRating(
     tx: Prisma.TransactionClient,
     review: {
       storeId: string
       rating: number
       productQuality: number | null
-      answerAt: Date | null
-      createdAt: Date
     },
   ) {
-    const current = await tx.storeRating.findUnique({
+    const rating = await tx.storeRating.update({
       where: {
         storeId: review.storeId,
       },
-      select: {
-        avgRating: true,
-        totalReviews: true,
-        productQuality: true,
-      },
-    })
-
-    const totalReviews = (current?.totalReviews ?? 0) + 1
-
-    const currentRatingTotal =
-      (current?.avgRating ?? 0) *
-      (current?.totalReviews ?? 0)
-
-    const avgRating =
-      (currentRatingTotal + review.rating) /
-      totalReviews
-
-    let productQuality = current?.productQuality ?? 5
-
-    if (review.productQuality !== null) {
-      const oldQualityCount = await tx.storeReview.count({
-        where: {
-          storeId: review.storeId,
-          status: StoreStatus.approved,
-          productQuality: {
-            not: null,
-          },
+      data: {
+        ratingTotal: {
+          increment: review.rating,
         },
-      })
+        totalReviews: {
+          increment: 1,
+        },
 
-      const oldQualityTotal =
-        productQuality * oldQualityCount
-
-      productQuality =
-        (oldQualityTotal + review.productQuality) /
-        (oldQualityCount + 1)
-    }
-
-    await tx.storeRating.upsert({
-      where: {
-        storeId: review.storeId,
-      },
-      create: {
-        storeId: review.storeId,
-        avgRating,
-        totalReviews: 1,
-        productQuality:
-          review.productQuality ?? 5,
-      },
-      update: {
-        avgRating,
-        totalReviews,
-        productQuality,
-      },
-    })
-
-    /**
-     * Review approved شده، پس یک request جدید
-     * برای Response Statistics داریم.
-     */
-    await this.incrementResponseRequest(
-      tx,
-      review.storeId,
-    )
-
-    /**
-     * اگر قبل از Approval جواب داده شده باشد،
-     * پاسخ را هم وارد آمار می‌کنیم.
-     */
-    if (review.answerAt) {
-      const responseTime = this.getResponseTime(
-        review.createdAt,
-        review.answerAt,
-      )
-
-      await this.incrementResponseStats(
-        tx,
-        review.storeId,
-        responseTime,
-      )
-    }
-  }
-
-  private async removeReviewFromRating(
-    tx: Prisma.TransactionClient,
-    review: {
-      storeId: string
-      rating: number
-      productQuality: number | null
-      answerAt: Date | null
-      createdAt: Date
-    },
-  ) {
-    const current = await tx.storeRating.findUnique({
-      where: {
-        storeId: review.storeId,
+        ...(review.productQuality !== null && {
+          productQualityTotal: {
+            increment: review.productQuality,
+          },
+          productQualityCount: {
+            increment: 1,
+          },
+        }),
       },
       select: {
-        avgRating: true,
+        ratingTotal: true,
         totalReviews: true,
+        productQualityTotal: true,
+        productQualityCount: true,
         productQuality: true,
       },
     })
 
-    if (!current || current.totalReviews <= 0) {
-      return
-    }
-
-    const totalReviews = current.totalReviews - 1
-
-    const currentRatingTotal =
-      current.avgRating * current.totalReviews
-
     const avgRating =
-      totalReviews > 0
-        ? (currentRatingTotal - review.rating) /
-        totalReviews
+      rating.totalReviews > 0
+        ? rating.ratingTotal /
+        rating.totalReviews
         : 0
 
-    let productQuality = current.productQuality
-
-    if (review.productQuality !== null) {
-      const qualityReviews = await tx.storeReview.findMany({
-        where: {
-          storeId: review.storeId,
-          status: StoreStatus.approved,
-          id: {
-            not: review.storeId,
-          },
-          productQuality: {
-            not: null,
-          },
-        },
-        select: {
-          productQuality: true,
-        },
-      })
-
-      if (qualityReviews.length > 0) {
-        const totalQuality = qualityReviews.reduce(
-          (sum, item) =>
-            sum + (item.productQuality ?? 0),
-          0,
-        )
-
-        productQuality =
-          totalQuality / qualityReviews.length
-      } else {
-        productQuality = 5
-      }
-    }
+    const productQuality =
+      rating.productQualityCount > 0
+        ? rating.productQualityTotal /
+        rating.productQualityCount
+        : 5
 
     await tx.storeRating.update({
       where: {
@@ -1014,93 +961,169 @@ export class StoreService {
       },
       data: {
         avgRating,
-        totalReviews,
         productQuality,
       },
     })
-
-    /**
-     * Response Statistics
-     */
-    await this.decrementResponseRequest(
-      tx,
-      review.storeId,
-      review.answerAt
-        ? this.getResponseTime(
-          review.createdAt,
-          review.answerAt,
-        )
-        : null,
-    )
   }
 
-  private async decrementResponseRequest(
+  private async removeReviewRating(
     tx: Prisma.TransactionClient,
-    storeId: string,
-    responseTime: number | null,
+    review: {
+      storeId: string
+      rating: number
+      productQuality: number | null
+    },
   ) {
-    const data: Prisma.StoreRatingUpdateInput = {
-      totalResponseRequests: {
-        decrement: 1,
-      },
-    }
-
-    if (responseTime !== null) {
-      data.answeredResponses = {
-        decrement: 1,
-      }
-
-      data.totalResponseTime = {
-        decrement: responseTime,
-      }
-    }
-
     const rating = await tx.storeRating.update({
       where: {
-        storeId: storeId,
+        storeId: review.storeId,
       },
-      data,
+      data: {
+        ratingTotal: {
+          decrement: review.rating,
+        },
+        totalReviews: {
+          decrement: 1,
+        },
+
+        ...(review.productQuality !== null && {
+          productQualityTotal: {
+            decrement: review.productQuality,
+          },
+          productQualityCount: {
+            decrement: 1,
+          },
+        }),
+      },
       select: {
-        totalResponseRequests: true,
-        answeredResponses: true,
-        totalResponseTime: true,
+        ratingTotal: true,
+        totalReviews: true,
+        productQualityTotal: true,
+        productQualityCount: true,
       },
     })
 
-    await this.updateResponseValues(
-      tx,
-      storeId,
-      rating,
-    )
+    const avgRating =
+      rating.totalReviews > 0
+        ? rating.ratingTotal /
+        rating.totalReviews
+        : 0
+
+    const productQuality =
+      rating.productQualityCount > 0
+        ? rating.productQualityTotal /
+        rating.productQualityCount
+        : 5
+
+    await tx.storeRating.update({
+      where: {
+        storeId: review.storeId,
+      },
+      data: {
+        avgRating,
+        productQuality,
+      },
+    })
   }
 
   private getResponseTime(
     createdAt: Date,
-    answeredAt: Date,
+    responseAt: Date,
   ): number {
     return Math.max(
       0,
-      (answeredAt.getTime() - createdAt.getTime()) /
+      (responseAt.getTime() -
+        createdAt.getTime()) /
       60000,
     )
   }
 
   // -------------------------------------------------------
-  // Sale Count
+  // Rating - Product
   // -------------------------------------------------------
-
-  async incrementSaleCount(storeId: string) {
-    return this.prisma.storeRating.upsert({
-      where: {
-        storeId: storeId,
-      },
-      create: {
-        storeId: storeId,
-        saleCount: 1,
-      },
-      update: {
-        saleCount: {
+  // if (
+  //   oldStatus !== ProductStatus.approved &&
+  //   newStatus === ProductStatus.approved &&
+  //   product.storeId
+  // ) {
+  //   await this.storeService.incrementProductCount(
+  //     product.storeId,
+  //   )
+  // }
+  async incrementProductCount(
+    storeId: string,
+  ) {
+    return this.prisma.storeRating.update({
+      where: { storeId },
+      data: {
+        productCount: {
           increment: 1,
+        },
+      },
+    })
+  }
+  //   if (
+  //   oldStatus === ProductStatus.approved &&
+  //   newStatus !== ProductStatus.approved &&
+  //   product.storeId
+  // ) {
+  //   await this.storeService.decrementProductCount(
+  //     product.storeId,
+  //   )
+  // }
+  async decrementProductCount(
+    storeId: string,
+  ) {
+    return this.prisma.storeRating.update({
+      where: { storeId },
+      data: {
+        productCount: {
+          decrement: 1,
+        },
+      },
+    })
+  }
+
+  // -------------------------------------------------------
+  // Rating - Sale / Return
+  // -------------------------------------------------------
+  // await this.storeService.incrementSaleCount(
+  //   orderItem.storeId,
+  //   orderItem.quantity,
+  // )
+  async incrementSaleCount(
+    storeId: string,
+    quantity: number,
+  ) {
+    if (quantity <= 0) return
+
+    return this.prisma.storeRating.update({
+      where: { storeId },
+      data: {
+        saleCount: {
+          increment: quantity,
+        },
+      },
+    })
+  }
+  // await this.storeService.registerReturn(
+  //   orderItem.storeId,
+  //   returnItem.quantity,
+  // )
+  async registerReturn(
+    storeId: string,
+    quantity: number,
+  ) {
+    if (quantity <= 0) return
+
+    return this.prisma.storeRating.update({
+      where: { storeId },
+      data: {
+        saleCount: {
+          decrement: quantity,
+        },
+        returnCount: {
+          increment: quantity,
         },
       },
     })

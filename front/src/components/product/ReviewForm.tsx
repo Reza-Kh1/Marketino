@@ -10,35 +10,59 @@ import LoginForm from "@/app/[locale]/login/LoginForm";
 import IsLoginUser from "../IsLoginUser";
 import { toast } from "sonner";
 import { useCreateReview } from "@/hooks/review.hook";
+import { useCreateStoreReview } from "@/hooks/store.hook";
 
-export default function ReviewForm({ productId }: { productId: string }) {
+type ReviewFormType = {
+    productId: string
+    store?: boolean
+    storeId?: string
+}
+
+export default function ReviewForm({ productId, store = false, storeId }: ReviewFormType) {
     const { user } = useAuth()
     const [rating, setRating] = useState<number>(5);
+    const [ratingStore, setRatingStore] = useState<number>(5);
     const [hoverRating, setHoverRating] = useState<number>(0);
+    const [hoverRatingStore, setHoverRatingStore] = useState<number>(0);
     const [opendDialog, setOpenDialog] = useState<boolean>(false)
+    const { mutate: storeCreate, isPending: pendingStore } = useCreateStoreReview(storeId || '')
     const [isLogin, setIsLogin] = useState(false)
-    const { mutate, isPending } = useCreateReview()
+    const { mutate: productCreate, isPending: pendingProduct } = useCreateReview()
     const [formData, setFormData] = useState({
         comment: "",
     });
 
     const handleSubmit = (e: React.FormEvent) => {
-        const body = {
-            rating: rating,
-            title: '',
-            body: formData.comment,
-            productId,
-        }
-        mutate(body, {
-            onSuccess: () => {
-                setFormData({ comment: "" });
-                setRating(5);
-                setOpenDialog(false)
+        if (store) {
+            const body = {
+                rating: ratingStore,
+                body: formData.comment,
+                productQuality: rating
             }
-        })
-
+            storeCreate(body, {
+                onSuccess: () => {
+                    setFormData({ comment: "" });
+                    setRating(5);
+                    setRatingStore(5);
+                    setOpenDialog(false)
+                }
+            })
+        } else {
+            const body = {
+                rating: rating,
+                title: '',
+                body: formData.comment,
+                productId,
+            }
+            productCreate(body, {
+                onSuccess: () => {
+                    setFormData({ comment: "" });
+                    setRating(5);
+                    setOpenDialog(false)
+                }
+            })
+        }
     };
-
     return (
         <>
             <CustomButton
@@ -66,7 +90,7 @@ export default function ReviewForm({ productId }: { productId: string }) {
                     <div className="space-y-6">
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                امتیاز شما به این محصول:
+                                {store ? 'امتیاز شما به محصولات فروشنده:' : 'امتیاز شما به این محصول:'}
                             </label>
                             <div className="flex items-center gap-1">
                                 {[1, 2, 3, 4, 5].map((star) => (
@@ -91,6 +115,35 @@ export default function ReviewForm({ productId }: { productId: string }) {
                                 </span>
                             </div>
                         </MotionWrapper>
+                        {store && (
+                            <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    امتیاز به فروشنده
+                                </label>
+                                <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setRatingStore(star)}
+                                            onMouseEnter={() => setHoverRatingStore(star)}
+                                            onMouseLeave={() => setHoverRatingStore(0)}
+                                            className="p-1 focus:outline-none transition-transform hover:scale-125 cursor-pointer"
+                                        >
+                                            <Star
+                                                className={`w-7 h-7 transition-colors ${star <= (hoverRatingStore || ratingStore)
+                                                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+                                                    : "text-slate-300 dark:text-slate-700"
+                                                    }`}
+                                            />
+                                        </button>
+                                    ))}
+                                    <span className="mr-3 text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full">
+                                        {hoverRatingStore || ratingStore} از 5
+                                    </span>
+                                </div>
+                            </MotionWrapper>
+                        )}
                         <MotionWrapper preset='slideUpBlur' delay={0.1} className="space-y-2">
                             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
                                 متن دیدگاه شما <span className="text-rose-500">*</span>
@@ -111,14 +164,14 @@ export default function ReviewForm({ productId }: { productId: string }) {
                                 color="white"
                                 name="ثبت و ارسال دیدگاه"
                                 onClick={handleSubmit}
-                                isPending={isPending}
+                                isPending={pendingProduct || pendingStore}
                                 iconStart={<Send className="w-4 h-4 rotate-45" />}
                             />
                             <CustomButton
                                 color="blueLow"
                                 iconEnd={<X className='w-4 h-4' />}
                                 name='انصراف'
-                                isPending={isPending}
+                                isPending={pendingProduct || pendingStore}
                                 onClick={() => setOpenDialog(false)}
                             />
                         </MotionWrapper>

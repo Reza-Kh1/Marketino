@@ -8,21 +8,32 @@ interface BreadcrumbType {
         nameEn: string,
         slug: string,
     }
+    itemsCustom?: BreadcrumbsType[]
 }
-export default function Breadcrumb({ items, pageName }: BreadcrumbType) {
+export default function Breadcrumb({ items, pageName, itemsCustom }: BreadcrumbType) {
     const locale = useLocale()
     return (
         <nav aria-label="مسیر" className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-6 whitespace-nowrap">
             <Link href={'/'} className="hover:text-cyan-500 transition-colors cursor-pointer"> خانه </Link>
-            {items?.length && '/'}
+            {items?.length || itemsCustom?.length && '/'}
             {items?.map((item, index) => (
                 <Link href={'/search/category-' + item.slug} key={item.id} className="flex items-center gap-2">
                     <span
-                        className={`hover:text-cyan-500 transition-colors cursor-pointer ${index === items.length - 1 ? 'text-cyan-600 dark:text-cyan-400 font-semibold truncate' : ''}`}
+                        className={`hover:text-cyan-500 transition-colors cursor-pointer ${index === items.length - 1 ? 'dark:text-white text-black font-semibold truncate' : ''}`}
                     >
                         {item.name}
                     </span>
                     {index < items.length - 1 && '/'}
+                </Link>
+            ))}
+            {itemsCustom?.map((item, index) => (
+                <Link href={item.slug} key={item.id} className="flex items-center gap-2">
+                    <span
+                        className={`hover:text-cyan-500 transition-colors cursor-pointer ${index === itemsCustom.length - 1 ? 'dark:text-white text-black font-semibold truncate' : ''}`}
+                    >
+                        {item.name}
+                    </span>
+                    {index < itemsCustom.length - 1 && '/'}
                 </Link>
             ))}
             {pageName?.name && (

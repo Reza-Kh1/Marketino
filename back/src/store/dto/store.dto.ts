@@ -33,6 +33,29 @@ export enum SortOptionStore {
   LOW_PRODUCTS = 'low_products'
 }
 
+export enum StoreReviewStatusFilter {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  ALL = 'All',
+}
+export class SearchAdminStoreReview extends DefaultQueryDto {
+  @ApiPropertyOptional({ description: 'وضعیت نظرات', enum: StoreReviewStatusFilter, required: false })
+  @IsOptional()
+  @IsEnum(StoreReviewStatusFilter)
+  status?: StoreReviewStatusFilter
+
+  @ApiPropertyOptional({ description: 'آیدی فروشگاه', required: false })
+  @IsOptional()
+  @IsString()
+  storId?: string
+
+  @ApiProperty({ description: 'نمایش فقط خریداران', required: false })
+  @IsOptional()
+  @IsString()
+  verifiedPurchase?: string;
+}
+
 export class SearchUserStore extends DefaultQueryDto {
   @ApiProperty({ description: 'نام فروشگاه', required: false })
   @IsOptional()

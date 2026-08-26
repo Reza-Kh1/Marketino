@@ -147,7 +147,7 @@ export class OrdersService {
         quantity: item.quantity,
         total,
         productId: item.productId,
-        sellerId: item.product.storeId || '',
+        storeId: item.product.storeId || '',
         sku: item.variant.sku ?? '',
         variantName: item.variant.name ?? 'پیش‌فرض',
         variantId: item.variantId,
@@ -238,25 +238,28 @@ export class OrdersService {
           throw new BadRequestException('ظرفیت استفاده از این کد تخفیف هم‌زمان تکمیل شد');
         }
       }
+      const checkout = await tx.checkout.create({
+        data: {
+          checkoutNumber: `CHK-${Date.now().toString(36).toUpperCase()}`,
+          userId,
+          totalAmount: total,
+          discountAmount,
+          discountId: discountId || undefined,
+          paymentMethod: dto.paymentMethod as any,
+        },
+      });
+
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
+          checkoutId: checkout.id,
+          storeId: cartItems[0].product.storeId || '',
           subtotal,
           shippingCost,
           shippingMethodId: shippingOrder.id,
           discountAmount,
           total,
-          addressId: dto.addressId || undefined,
-          shippingAddress: resolvedAddress.address,
-          shippingCity: resolvedAddress.city,
-          shippingProvince: resolvedAddress.province,
-          shippingPostal: resolvedAddress.postal || undefined,
-          shippingPhone: resolvedAddress.phone,
-          shippingName: resolvedAddress.name,
-          notes: dto.notes,
-          paymentMethod: dto.paymentMethod as any,
-          discountId,
           items: { create: orderItems },
         },
         include: { items: true },
@@ -326,11 +329,11 @@ export class OrdersService {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       this.prisma.orderItem.findMany({
-        where: { sellerId },
+        where: { storeId: { contains: sellerId } },
         include: { order: { include: { user: { select: { username: true, firstName: true, lastName: true } } } } },
         skip, take: limit, orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.orderItem.count({ where: { sellerId } }),
+      this.prisma.orderItem.count({ where: { storeId: { contains: sellerId } } }),
     ]);
     return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
@@ -451,10 +454,6 @@ export class OrdersService {
         orderNumber: order.orderNumber,
         status: order.status,
         trackingCode: order.trackingCode,
-        shippingAddress: order.shippingAddress,
-        shippingName: order.shippingName,
-        shippingPhone: order.shippingPhone,
-        shippingCity: order.shippingCity,
         total: order.total,
         createdAt: order.createdAt,
         deliveredAt: order.deliveredAt,
@@ -480,7 +479,7 @@ export class OrdersService {
     // Allow both buyer and seller to track
     // Check if user is buyer or seller
     const isBuyer = order.userId === userId;
-    const isSeller = order.items?.some(item => item.sellerId === userId);
+    const isSeller = order.items?.some(item => item.storeId === userId);
     if (!isBuyer && !isSeller) throw new NotFoundException('دسترسی ندارید');
 
     const timeline = this.buildTrackingTimeline(order);
@@ -491,10 +490,6 @@ export class OrdersService {
         orderNumber: order.orderNumber,
         status: order.status,
         trackingCode: order.trackingCode,
-        shippingAddress: order.shippingAddress,
-        shippingName: order.shippingName,
-        shippingPhone: order.shippingPhone,
-        shippingCity: order.shippingCity,
         total: order.total,
         createdAt: order.createdAt,
         deliveredAt: order.deliveredAt,
@@ -548,7 +543,7 @@ export class OrdersService {
 
     const payment = await this.prisma.payment.create({
       data: {
-        orderId,
+        checkoutId: order.checkoutId,
         amount: order.total,
         method: dto.method as any,
         gatewayRef: dto.gatewayRef || null,
@@ -573,13 +568,12 @@ export class OrdersService {
         gatewayRef: gatewayRef || payment.gatewayRef,
         paidAt: new Date(),
       },
-      include: { order: { include: { items: true } } },
     });
 
-    // Update order payment status
+    // Update order status
     await this.prisma.order.update({
-      where: { id: updated.orderId },
-      data: { paymentStatus: 'paid' },
+      where: { id: updated.checkoutId },
+      data: { status: 'confirmed' },
     });
 
     return updated;
@@ -589,8 +583,10 @@ export class OrdersService {
    * 🆕 دریافت پرداخت‌های سفارش
    */
   async getOrderPayments(orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order?.checkoutId) return [];
     const payments = await this.prisma.payment.findMany({
-      where: { orderId },
+      where: { checkoutId: order.checkoutId },
       orderBy: { createdAt: 'desc' },
     });
     return payments;
@@ -599,7 +595,7 @@ export class OrdersService {
   /**
    * 🆕 ایجاد درخواست مرجوعی
    */
-  async createRefund(orderId: string, userId: string, dto: { reason: string }) {
+  async createReturnRequest(orderId: string, userId: string, dto: { reason: string }) {
     const order = await this.prisma.order.findFirst({ where: { id: orderId, userId } });
     if (!order) throw new NotFoundException('سفارش یافت نشد یا دسترسی ندارید');
 
@@ -608,56 +604,60 @@ export class OrdersService {
     }
 
     // اگر مرجوع قبلی وجود دارد
-    const existingRefund = await this.prisma.refund.findUnique({ where: { orderId } });
-    if (existingRefund) {
+    const existingReturn = await this.prisma.returnRequest.findMany({ where: { orderId } });
+    if (existingReturn.length > 0) {
       throw new BadRequestException('این سفارش قبلاً مرجوع شده است');
     }
 
-    const refund = await this.prisma.refund.create({
+    const returnRequest = await this.prisma.returnRequest.create({
       data: {
+        requestNumber: `RET-${Date.now().toString(36).toUpperCase()}`,
         orderId,
-        amount: order.total,
+        userId,
         reason: dto.reason,
-        status: 'pending',
       },
       include: { order: { include: { items: true } } },
     });
 
-    return refund;
+    return returnRequest;
   }
 
   /**
    * 🆕 تأیید/پردازش مرجوعی توسط ادمین
    */
-  async processRefund(refundId: string, status: 'paid' | 'cancelled') {
-    const refund = await this.prisma.refund.findUnique({
-      where: { id: refundId },
+  async processReturnRequest(returnId: string, status: 'approved' | 'rejected') {
+    const returnRequest = await this.prisma.returnRequest.findUnique({
+      where: { id: returnId },
       include: { order: true },
     });
-    if (!refund) throw new NotFoundException('درخواست مرجوعی یافت نشد');
+    if (!returnRequest) throw new NotFoundException('درخواست مرجوعی یافت نشد');
 
-    const updated = await this.prisma.refund.update({
-      where: { id: refundId },
+    const updated = await this.prisma.returnRequest.update({
+      where: { id: returnId },
       data: {
         status,
-        processedAt: status === 'paid' ? new Date() : undefined,
+        resolvedAt: status === 'approved' ? new Date() : undefined,
       },
     });
 
-    // اگر پرداخت شد، موجودی کیف پول کاربر اضافه شود
-    if (status === 'paid') {
-      await this.prisma.walletTransaction.create({
-        data: {
-          userId: refund.order.userId,
-          type: 'refund',
-          amount: refund.amount,
-          balanceBefore: 0,
-          balanceAfter: 0,
-          description: `برگشت وجه سفارش ${refund.order.orderNumber}`,
-          status: 'completed',
-          reference: refund.order.orderNumber,
-        },
-      });
+    // اگر تایید شد، موجودی کیف پول کاربر اضافه شود
+    if (status === 'approved') {
+      const wallet = await this.prisma.wallet.findUnique({ where: { userId: returnRequest.order.userId } });
+      if (wallet) {
+        await this.prisma.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            userId: returnRequest.order.userId,
+            type: 'refund',
+            amount: returnRequest.order.total,
+            balanceBefore: 0,
+            balanceAfter: 0,
+            description: `برگشت وجه سفارش ${returnRequest.order.orderNumber}`,
+            status: 'completed',
+            reference: returnRequest.order.orderNumber,
+          },
+        });
+      }
     }
 
     return updated;
@@ -666,13 +666,13 @@ export class OrdersService {
   /**
    * 🆕 لیست مرجوعی‌های کاربر
    */
-  async getUserRefunds(userId: string) {
-    const refunds = await this.prisma.refund.findMany({
-      where: { order: { userId } },
+  async getUserReturnRequests(userId: string) {
+    const returns = await this.prisma.returnRequest.findMany({
+      where: { userId },
       include: { order: { select: { orderNumber: true, total: true } } },
       orderBy: { createdAt: 'desc' },
     });
-    return refunds;
+    return returns;
   }
 
   /**

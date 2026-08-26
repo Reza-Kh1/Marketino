@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Put, Post, UseGuards, Query } from '@nestjs/common'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { StoreService } from './store.service'
-import { AnswerStoreReviewDto, CreateStoreDto, CreateStoreReviewDto, SearchAdminStore, SearchUserStore, UpdateStoreDto, UpdateStoreReviewStatusDto, UpdateStoreStatusDto } from './dto/store.dto'
-import { CurrentUser } from '@/common/decorators/current-user.decorator'
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard'
-import { Roles } from '@/common/decorators/roles.decorator'
+import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { StoreService } from './store.service';
+import { AnswerStoreReviewDto, CreateStoreDto, CreateStoreReviewDto, SearchAdminStore, SearchAdminStoreReview, SearchUserStore, UpdateStoreDto, UpdateStoreStatusDto } from './dto/store.dto';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto';
 
 @ApiTags('Stores')
 @Controller('stores')
@@ -13,19 +14,19 @@ export class StoreController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create store', description: 'Create a seller store. New stores are always created with pending status and inactive state.' })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create store', description: 'Create a seller store. New stores are created as pending and inactive.' })
   @ApiBody({ type: CreateStoreDto })
   @ApiResponse({ status: 201, description: 'Store created successfully.' })
-  @ApiBearerAuth()
   async createStore(@CurrentUser('id') id: string, @Body() dto: CreateStoreDto) {
-    return this.storeService.createStore(id, dto)
+    return this.storeService.createStore(id, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get store (user)', description: 'Search, filter and sort stores for the admin panel.' })
+  @ApiOperation({ summary: 'Get stores', description: 'Search, filter and sort stores for users.' })
   @ApiResponse({ status: 200, description: 'Paginated list of stores.' })
   async getStoreUsers(@Query() query: SearchUserStore) {
-    return this.storeService.getStoreUsers(query)
+    return this.storeService.getStoreUsers(query);
   }
 
   @Get('/admin')
@@ -38,9 +39,25 @@ export class StoreController {
     return this.storeService.getStoreAdmin(query);
   }
 
+  @Get('reviews/:id')
+  @ApiOperation({ summary: 'Get store review' })
+  @ApiParam({ name: 'id', description: 'Store ID' })
+  async getStoreReview(@Param('storeId') storeId: string, @Query('page') page: string) {
+    return this.storeService.getStoreReview(storeId, page);
+  }
+
+  @Get('reviews-admin/')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Roles('admin', 'superAdmin')
+  @ApiOperation({ summary: 'Get Admin store review' })
+  async getStoreReviewAdmin(@Query() query: SearchAdminStoreReview) {
+    return this.storeService.getStoreReviewAdmin(query);
+  }
+
   @Get(':slug')
-  @ApiOperation({ summary: 'Get store by Slug' })
-  @ApiParam({ name: 'slug', description: 'Store Slug', example: '5783a255-e039-41d7-a5ed-0d950c1d591a', })
+  @ApiOperation({ summary: 'Get store by slug' })
+  @ApiParam({ name: 'slug', description: 'Store slug' })
   @ApiResponse({ status: 200, description: 'Store information.' })
   @ApiResponse({ status: 404, description: 'Store not found.' })
   async getStore(@Param('slug') slug: string) {
@@ -50,75 +67,62 @@ export class StoreController {
   @Put(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update store', description: 'Update store information. Status and activation are not changed by this endpoint.' })
+  @ApiOperation({ summary: 'Update store', description: 'Update store information.' })
   @ApiParam({ name: 'id', description: 'Store ID' })
   @ApiBody({ type: UpdateStoreDto })
   async updateStore(@Param('id') id: string, @Body() dto: UpdateStoreDto) {
-    return this.storeService.updateStore(id, dto)
+    return this.storeService.updateStore(id, dto);
   }
 
   @Put(':id/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Roles('admin', 'superAdmin')
-  @ApiOperation({ summary: 'Update store status', description: 'Approve or reject a seller store.' })
+  @ApiOperation({ summary: 'Update store status' })
   @ApiParam({ name: 'id', description: 'Store ID' })
   @ApiBody({ type: UpdateStoreStatusDto })
   async updateStoreStatus(@Param('id') id: string, @Body() dto: UpdateStoreStatusDto) {
-    return this.storeService.updateStoreStatus(id, dto)
+    return this.storeService.updateStoreStatus(id, dto);
   }
 
   @Post(':storeId/reviews')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create store review', description: 'Create a review for a store. The review is created with pending status.' })
+  @ApiOperation({ summary: 'Create store review' })
   @ApiParam({ name: 'storeId', description: 'Store ID' })
   @ApiBody({ type: CreateStoreReviewDto })
-  async createStoreReview(@Param('storeId') storeId: string, @Body() dto: CreateStoreReviewDto) {
-    throw new Error('Connect userId to your authentication system')
+  async createStoreReview(@CurrentUser('id') userId: string, @Param('storeId') storeId: string, @Body() dto: CreateStoreReviewDto) {
+    return this.storeService.createStoreReview(userId, storeId, dto);
   }
 
   @Put('reviews/:reviewId/approve')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Roles('admin', 'superAdmin')
-  @ApiOperation({ summary: 'Approve store review', description: 'Approve a store review and update store rating statistics.' })
+  @ApiOperation({ summary: 'Approve store review' })
   @ApiParam({ name: 'reviewId', description: 'Store review ID' })
   async approveStoreReview(@Param('reviewId') reviewId: string) {
-    return this.storeService.approveStoreReview(reviewId)
+    return this.storeService.approveStoreReview(reviewId);
   }
 
   @Put('reviews/:reviewId/reject')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Roles('admin', 'superAdmin')
-  @ApiOperation({ summary: 'Reject store review', description: 'Reject a store review. If it was previously approved, its rating statistics are reverted.' })
+  @ApiOperation({ summary: 'Reject store review' })
   @ApiParam({ name: 'reviewId', description: 'Store review ID' })
   async rejectStoreReview(@Param('reviewId') reviewId: string) {
-    return this.storeService.rejectStoreReview(reviewId)
+    return this.storeService.rejectStoreReview(reviewId);
   }
 
   @Put('reviews/:reviewId/answer')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Answer store review', description: 'Add seller answer to a store review. Response statistics are updated only when the review is approved.' })
+  @Roles('seller', 'admin', 'superAdmin')
+  @ApiOperation({ summary: 'Answer store review', description: 'Answering a pending review also approves it.' })
   @ApiParam({ name: 'reviewId', description: 'Store review ID' })
   @ApiBody({ type: AnswerStoreReviewDto })
   async answerStoreReview(@Param('reviewId') reviewId: string, @Body() dto: AnswerStoreReviewDto) {
-    return this.storeService.answerStoreReview(reviewId, dto.answerReview)
-  }
-
-  @Put('qna/:qnaId/approve')
-  @ApiOperation({ summary: 'Approve Q&A', description: 'Approve a Q&A question. If the seller has already answered it, response statistics will be calculated.' })
-  @ApiParam({ name: 'qnaId', description: 'Q&A question ID' })
-  async approveQna(@Param('qnaId') qnaId: string) {
-    return this.storeService.approveQna(qnaId)
-  }
-
-  @Put('qna/:qnaId/reject')
-  @ApiOperation({ summary: 'Reject Q&A', description: 'Reject a Q&A question. If it was previously approved, its response statistics are reverted.' })
-  @ApiParam({ name: 'qnaId', description: 'Q&A question ID' })
-  async rejectQna(@Param('qnaId') qnaId: string) {
-    return this.storeService.rejectQna(qnaId)
+    return this.storeService.answerStoreReview(reviewId, dto.answerReview);
   }
 }

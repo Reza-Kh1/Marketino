@@ -148,7 +148,7 @@ export class OrdersController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'درخواست مرجوعی سفارش' })
   async createRefund(@Param('id') orderId: string, @CurrentUser('id') userId: string, @Body() dto: CreateRefundDto) {
-    return this.ordersService.createRefund(orderId, userId, dto);
+    return this.ordersService.createReturnRequest(orderId, userId, dto);
   }
 
   /**
@@ -159,7 +159,7 @@ export class OrdersController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'لیست مرجوعی‌های کاربر' })
   async getUserRefunds(@CurrentUser('id') userId: string) {
-    return this.ordersService.getUserRefunds(userId);
+    return this.ordersService.getUserReturnRequests(userId);
   }
 
   /**
@@ -170,7 +170,7 @@ export class OrdersController {
   @Patch('refunds/:refundId/process')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'پردازش مرجوعی توسط ادمین' })
-  async processRefund(@Param('refundId') refundId: string, @Body('status') status: 'paid' | 'cancelled') {
-    return this.ordersService.processRefund(refundId, status);
+  async processReturnRequest(@Param('refundId') refundId: string, @Body('status') status: 'approved' | 'rejected') {
+    return this.ordersService.processReturnRequest(refundId, status);
   }
 }

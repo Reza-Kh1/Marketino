@@ -49,6 +49,7 @@ export class WalletService {
     // ایجاد تراکنش برداشت
     const transaction = await this.prisma.walletTransaction.create({
       data: {
+        walletId: '',
         userId,
         type: 'withdraw',
         amount: -amount,

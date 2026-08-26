@@ -1,5 +1,3 @@
-'use client';
-
 import {
   Star,
   ThumbsUp,
@@ -8,9 +6,11 @@ import {
   Clock,
   ShoppingBag,
   BarChart3,
+  Package,
+  MessageSquareText,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { StoreRatingData } from './types';
 import { StoreRating } from '@/services/store.service';
 
 interface StoreRatingPanelProps {
@@ -29,32 +29,31 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
 
   const metrics = [
     {
-      label: 'کیفیت محصول',
+      label: 'کیفیت محصولات',
       value: rating.productQuality,
       icon: ThumbsUp,
       color: 'from-violet-500 to-purple-500',
       suffix: '',
     },
     {
-      label: 'نرخ پاسخ‌گویی',
+      label: 'درصد پاسخگویی به سوالات',
       value: rating.responseRate,
       icon: MessageSquare,
       color: 'from-cyan-500 to-blue-500',
-      suffix: '٪',
-      isPercent: true,
+      suffix: '%',
     },
     {
-      label: 'تحویل به‌موقع',
-      value: rating.onTimeDelivery ?? 0,
-      icon: Truck,
+      label: 'محصولات در حال عرضه',
+      value: rating.productCount ?? 0,
+      icon: Package,
       color: 'from-emerald-500 to-teal-500',
-      suffix: '٪',
+      suffix: '',
       isPercent: true,
     },
     {
-      label: 'ارتباط با مشتری',
-      value: rating.communication ?? rating.avgRating,
-      icon: Star,
+      label: 'فروش موفق',
+      value: rating.saleCount ?? rating.saleCount,
+      icon: ShoppingBag,
       color: 'from-amber-500 to-orange-500',
       suffix: '',
     },
@@ -147,9 +146,9 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
                 {m.isPercent
                   ? m.value.toLocaleString('fa-IR')
                   : m.value.toLocaleString('fa-IR', {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })}
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })}
                 {m.suffix}
               </div>
             </div>
@@ -160,20 +159,19 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
       {/* Extra stats strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatBox
-          icon={ShoppingBag}
-          label="تعداد فروش"
-          value={rating.saleCount.toLocaleString('fa-IR')}
+          icon={MessageSquareText}
+          label="پاسخ های داده شده"
+          value={rating.answeredResponses.toLocaleString('fa-IR')}
+        />
+        <StatBox
+          icon={RotateCcw}
+          label="کالاهای مرجوع شده"
+          value={rating.returnCount.toLocaleString('fa-IR')}
         />
         <StatBox
           icon={Clock}
           label="میانگین پاسخ"
           value={`${rating.responseTime.toLocaleString('fa-IR', { maximumFractionDigits: 1 })} ساعت`}
-        />
-        <StatBox
-          icon={MessageSquare}
-          label="درخواست پاسخ"
-          value={rating.totalResponseRequests.toLocaleString('fa-IR')}
-          className="col-span-2 sm:col-span-1"
         />
       </div>
     </div>
@@ -188,7 +186,7 @@ function StatBox({
 }: {
   icon: typeof Clock;
   label: string;
-  value: string;
+  value: React.ReactNode;
   className?: string;
 }) {
   return (
