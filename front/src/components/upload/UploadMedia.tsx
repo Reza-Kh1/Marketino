@@ -413,7 +413,6 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                     />
                     <UploadCloud className="w-7 h-7 text-zinc-500 mb-2" />
                     <p className="text-xs text-zinc-800 dark:text-zinc-300">انتخاب یا رها کردن</p>
-                    <p className="text-[10px] mt-1 text-zinc-800 dark:text-zinc-300">width(1200)-height(900)</p>
                 </div>
                 :
                 <p className="text-admin-secondary/80 font-bold">

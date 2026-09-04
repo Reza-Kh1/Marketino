@@ -178,7 +178,6 @@ export default function ReviewForm({ productId, store = false, storeId }: Review
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
         </>
     );
 }

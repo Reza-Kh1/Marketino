@@ -60,17 +60,17 @@ export interface OrdersResponse {
 }
 
 export interface CreateOrderDto {
-    shippingAddress: string
-    shippingName: string
-    shippingPhone: string
-    shippingPostal: string
-    shippingCity: string
-    shippingProvince: string
-    notes: string
-    shippingMethod: string
-    addressId: string | null
+    addressId: string
+    discountId: string | null
+    orders: {
+        note: string | null
+        shippingCost: string
+        shippingId: string
+        shippingName: string
+        shippingTime: number  | string
+        storeId: string
+    }[]
     paymentMethod: string
-    discountCode: string | null
 }
 
 export interface UpdateOrderStatusDto {

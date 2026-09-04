@@ -20,7 +20,6 @@ import CharacterCount from '@tiptap/extension-character-count';
 import ResizeImage from 'tiptap-extension-resize-image';
 import UniqueID from '@tiptap/extension-unique-id';
 import { TableOfContents, getHierarchicalIndexes } from '@tiptap/extension-table-of-contents';
-import "./editor.css"
 import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, List, ListOrdered, ListTodo, AlignLeft, AlignCenter, AlignRight, AlignJustify, Link as LinkIcon, Image as ImageIcon, Table as TableIcon, X, Check, Type, Video, Minus, Subscript as SubscriptIcon, Superscript as SuperscriptIcon, Highlighter, Undo, Redo, Code as CodeIcon, Quote, Maximize2, Minimize2, CloudUpload, PlusIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +32,7 @@ import UploadMedia, { FileProgress } from '@/components/upload/UploadMedia';
 import CustomButton from '../CustomButton';
 import { Label } from '../ui/label';
 import { Details, DetailsSummary, DetailsContent } from '@tiptap/extension-details';
+import "./editor.css"
 interface AdminRichEditorProps {
     content?: any | null;
     onChange?: (content: any) => void;

@@ -22,7 +22,7 @@ interface StoreHeroProps {
 export default function StoreHero({ store }: StoreHeroProps) {
   const rating = store.rating;
   const avg = rating?.avgRating ?? 0;
-  const locationText = [store.city, store.province].filter(Boolean).join('، ');
+  const locationText = [store.city?.name, store.province?.name].filter(Boolean).join('، ');
 
   return (
     <section className="relative w-full border-b border-border/50 bg-card/30">

@@ -6,6 +6,10 @@ import {
   LayoutDashboard, Package, ClipboardList, BarChart3, Settings,
   ArrowRight, Store, Percent, Star, TrendingUp, MessageSquare,
   DollarSign, Wallet, Truck, FileUp, Menu, X,
+  CreditCard,
+  ArrowLeftRight, MailQuestion,
+  Loader2,
+  ArrowUpNarrowWide
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -13,21 +17,21 @@ import { useAuth } from '@/lib/auth-context';
 const MENU = [
   { href: '/seller', label: 'داشبورد', icon: LayoutDashboard },
   { href: '/seller/products', label: 'مدیریت محصولات', icon: Package },
-  { href: '/seller/products/import', label: 'وارد کردن انبوه', icon: FileUp },
   { href: '/seller/orders', label: 'مدیریت سفارشات', icon: ClipboardList },
   { href: '/seller/analytics', label: 'آمار و تحلیل', icon: BarChart3 },
-  { href: '/seller/messages', label: 'پیام‌ها', icon: MessageSquare },
-  { href: '/seller/reviews', label: 'نظرات مشتریان', icon: Star },
+  { href: '/seller/reviewStore', label: 'نظرات مشتریان', icon: ArrowUpNarrowWide },
+  { href: '/seller/reviews', label: 'نظرات محصولات', icon: Star },
+  { href: '/seller/qna', label: 'پرسش و پاسخ', icon: MailQuestion },
   { href: '/seller/discounts', label: 'کدهای تخفیف', icon: Percent },
-  { href: '/seller/finance', label: 'مالی و تسویه', icon: DollarSign },
+  { href: '/seller/finance', label: 'تراکنش های مالی', icon: ArrowLeftRight },
   { href: '/seller/wallet', label: 'کیف پول', icon: Wallet },
-  { href: '/seller/settings', label: 'تنظیمات فروشگاه', icon: Settings },
   { href: '/seller/shipping', label: 'تنظیمات ارسال', icon: Truck },
+  { href: '/seller/settings', label: 'تنظیمات فروشگاه', icon: Settings },
 ];
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isSeller } = useAuth();
+  const { isLoading, storeId } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) => {
@@ -63,7 +67,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
             <Store className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -95,7 +99,19 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         </aside>
 
         {/* Content */}
-        <main className="flex-1 min-w-0">{children}</main>
+        {isLoading &&
+          <div className="flex items-center justify-center min-h-100">
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+          </div>
+        }
+        {!storeId ?
+          <div className="text-center w-full py-20">
+            <p className="text-muted-foreground">با خطا مواجه شدیم لطفا بعدا دوباره تلاش کنید</p>
+            <Link href="/seller/products" className="text-emerald-500 hover:underline mt-4 inline-block">
+              بازگشت به سایت
+            </Link>
+          </div> : <main className="flex-1 min-w-0">{children}</main>
+        }
       </div>
     </div>
   );

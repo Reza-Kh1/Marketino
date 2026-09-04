@@ -1,7 +1,8 @@
 import React from 'react'
 import { FieldError, Path, UseFormRegister } from "react-hook-form";
 import { cn } from "@/lib/utils";
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, Info } from 'lucide-react';
+import TooltipCustom from '../TooltipCustom';
 
 type InputFormProps<TFormValues extends Record<string, any>> = {
     name: Path<TFormValues>;
@@ -16,15 +17,16 @@ type InputFormProps<TFormValues extends Record<string, any>> = {
     className?: string;
     autoComplete?: boolean;
     defaultValue?: string | number;
-    min?: number;
+    min?: number | undefined;
     classDiv?: string;
     max?: number;
     rows?: number;
-    value?: string;
+    value?: string | number;
     onChange?: (str: any) => void;
     iconStart?: React.ReactNode;
     iconEnd?: React.ReactNode;
     classLabel?: string
+    helpText?: string
 };
 
 export default function InputForm<TFormValues extends Record<string, any>>({
@@ -48,6 +50,7 @@ export default function InputForm<TFormValues extends Record<string, any>>({
     className,
     min,
     value,
+    helpText,
     onChange
 }: InputFormProps<TFormValues>) {
     const baseInputClasses = cn(
@@ -66,10 +69,11 @@ export default function InputForm<TFormValues extends Record<string, any>>({
             {label && (
                 <label
                     htmlFor={String(name)}
-                    className={cn("block text-sm font-medium text-foreground", classLabel)}
+                    className={cn("flex items-center gap-1 text-sm font-medium text-foreground", classLabel)}
                 >
                     {label}
                     {required && <span className="mr-1 text-xs text-red-500">*</span>}
+                    {helpText && <div className=''><TooltipCustom placeHolder={helpText}><Info className='w-3.5 h-3.5 sm:w-4 sm:h-4' /></TooltipCustom></div>}
                 </label>
             )}
             <div className="relative">
@@ -130,6 +134,6 @@ export default function InputForm<TFormValues extends Record<string, any>>({
                     <p className="text-xs font-medium">{error.message}</p>
                 </div>
             )}
-        </div>
+        </div >
     );
 }

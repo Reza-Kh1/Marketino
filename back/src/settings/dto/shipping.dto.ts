@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsBoolean, Min, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, Min, IsUUID, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateShippingMethodDto {
@@ -10,6 +10,11 @@ export class CreateShippingMethodDto {
   @IsOptional()
   @IsString()
   nameEn?: string;
+
+  @ApiPropertyOptional({ example: 'Post Shipping' })
+  @IsOptional()
+  @IsInt()
+  returnTime?: number;
 
   @ApiPropertyOptional({ example: 'ارسال از طریق پست پیشتاز' })
   @IsOptional()

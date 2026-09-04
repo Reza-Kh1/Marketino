@@ -18,9 +18,6 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
   const discountPercent = Number(product.discountPercent) || 0;
   const hasDiscount = discountPercent > 0 && originalPrice > minPrice;
   const images = product.images || [];
-  const addOrder = () => {
-
-  }
   return (
     <>
       <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2 z-20">
@@ -170,13 +167,10 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
                     </div>
                   </div>
                 </div>
-
-                {/* دکمه‌های افزودن به سبد و رفتن به صفحه محصول */}
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                   <CustomButton
-                    onClick={addOrder}
                     name='مشاهده محصول'
-                    link={`/product/${product.slug}`}
+                    link={`/products/${product.slug}`}
                     color='blueRadinat'
                     iconEnd={<ShoppingBag className="w-4 h-4" />}
                   />

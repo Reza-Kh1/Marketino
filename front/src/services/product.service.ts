@@ -1,7 +1,7 @@
 import { apiClient, api } from "@/lib/api-client";
 import { CategorysTypes } from "./category.service";
 import { TableData } from "@/components/inputs/ProductTable";
-import { PaginationType, ProductImage } from "@/lib/api";
+import { AllProduct, PaginationType, Product, ProductImage } from "@/lib/api";
 import { BrandType } from "./brand.service";
 
 const BASE_URL = "/products";
@@ -110,6 +110,19 @@ export interface FormProductDTO {
 export const ProductService = {
     list: () => {
         return apiClient.get<AllProductsEntity>(BASE_URL);
+    },
+    listAdmin: (params?: any) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(params || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<AllProductsEntity>(`${BASE_URL}/admin?${queryString}`)
+    },
+    approveProduct: (id: string) => apiClient.patch<Product>(`${BASE_URL}/admin/${id}/approve`),
+    featureProduct: (id: string) => {        
+        return apiClient.patch<Product>(`${BASE_URL}/admin/${id}/feature`)
     },
     getBySlug: (slug: string) => {
         return apiClient.get<ProductEntity>(`${BASE_URL}/${slug}`);

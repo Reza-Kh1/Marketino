@@ -87,16 +87,6 @@ export class AuthController {
   }
 
   /**
-   * دریافت اطلاعات کاربر فعلی
-   */
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  @ApiOperation({ summary: 'اطلاعات کاربر فعلی' })
-  async me(@CurrentUser() user: any) {
-    return { success: true, user };
-  }
-
-  /**
    * تغییر رمز عبور
    */
   @UseGuards(JwtAuthGuard)

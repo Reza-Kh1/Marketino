@@ -38,6 +38,9 @@ import { VariantsModule } from './variants/variants.module';
 import { SearchModule } from './search/search.module';
 import { SettingModule } from './settings/setting.module';
 import { StoreModule } from './store/store.module';
+import { ShippingModule } from './shipping/shipping.module';
+import { ProvinceModule } from './province/province.module';
+import { BankAccountModule } from './bankAccount/bank_account.module';
 
 @Module({
   imports: [
@@ -74,7 +77,10 @@ import { StoreModule } from './store/store.module';
     ColorsModule,
     SearchModule,
     SettingModule,
-    StoreModule
+    StoreModule,
+    ShippingModule,
+    ProvinceModule,
+    BankAccountModule
   ],
   controllers: [AppController],
   providers: [AppService],

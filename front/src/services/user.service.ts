@@ -9,42 +9,47 @@ export interface UserDto {
     avatar: string
 }
 
+export type UserRole = 'seller' | 'user' | 'admin' | 'superAdmin'
+
 export interface UserType {
-    id: string                 // UUID
-    username: string;              // نام کاربری
-    email: string;                 // ایمیل
-    firstName: string;             // نام
-    lastName: string;              // نام خانوادگی
-    phone: string | null;          // شماره تلفن (می‌تونه null باشه)
-    avatar: string | null;         // آواتار (می‌تونه null باشه)
-    role: "buyer" | "seller" | "admin"; // نقش کاربر (با توجه به داده، احتمالاً این مقادیر)
-    sellerStatus: string | null;   // وضعیت فروشنده (در صورت فروشنده بودن)
-    sellerReason: string | null;   // دلیل درخواست فروشندگی
-    commissionRate: number;        // نرخ کمیسیون (عدد)
-    storeName: string | null;      // نام فروشگاه
-    storeLogo: string | null;      // لوگوی فروشگاه
-    storeDescription: string | null; // توضیحات فروشگاه (فارسی)
-    storeDescriptionEn: string | null; // توضیحات فروشگاه (انگلیسی)
-    isActive: boolean;             // فعال بودن کاربر
-    isVerified: boolean;           // احراز هویت شده؟
-    emailVerified: boolean;        // ایمیل تایید شده؟
-    hasSetPassword: boolean;       // رمز عبور تنظیم شده؟
-    language: "fa" | "en";         // زبان کاربر
-    lastLogin: string;             // تاریخ آخرین ورود (ISO string)
-    createdAt: string;             // تاریخ ایجاد (ISO string)
-    updatedAt: string;             // تاریخ بروزرسانی (ISO string)
-    _count: {
-        products: number;            // تعداد محصولات
-        orders: number;
-        wishlistItems: number
-    };
+    id: string
+    username: string
+    email: string
+    firstName: string
+    lastName: string
+    phone: string
+    avatar: null | string
+    role: UserRole
+    store: {
+        commissionRate: string
+        id: string
+        slug: string
+    },
+    isActive: boolean,
+    isVerified: boolean,
+    emailVerified: boolean,
+    hasSetPassword: boolean,
+    language: 'fa' | 'en'
+    lastLogin: string
+    createdAt: string
+    updatedAt: string
+    permissions: null | string
+}
+
+export interface SellerListType {
+    id: string
+    username: string
+    storeName: string
+    storeSlug: string
 }
 
 export const userService = {
     profile: () => {
         return apiClient.get<UserType>(BASE_URL + '/me');
     },
-
+    sellerList: () => {
+        return apiClient.get<SellerListType[]>(BASE_URL + '/seller-list');
+    },
     update: (dto: UserDto) => {
         return apiClient.put(`${BASE_URL}/me`, dto);
     },

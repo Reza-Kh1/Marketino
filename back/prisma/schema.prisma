@@ -2,6 +2,8 @@
 // npx prisma format
 // npx prisma migrate dev --name add_wallet_returns_shipping
 // npx prisma generate
+// npx prisma migrate reset 
+// npx prisma db push --force-reset
 // in product ==> npx prisma migrate deploy
 generator client {
   provider = "prisma-client-js"
@@ -49,12 +51,11 @@ model User {
   creator              User?               @relation("AdminCreatedBy", fields: [createdBy], references: [id])
   walletTransactions   WalletTransaction[]
   wallet               Wallet?
-  withdrawRequests     WithdrawRequest[]
-  bankAccounts         BankAccount[]
   wishlistItems        WishlistItem[]
   qnas                 Qna[]
   store                Store?
   returnRequests       ReturnRequest[]
+  bankAccounts         BankAccount[]
   discountCodesCreated DiscountCode[]      @relation("DiscountCodeCreator")
   ticketMessages       TicketMessage[]
   checkouts            Checkout[]
@@ -83,13 +84,11 @@ model Store {
   businessType     String?     @map("business_type") // حقیقی / حقوقی
   nationalId       String?     @map("national_id") // کد ملی یا شناسه ملی
   economicCode     String?     @map("economic_code")
-  commissionRate   Float       @default(0) @map("commission_rate")
+  commissionRate   Decimal     @default(0) @map("commission_rate") @db.Decimal(12, 2)
   status           StoreStatus @default(pending) @map("status")
   statusReason     String?     @map("status_reason")
   isActive         Boolean     @default(false) @map("is_active")
   isVerified       Boolean     @default(false) @map("is_verified")
-  province         String?     @map("province")
-  city             String?     @map("city")
   address          String?     @map("address")
   phone            String?     @map("phone")
   email            String?     @map("email")
@@ -99,21 +98,25 @@ model Store {
   bale             String?     @map("bale")
   robika           String?     @map("robika")
   shippingTime     String?     @map("shipping_time")
+  taxRate          Decimal     @default(9) @map("tax_rate") @db.Decimal(5, 2)
   workingHours     String?     @map("working_hours")
   hasPhysicalStore Boolean     @default(false) @map("has_physical_store")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  provinceId String?  @map("province_id")
+  cityId     String?  @map("city_id")
 
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  products        Product[]
-  discountCodes   DiscountCode[]
-  rating          StoreRating?
-  storeReview     StoreReview[]
-  orders          Order[]
-  orderItems      OrderItem[]
-  shippingMethods ShippingMethod[]
-  bankAccounts    BankAccount[]
+  province             Province?             @relation(fields: [provinceId], references: [id])
+  city                 City?                 @relation(fields: [cityId], references: [id])
+  owner                User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products             Product[]
+  rating               StoreRating?
+  storeReview          StoreReview[]
+  orders               Order[]
+  orderItems           OrderItem[]
+  discountCodeStores   DiscountCodeStore[]
+  storeShippingMethods StoreShippingMethod[]
 
   @@index([isActive, isVerified])
   @@index([isActive, isVerified, name])
@@ -137,13 +140,9 @@ model StoreRating {
   responseRate          Float @default(100) @map("response_rate")
   responseTime          Float @default(0) @map("response_time")
 
-  saleCount   Int @default(0) @map("sale_count")
-  returnCount Int @default(0) @map("return_count")
-
-  onTimeDelivery Float? @default(0) @map("on_time_delivery")
-  communication  Float? @default(0) @map("communication")
-
-  updatedAt DateTime @updatedAt @map("updated_at")
+  saleCount   Int      @default(0) @map("sale_count")
+  returnCount Int      @default(0) @map("return_count")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   storeId String @unique @map("seller_id")
   store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -337,13 +336,14 @@ model ProductImage {
 }
 
 model CartItem {
-  id        String         @id @default(uuid())
-  quantity  Int            @default(1)
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
+  id       String @id @default(uuid())
+  quantity Int    @default(1)
+
   userId    String         @map("user_id")
   productId String         @map("product_id")
   variantId String         @map("variant_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
   product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
@@ -358,8 +358,8 @@ model Address {
   title      String?
   fullName   String     @map("full_name")
   phone      String
-  province   String
-  city       String
+  provinceId String
+  cityId     String
   address    String
   postalCode String?    @map("postal_code")
   isDefault  Boolean    @default(false) @map("is_default")
@@ -367,6 +367,8 @@ model Address {
   updatedAt  DateTime   @updatedAt @map("updated_at")
   userId     String     @map("user_id")
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  province   Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  city       City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
   checkouts  Checkout[]
 
   @@index([userId])
@@ -376,36 +378,40 @@ model Address {
 model Order {
   id               String      @id @default(uuid())
   orderNumber      String      @unique @map("order_number")
-  checkoutId       String      @map("checkout_id") // 🆕 وصل به Checkout
-  storeId          String      @map("store_id") // 🆕 هر Order مال یک فروشگاهه
-  status           OrderStatus @default(pending)
-  shippingMethodId String?     @map("shipping_method_id")
-  shippingCost     Float       @default(0) @map("shipping_cost")
-  trackingCode     String?     @map("tracking_code")
-  subtotal         Float
-  commissionAmount Float       @default(0) @map("commission_amount")
-  total            Float
-  discountAmount   Float       @default(0) @map("discount_amount")
-  deliveredAt      DateTime?   @map("delivered_at")
-  cancelledAt      DateTime?   @map("cancelled_at")
-  // بعد از این تاریخ دیگه امکان درخواست مرجوعی برای این سفارش نیست (deliveredAt + بازه‌ی برگشت)
-  returnDeadline   DateTime?   @map("return_deadline")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @updatedAt @map("updated_at")
+  status           OrderStatus @default(pending) @map("status")
+  shippingCost     Decimal     @default(0) @map("shipping_cost") @db.Decimal(12, 2)
+  shippingName     String?     @map("shipping_name")
+  storeName        String      @map("store_name")
+  storeNameEn      String      @map("store_name_en")
+  commission       Decimal     @map("commission") @db.Decimal(12, 2)
+  commissionAmount Decimal     @default(0) @map("commission_amount") @db.Decimal(12, 2)
+  subtotal         Decimal     @map("subtotal") @db.Decimal(13, 2)
+  totalPrice       Decimal     @map("total_price") @db.Decimal(13, 2)
+  discountAmount   Decimal     @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  note             String?     @map("note")
 
-  discountCodeId     String?             @map("discount_code_id")
-  userId             String              @map("user_id")
-  checkout           Checkout            @relation(fields: [checkoutId], references: [id])
-  store              Store               @relation(fields: [storeId], references: [id])
-  user               User                @relation(fields: [userId], references: [id]) // نگه دار برای کوئری سریع‌تر
-  items              OrderItem[]
-  invoice            Invoice?
-  returnRequests     ReturnRequest[]
-  ticket             Ticket?
-  trackingEvents     TrackingEvent[]
-  discountCode       DiscountCode?       @relation(fields: [discountCodeId], references: [id])
-  shippingMethod     ShippingMethod?     @relation(fields: [shippingMethodId], references: [id])
-  walletTransactions WalletTransaction[]
+  trackingCode          String?              @map("tracking_code")
+  deliveredAt           DateTime?            @map("delivered_at")
+  cancelledAt           DateTime?            @map("cancelled_at")
+  returnDeadline        DateTime?            @map("return_deadline")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  storeShippingMethodId String?              @map("shipping_method_id")
+  checkoutId            String               @map("checkout_id")
+  storeId               String               @map("store_id")
+  discountCodeId        String?              @map("discount_code_id")
+  userId                String               @map("user_id")
+  checkout              Checkout             @relation(fields: [checkoutId], references: [id])
+  store                 Store                @relation(fields: [storeId], references: [id])
+  user                  User                 @relation(fields: [userId], references: [id]) // نگه دار برای کوئری سریع‌تر
+  items                 OrderItem[]
+  invoice               Invoice?
+  returnRequests        ReturnRequest[]
+  ticket                Ticket?
+  trackingEvents        TrackingEvent[]
+  storeShippingMethod   StoreShippingMethod? @relation(fields: [storeShippingMethodId], references: [id])
+  discountCode          DiscountCode?        @relation(fields: [discountCodeId], references: [id])
+  walletTransactions    WalletTransaction[]
 
   @@index([userId])
   @@index([storeId])
@@ -415,29 +421,29 @@ model Order {
 }
 
 model OrderItem {
-  id            String         @id @default(uuid())
-  title         String
-  price         Float
-  quantity      Int
-  returnedQty   Int            @default(0) @map("returned_qty")
-  total         Float
-  image         String?
-  createdAt     DateTime       @default(now()) @map("created_at")
-  orderId       String         @map("order_id")
-  productId     String         @map("product_id")
-  storeId       String         @map("store_id")
-  sku           String         @map("sku")
-  attributes    Json?          @map("attributes")
-  colorName     String?        @map("color_name")
-  colorHex      String?        @map("color_hex")
-  originalPrice Float?         @map("original_price")
-  variantName   String?        @map("variant_name")
-  variantId     String         @map("variant_id")
-  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product        @relation(fields: [productId], references: [id])
-  store         Store          @relation(fields: [storeId], references: [id])
-  variant       ProductVariant @relation(fields: [variantId], references: [id])
-  returnItems   ReturnItem[]
+  id            String   @id @default(uuid())
+  sku           String   @map("sku")
+  name          String   @map("name")
+  nameEn        String   @map("name_en")
+  price         Decimal  @map("price") @db.Decimal(12, 2)
+  originalPrice Decimal? @map("original_price") @db.Decimal(12, 2)
+  total         Decimal  @map("total") @db.Decimal(13, 2)
+  quantity      Int      @map("quantity")
+  returnedQty   Int?     @default(0) @map("returned_qty")
+  attributes    Json?    @map("attributes")
+  colorName     String?  @map("color_name")
+  colorHex      String?  @map("color_hex")
+
+  orderId     String         @map("order_id")
+  productId   String         @map("product_id")
+  storeId     String         @map("store_id")
+  variantId   String         @map("variant_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product        @relation(fields: [productId], references: [id])
+  store       Store          @relation(fields: [storeId], references: [id])
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  returnItems ReturnItem[]
 
   @@index([orderId])
   @@index([storeId])
@@ -445,23 +451,33 @@ model OrderItem {
 }
 
 model Checkout {
-  id             String         @id @default(uuid())
-  checkoutNumber String         @unique @map("checkout_number")
-  userId         String         @map("user_id")
-  totalAmount    Float          @map("total_amount")
-  discountAmount Float          @default(0) @map("discount_amount")
-  discountId     String?        @map("discount_id")
-  paymentStatus  PaymentStatus  @default(pending) @map("payment_status")
-  paymentMethod  PaymentMethod? @map("payment_method")
-  paymentRef     String?        @map("payment_ref")
-  addressId      String?        @map("address_id")
-  createdAt      DateTime       @default(now()) @map("created_at")
+  id               String  @id @default(uuid())
+  checkoutNumber   String  @unique @map("checkout_number")
+  commissionAmount Decimal @default(0) @map("commission_amount") @db.Decimal(13, 2)
+  salesProfit      Decimal @default(0) @map("sales_profit") @db.Decimal(13, 2)
+  totalAmount      Decimal @map("total_amount") @db.Decimal(13, 2)
+  discountAmount   Decimal @default(0) @map("discount_amount") @db.Decimal(13, 2)
 
-  user     User          @relation(fields: [userId], references: [id])
-  address  Address?      @relation(fields: [addressId], references: [id])
-  discount DiscountCode? @relation(fields: [discountId], references: [id])
-  orders   Order[]
-  payments Payment[]
+  discountStatus   StatusDiscount? @map("discount_status")
+  paymentStatus    PaymentStatus   @default(pending) @map("payment_status")
+  paymentMethod    PaymentMethod?  @map("payment_method")
+  paymentRef       String?         @map("payment_ref")
+  shippingName     String          @map("shipping_name")
+  shippingPhone    String          @map("shipping_phone")
+  shippingCity     String          @map("shipping_city")
+  shippingProvince String          @map("shipping_province")
+  shippingAddress  String          @map("shipping_address")
+  shippingPostal   String          @map("shipping_postal")
+
+  discountId String?       @map("discount_id")
+  userId     String        @map("user_id")
+  addressId  String?       @map("address_id")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  user       User          @relation(fields: [userId], references: [id])
+  address    Address?      @relation(fields: [addressId], references: [id])
+  discount   DiscountCode? @relation(fields: [discountId], references: [id])
+  orders     Order[]
+  payments   Payment[]
 
   @@index([userId])
   @@map("checkouts")
@@ -469,7 +485,7 @@ model Checkout {
 
 model Payment {
   id           String        @id @default(uuid())
-  amount       Float
+  amount       Decimal       @db.Decimal(12, 2)
   method       PaymentMethod
   status       PaymentStatus @default(pending)
   gatewayRef   String?       @map("gateway_ref")
@@ -487,7 +503,7 @@ model Payment {
 model Invoice {
   id            String        @id @default(uuid())
   invoiceNumber String        @unique @map("invoice_number")
-  amount        Float
+  amount        Decimal       @db.Decimal(12, 2)
   status        InvoiceStatus @default(pending)
   paidAt        DateTime?     @map("paid_at")
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -507,8 +523,8 @@ model ReturnRequest {
   reason             String        @map("reason")
   reasonDetail       String?       @map("reason_detail")
   refundMethod       RefundMethod? @map("refund_method")
-  refundAmount       Float?        @map("refund_amount")
-  returnShippingCost Float?        @map("return_shipping_cost")
+  refundAmount       Decimal?      @map("refund_amount") @db.Decimal(12, 2)
+  returnShippingCost Decimal?      @map("return_shipping_cost") @db.Decimal(12, 2)
   adminNote          String?       @map("admin_note")
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
@@ -534,7 +550,7 @@ model ReturnItem {
   quantity        Int
   reason          String?
   condition       String? // سالم / آسیب‌دیده / بازکرده و... برای بررسی انبار فروشنده
-  unitRefund      Float?   @map("unit_refund")
+  unitRefund      Decimal? @map("unit_refund") @db.Decimal(12, 2)
   createdAt       DateTime @default(now()) @map("created_at")
 
   returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
@@ -568,6 +584,7 @@ model Review {
   @@unique([userId, productId])
   @@index([productId])
   @@index([userId])
+  @@index([isApproved])
   @@index([answerId])
   @@map("reviews")
 }
@@ -581,10 +598,9 @@ model StoreReview {
   productQuality   Int?        @map("product_quality")
   productName      String?     @map("product_name")
   status           StoreStatus @default(pending) @map("status")
-
-  answerReview String?   @map("answer_review")
-  answerAt     DateTime? @map("answer_at")
-  responseAt   DateTime? @map("response_at")
+  answerReview     String?     @map("answer_review")
+  answerAt         DateTime?   @map("answer_at")
+  responseAt       DateTime?   @map("response_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -594,9 +610,11 @@ model StoreReview {
   user  User  @relation(fields: [userId], references: [id])
   store Store @relation(fields: [storeId], references: [id])
 
+  @@unique([userId, storeId])
   @@index([storeId])
   @@index([userId])
-  @@map("seller_reviews")
+  @@index([status])
+  @@map("store_reviews")
 }
 
 model WishlistItem {
@@ -631,129 +649,114 @@ model Notification {
 }
 
 model Wallet {
-  id             String   @id @default(uuid())
-  userId         String   @unique @map("user_id")
-  balance        Float    @default(0)
-  pendingBalance Float    @default(0) @map("pending_balance")
-  frozenBalance  Float    @default(0) @map("frozen_balance")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id              String  @id @default(uuid())
+  userId          String  @unique @map("user_id")
+  balance         Decimal @default(0) @db.Decimal(18, 2)
+  pendingBalance  Decimal @default(0) @map("pending_balance") @db.Decimal(18, 2)
+  withdrawBalance Decimal @default(0) @map("withdraw_balance") @db.Decimal(18, 2)
+  frozenBalance   Decimal @default(0) @map("frozen_balance") @db.Decimal(18, 2)
+  isPlatform      Boolean @default(false) @map("is_platform")
 
-  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions     WalletTransaction[]
-  withdrawRequests WithdrawRequest[]
+  bankAccountId String?             @map("bank_account_id")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+  bankAccounts  BankAccount[]
 
   @@map("wallets")
 }
 
 model WalletTransaction {
-  id                String                  @id @default(uuid())
-  walletId          String                  @map("wallet_id")
-  userId            String                  @map("user_id")
-  type              WalletTransactionType
-  amount            Float
-  balanceBefore     Float                   @map("balance_before")
-  balanceAfter      Float                   @map("balance_after")
-  description       String?
-  status            WalletTransactionStatus @default(completed)
-  reference         String?
-  orderId           String?                 @map("order_id")
-  returnRequestId   String?                 @map("return_request_id")
-  withdrawRequestId String?                 @map("withdraw_request_id")
-  createdAt         DateTime                @default(now()) @map("created_at")
+  id           String                  @id @default(uuid())
+  type         WalletTransactionType   @map("type")
+  status       WalletTransactionStatus @default(completed)
+  amount       Decimal                 @map("amount") @db.Decimal(18, 2)
+  trackingCode String                  @unique @map("tracking_code")
+  description  String?                 @map("description")
 
-  wallet          Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user            User             @relation(fields: [userId], references: [id])
-  order           Order?           @relation(fields: [orderId], references: [id])
-  returnRequest   ReturnRequest?   @relation(fields: [returnRequestId], references: [id])
-  withdrawRequest WithdrawRequest? @relation(fields: [withdrawRequestId], references: [id])
+  userId          String    @map("user_id")
+  walletId        String    @map("wallet_id")
+  orderId         String?   @map("order_id")
+  returnRequestId String?   @map("return_request_id")
+  SettlementDate  DateTime? @map("settlement_date")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  wallet        Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id])
+  order         Order?         @relation(fields: [orderId], references: [id])
+  returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id])
 
   @@index([userId])
   @@index([walletId])
-  @@index([type])
+  @@index([type, status])
   @@index([orderId])
-  @@index([withdrawRequestId])
   @@index([userId, createdAt])
   @@map("wallet_transactions")
 }
 
 model BankAccount {
-  id            String   @id @default(uuid())
-  storeId       String   @map("user_id")
-  bankName      String?  @map("bank_name")
-  accountHolder String   @map("account_holder")
-  iban          String   @map("iban")
-  cardNumber    String?  @map("card_number")
-  isDefault     Boolean  @default(false) @map("is_default")
-  isVerified    Boolean  @default(false) @map("is_verified")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id            String  @id @default(uuid())
+  bankName      String? @map("bank_name")
+  accountHolder String  @map("account_holder")
+  iban          String  @map("iban")
+  cardNumber    String? @map("card_number")
+  isDefault     Boolean @default(false) @map("is_default")
+  isVerified    Boolean @default(false) @map("is_verified")
 
-  store            Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  withdrawRequests WithdrawRequest[]
-  user             User?             @relation(fields: [userId], references: [id])
-  userId           String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    String   @map("user_id")
+  walletId  String?  @map("wallet_id")
 
-  @@index([storeId])
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet Wallet? @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@map("bank_accounts")
 }
 
-model WithdrawRequest {
-  id            String       @id @default(uuid())
-  requestNumber String       @unique @map("request_number")
-  walletId      String       @map("wallet_id")
-  userId        String       @map("user_id")
-  bankAccountId String       @map("bank_account_id")
-  amount        Float
-  status        PayoutStatus @default(pending)
-  adminNote     String?      @map("admin_note")
-  reviewedById  String?      @map("reviewed_by_id")
-  reviewedAt    DateTime?    @map("reviewed_at")
-  paidAt        DateTime?    @map("paid_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
-
-  wallet       Wallet              @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user         User                @relation(fields: [userId], references: [id])
-  bankAccount  BankAccount         @relation(fields: [bankAccountId], references: [id])
-  transactions WalletTransaction[]
-
-  @@index([walletId])
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("withdraw_requests")
-}
-
 model DiscountCode {
-  id             String       @id @default(uuid())
-  code           String       @unique
-  type           DiscountType @default(percentage)
-  value          Float
-  minOrderAmount Float        @default(0) @map("min_order_amount")
-  maxDiscount    Float?       @map("max_discount")
-  usageLimit     Int          @default(0) @map("usage_limit")
-  usedCount      Int          @default(0) @map("used_count")
-  perUserLimit   Int          @default(0) @map("per_user_limit")
-  startsAt       DateTime     @map("starts_at")
-  endsAt         DateTime     @map("ends_at")
-  isActive       Boolean      @default(true) @map("is_active")
+  id             String         @id @default(uuid())
+  code           String         @unique @map("code")
+  type           DiscountType   @default(percentage) @map("type")
+  status         StatusDiscount @default(PRODUCT)
+  value          Decimal        @map("value") @db.Decimal(12, 2)
+  minOrderAmount Decimal        @default(0) @map("min_order_amount") @db.Decimal(12, 2)
+  maxDiscount    Decimal?       @map("max_discount") @db.Decimal(12, 2)
+  usageLimit     Int            @default(0) @map("usage_limit")
+  usedCount      Int            @default(0) @map("used_count")
+  perUserLimit   Int            @default(0) @map("per_user_limit")
+  startsAt       DateTime       @map("starts_at")
+  endsAt         DateTime       @map("ends_at")
+  isActive       Boolean        @default(true) @map("is_active")
   description    String?
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-  creatorId      String?      @map("creator_id")
-  storeId        String?      @map("store_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  creatorId      String?        @map("creator_id")
 
-  usages          DiscountCodeUsage[]
-  creator         User?               @relation("DiscountCodeCreator", fields: [creatorId], references: [id])
-  store           Store?              @relation(fields: [storeId], references: [id])
-  orders          Order[]
-  productVariants ProductVariant[]
-  checkouts       Checkout[]
+  usages             DiscountCodeUsage[]
+  creator            User?               @relation("DiscountCodeCreator", fields: [creatorId], references: [id])
+  orders             Order[]
+  productVariants    ProductVariant[]
+  checkouts          Checkout[]
+  discountCodeStores DiscountCodeStore[]
 
   @@index([creatorId])
-  @@index([storeId])
   @@map("discount_codes")
+}
+
+model DiscountCodeStore {
+  discountCodeId String
+  storeId        String
+
+  discountCode DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([discountCodeId, storeId])
+  @@index([storeId])
+  @@map("discount_code_stores")
 }
 
 model DiscountCodeUsage {
@@ -762,9 +765,7 @@ model DiscountCodeUsage {
   discountCodeId String       @map("discount_code_id")
   userId         String       @map("user_id")
   discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
-  checkoutId     String
-  orderId        String?
-  amount         Float
+  amount         Decimal      @db.Decimal(12, 2)
 
   @@index([discountCodeId])
   @@index([userId])
@@ -772,26 +773,95 @@ model DiscountCodeUsage {
 }
 
 model ShippingMethod {
-  id              String   @id @default(uuid())
-  name            String   @map("name")
-  nameEn          String?  @map("name_en")
-  description     String?  @map("description")
-  descriptionEn   String?  @map("description_en")
-  cost            Float    @default(0) @map("cost")
-  phrase          String?  @map("phrase")
-  freeThreshold   Float?   @map("free_threshold")
-  estimatedDays   String?  @map("estimated_days")
-  estimatedDaysEn String?  @map("estimated_days_en")
-  isActive        Boolean  @default(true) @map("is_active")
-  sortOrder       Int      @default(0) @map("sort_order")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id           String  @id @default(uuid())
+  name         String  @map("name")
+  nameEn       String? @map("name_en")
+  isFreeMethod Boolean @default(false) @map("is_free_method")
+  isActive     Boolean @default(true) @map("is_active")
 
-  store  Store[]
-  orders Order[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  storeShippingMethods StoreShippingMethod[]
 
   @@index([isActive])
   @@map("shipping_methods")
+}
+
+model StoreShippingMethod {
+  id            String   @id @default(uuid())
+  isActive      Boolean  @default(true) @map("is_active")
+  description   String?  @map("description")
+  descriptionEn String?  @map("description_en")
+  phrase        String?  @map("phrase")
+  minDays       Int      @map("min_days")
+  maxDays       Int      @map("max_days")
+  defaultPrice  Decimal? @map("default_price") @db.Decimal(12, 2)
+
+  storeId          String
+  shippingMethodId String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store          Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  shippingMethod ShippingMethod      @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  rates          StoreShippingRate[]
+  orders         Order[]
+
+  @@unique([storeId, shippingMethodId])
+  @@index([storeId])
+  @@index([shippingMethodId])
+  @@map("store_shipping_methods")
+}
+
+model StoreShippingRate {
+  id              String  @id @default(uuid())
+  price           Decimal @map("price") @db.Decimal(12, 2)
+  deliveryMaxDays Int     @map("return_days")
+
+  storeShippingMethodId String
+  provinceId            String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  storeShippingMethod StoreShippingMethod @relation(fields: [storeShippingMethodId], references: [id], onDelete: Cascade)
+  province            Province            @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+
+  @@unique([storeShippingMethodId, provinceId])
+  @@index([provinceId])
+  @@map("store_shipping_rates")
+}
+
+model Province {
+  id     String  @id @default(uuid())
+  name   String  @unique @map("name")
+  nameEn String? @map("name_en")
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  cityes             City[]
+  store              Store[]
+  storeShippingRates StoreShippingRate[]
+  addresses          Address[]
+
+  @@map("provinces")
+}
+
+model City {
+  id     String  @id @default(uuid())
+  name   String  @map("name")
+  nameEn String? @map("name_en")
+
+  provinceId String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  province   Province  @relation(fields: [provinceId], references: [id])
+  store      Store[]
+  addresses  Address[]
+
+  @@unique([provinceId, name])
+  @@index([provinceId])
+  @@map("cities")
 }
 
 model Ticket {
@@ -865,9 +935,10 @@ model Qna {
   sender  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([productId])
-  @@index([parentId])
   @@index([status])
+  @@index([parentId])
   @@index([createdAt])
+  @@map("qna")
 }
 
 model BlogPost {
@@ -1008,6 +1079,13 @@ model Message {
   @@map("messages")
 }
 
+enum StatusDiscount {
+  PLATFORM
+  STORE
+  COMMISSION
+  PRODUCT
+}
+
 enum UserRole {
   buyer
   seller
@@ -1075,11 +1153,12 @@ enum NotificationType {
 }
 
 enum WalletTransactionType {
-  deposit
-  withdraw
-  commission
-  refund
-  purchase
+  deposit // واریز
+  withdraw // برداشت
+  commission // کمیسیون
+  tax // مالیات
+  refund // بازگشت وجه
+  purchase // خرید
   // واریز خودکار به فروشنده بابت تسویه‌ی یک سفارش
   sale_settlement
   // کسر از کیف‌پول فروشنده بابت مرجوعی کالا

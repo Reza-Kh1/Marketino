@@ -1,15 +1,26 @@
-import { UserDto, userService, UserType } from "@/services/user.service";
+import { SellerListType, UserDto, userService, UserType } from "@/services/user.service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const USER_KEYS = {
     all: ["user"] as const,
     profile: () => [...USER_KEYS.all, "profile"] as const,
+    listsSeller: () => [...USER_KEYS.all, "seller"] as const,
     lists: () => [...USER_KEYS.all, "list"] as const,
     listWithFilters: (filters: Record<string, any>) => [...USER_KEYS.lists(), filters] as const,
     details: () => [...USER_KEYS.all, "detail"] as const,
     detail: (slug: string) => [...USER_KEYS.details(), slug] as const,
 } as const;
+
+export function useSellerList(enabled?: boolean) {
+    return useQuery<SellerListType[]>({
+        queryKey: USER_KEYS.listsSeller(),
+        queryFn: () => userService.sellerList(),
+        staleTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        enabled
+    });
+}
 
 export function useProfileUser() {
     return useQuery<UserType>({

@@ -26,7 +26,7 @@ export class BrandsController {
  * دریافت تمام برند‌های ادمین
  */
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin', 'superAdmin')
+    @Roles('admin', 'superAdmin', 'seller')
     @Get('/admin')
     @ApiOperation({ summary: 'لیست برند‌های admin' })
     async findAllAdmin() {

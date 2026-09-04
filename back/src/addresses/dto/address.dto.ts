@@ -13,27 +13,27 @@ export class CreateAddressDto {
   @ApiProperty({ description: 'نام و نام خانوادگی گیرنده' })
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  fullName!: string;
 
   @ApiProperty({ description: 'شماره تلفن' })
   @IsString()
   @IsNotEmpty()
-  phone: string;
+  phone!: string;
 
   @ApiProperty({ description: 'استان' })
   @IsString()
   @IsNotEmpty()
-  province: string;
+  provinceId!: string;
 
   @ApiProperty({ description: 'شهر' })
   @IsString()
   @IsNotEmpty()
-  city: string;
+  cityId!: string;
 
   @ApiProperty({ description: 'آدرس کامل' })
   @IsString()
   @IsNotEmpty()
-  address: string;
+  address!: string;
 
   @ApiPropertyOptional({ description: 'کد پستی' })
   @IsOptional()
@@ -65,12 +65,12 @@ export class UpdateAddressDto {
   @ApiPropertyOptional({ description: 'استان' })
   @IsOptional()
   @IsString()
-  province?: string;
+  provinceId?: string;
 
   @ApiPropertyOptional({ description: 'شهر' })
   @IsOptional()
   @IsString()
-  city?: string;
+  cityId?: string;
 
   @ApiPropertyOptional({ description: 'آدرس کامل' })
   @IsOptional()

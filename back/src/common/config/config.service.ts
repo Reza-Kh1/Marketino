@@ -23,6 +23,8 @@ const configServices = () => ({
     color: process.env.ALL_COLOR || 10,
     store: process.env.ALL_STORE || 10,
     storeReview: process.env.ALL_STORE_REVIEWS || 10,
+    transAction: process.env.ALL_TRANSACTION || 10,
+    wallet: process.env.ALL_WALLET || 10,
   }
 });
 

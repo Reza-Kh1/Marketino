@@ -16,6 +16,11 @@ import { UserRole } from '@prisma/client';
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
+  @Get('seller-list')
+  @ApiOperation({ summary: 'لیست فروشندگان برای سلکتور' })
+  async getSellerList() {
+    return this.usersService.getSellerList();
+  }
   /**
    * پروفایل کاربر فعلی
    */

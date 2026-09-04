@@ -14,7 +14,6 @@ import {
 } from './dto/store.dto'
 import pagination from '@/common/utils/pagination'
 import { productSelector } from '@/products/products.service'
-import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto'
 
 @Injectable()
 export class StoreService {
@@ -237,8 +236,8 @@ export class StoreService {
           isVerified: true,
           logo: true,
           businessType: true,
-          province: true,
-          city: true,
+          province: { select: { name: true, nameEn: true } },
+          city: { select: { name: true, nameEn: true } },
           createdAt: true,
           updatedAt: true,
           rating: {
@@ -275,7 +274,6 @@ export class StoreService {
           status: StoreStatus.pending,
           isActive: false,
           isVerified: false,
-          commissionRate: 0,
           rating: {
             create: {},
           },
@@ -296,11 +294,12 @@ export class StoreService {
   }
 
   async getStore(slug: string) {
+    const takeReview = Number(this.configService.get('limit.storeReview'))
     const store = await this.prisma.store.findUnique({
       where: { slug },
       select: {
-        bale: true, banner: true, city: true, businessType: true, description: true, descriptionEn: true, email: true, hasPhysicalStore: true, instagram: true, isActive: true, isVerified: true, createdAt: true,
-        logo: true, id: true, name: true, nameEn: true, phone: true, province: true, robika: true, slug: true, status: true, telegram: true, workingHours: true, whatsApp: true, shippingTime: true, address: true,
+        bale: true, banner: true, businessType: true, description: true, descriptionEn: true, email: true, hasPhysicalStore: true, instagram: true, isActive: true, isVerified: true, createdAt: true,
+        logo: true, provinceId: true, cityId: true, id: true, name: true, nameEn: true, phone: true, robika: true, slug: true, status: true, telegram: true, workingHours: true, whatsApp: true, shippingTime: true, address: true,
         rating: {
           select: {
             totalReviews: true,
@@ -346,8 +345,21 @@ export class StoreService {
           orderBy: {
             createdAt: 'desc',
           },
-          take: 10,
+          take: takeReview,
         },
+        province: {
+          select: {
+            name: true, nameEn: true
+          }
+        },
+        city: {
+          select: {
+            name: true, nameEn: true
+          }
+        },
+        _count: {
+          select: { storeReview: { where: { status: 'approved' } } }
+        }
       },
     })
     if (!store) {
@@ -387,16 +399,15 @@ export class StoreService {
   // Store Review
   // -------------------------------------------------------
 
-  async getStoreReviewAdmin(query: SearchAdminStoreReview) {    
-    const { status, storId, verifiedPurchase } = query
+  async getStoreReviewAdmin(query: SearchAdminStoreReview) {
+    const { status, storeId, verifiedPurchase } = query
     const page = Number(query.page || 1)
     const limit = Number(query.limit) || Number(this.configService.get('limit.storeReview'))
     const skip = (page - 1) * limit;
-    const verify = (verifiedPurchase === 'true' || true) ? true : verifiedPurchase === 'false' || false ? false : undefined
     const where = {
-      ...(status !== 'All' && { status }),
-      ...(verify && { verifiedPurchase: verify }),
-      ...(storId && { storId }),
+      ...(status && status !== 'All' && { status }),
+      ...(verifiedPurchase && verifiedPurchase !== 'All' && { verifiedPurchase: verifiedPurchase === 'true' ? true : false }),
+      ...(storeId && { storeId }),
     }
     const [review, total] = await Promise.all([
       this.prisma.storeReview.findMany({
@@ -408,9 +419,13 @@ export class StoreService {
               lastName: true,
             },
           },
+          storeId: true,
+          store: { select: { slug: true } },
+          status: true,
           answerAt: true,
           responseAt: true,
           body: true,
+          id: true,
           answerReview: true,
           createdAt: true,
           productName: true,
@@ -425,19 +440,19 @@ export class StoreService {
       this.prisma.storeReview.count({ where }),
     ]);
     return {
-      storeReview: review,
+      storesReview: review,
       pagination: pagination(total, page, limit)
     }
   }
 
-  async getStoreReview(storeId: string, pageNumber: string) {    
+  async getStoreReview(storeId: string, pageNumber: string) {
     const page = Number(pageNumber || 1) + 1
     const limit = Number(this.configService.get('limit.storeReview'))
     const skip = (page - 1) * limit;
     const [review, total] = await Promise.all([
       this.prisma.storeReview.findMany({
         where: {
-          id: storeId,
+          storeId: storeId,
           status: 'approved'
         },
         select: {
@@ -461,7 +476,7 @@ export class StoreService {
         take: limit,
         orderBy: { createdAt: 'desc' }
       }),
-      this.prisma.storeReview.count({ where: { id: storeId } }),
+      this.prisma.storeReview.count({ where: { storeId: storeId, status: 'approved' } }),
     ]);
     return {
       storeReview: review,
@@ -693,16 +708,57 @@ export class StoreService {
     })
   }
 
+  async deleteStoreReview(reviewId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const review = await tx.storeReview.findUnique({
+        where: { id: reviewId },
+        select: {
+          id: true,
+          storeId: true,
+          status: true,
+          rating: true,
+          productQuality: true,
+          responseAt: true,
+          createdAt: true,
+        },
+      })
+
+      if (!review) {
+        throw new NotFoundException('Store review not found')
+      }
+
+      if (review.status === StoreStatus.approved) {
+        await this.removeReviewRating(tx, {
+          storeId: review.storeId,
+          rating: review.rating,
+          productQuality: review.productQuality,
+        })
+
+        const responseTime = review.responseAt
+          ? this.getResponseTime(
+            review.createdAt,
+            review.responseAt,
+          )
+          : null
+
+        await this.removeResponseRequest(
+          tx,
+          review.storeId,
+          responseTime,
+        )
+      }
+
+      return tx.storeReview.delete({
+        where: { id: reviewId },
+      })
+    })
+    return { success: true }
+  }
+
+
   // -------------------------------------------------------
   // Qna
   // -------------------------------------------------------
-
-  /**
-   * QnaService بعد از ثبت پاسخ فروشنده صدا می‌زند.
-   *
-   * اینجا دیگر Qna را Query نمی‌کنیم.
-   * QnaService از قبل این اطلاعات را دارد.
-   */
   async registerQnaResponse(
     storeId: string,
     questionCreatedAt: Date,
@@ -1083,7 +1139,6 @@ export class StoreService {
       },
     })
   }
-
   // -------------------------------------------------------
   // Rating - Sale / Return
   // -------------------------------------------------------
@@ -1126,6 +1181,234 @@ export class StoreService {
           increment: quantity,
         },
       },
+    })
+  }
+
+  async rebuildStoreRating(storeId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const [
+        productCount,
+        reviewStats,
+        orderStats,
+        reviewResponseStats,
+        qnaResponseStats,
+      ] = await Promise.all([
+        // 1. تعداد محصولات Approved
+        tx.product.count({
+          where: {
+            storeId,
+            status: 'approved',
+          },
+        }),
+
+        // 2. آمار Reviewهای Approved
+        tx.storeReview.aggregate({
+          where: {
+            storeId,
+            status: StoreStatus.approved,
+          },
+          _count: {
+            _all: true,
+          },
+          _sum: {
+            rating: true,
+            productQuality: true,
+          },
+        }),
+
+        // 3. آمار فروش و مرجوعی
+        tx.orderItem.aggregate({
+          where: {
+            storeId,
+            order: {
+              checkout: {
+                paymentStatus: 'paid',
+              },
+              status: {
+                not: 'cancelled',
+              },
+            },
+          },
+          _sum: {
+            quantity: true,
+            returnedQty: true,
+          },
+        }),
+
+        // 4. Response Statistics مربوط به Review
+        tx.$queryRaw<{
+          totalRequests: number
+          answered: number
+          totalResponseTime: number
+        }[]>`
+        SELECT
+          COUNT(*)::int AS "totalRequests",
+
+          COUNT("response_at")::int AS "answered",
+
+          COALESCE(
+            SUM(
+              CASE
+                WHEN "response_at" IS NOT NULL
+                THEN EXTRACT(
+                  EPOCH FROM (
+                    "response_at" - "created_at"
+                  )
+                ) / 60
+                ELSE 0
+              END
+            ),
+            0
+          )::float8 AS "totalResponseTime"
+
+        FROM "store_reviews"
+
+        WHERE
+          "store_id" = ${storeId}
+          AND "status" = 'approved'
+      `,
+
+        // 5. Response Statistics مربوط به Qna
+        tx.$queryRaw<{
+          totalRequests: number
+          answered: number
+          totalResponseTime: number
+        }[]>`
+        SELECT
+          COUNT(*)::int AS "totalRequests",
+
+          COUNT(reply.id)::int AS "answered",
+
+          COALESCE(
+            SUM(
+              CASE
+                WHEN reply.id IS NOT NULL
+                THEN EXTRACT(
+                  EPOCH FROM (
+                    reply."createdAt" - question."createdAt"
+                  )
+                ) / 60
+                ELSE 0
+              END
+            ),
+            0
+          )::float8 AS "totalResponseTime"
+
+        FROM "Qna" question
+
+        INNER JOIN "products" product
+          ON product.id = question."productId"
+
+        LEFT JOIN LATERAL (
+          SELECT
+            reply.id,
+            reply."createdAt"
+          FROM "Qna" reply
+          WHERE
+            reply."parentId" = question.id
+            AND reply.role = 'seller'
+          ORDER BY reply."createdAt" ASC
+          LIMIT 1
+        ) reply ON true
+
+        WHERE
+          question."parentId" IS NULL
+          AND question.status = 'approved'
+          AND product."store_id" = ${storeId}
+      `,
+      ])
+
+      const reviewResponse = reviewResponseStats[0]
+      const qnaResponse = qnaResponseStats[0]
+
+      // -------------------------------------------------------
+      // Review Rating
+      // -------------------------------------------------------
+
+      const totalReviews = reviewStats._count._all
+      const ratingTotal =
+        reviewStats._sum.rating ?? 0
+      const avgRating =
+        totalReviews > 0
+          ? ratingTotal / totalReviews
+          : 0
+      const productQualityCount =
+        await tx.storeReview.count({
+          where: {
+            storeId,
+            status: StoreStatus.approved,
+            productQuality: {
+              not: null,
+            },
+          },
+        })
+      const productQualityTotal =
+        reviewStats._sum.productQuality ?? 0
+      const productQuality =
+        productQualityCount > 0
+          ? productQualityTotal / productQualityCount
+          : 5
+      const totalResponseRequests =
+        Number(reviewResponse.totalRequests) +
+        Number(qnaResponse.totalRequests)
+      const answeredResponses =
+        Number(reviewResponse.answered) +
+        Number(qnaResponse.answered)
+      const totalResponseTime =
+        Number(reviewResponse.totalResponseTime) +
+        Number(qnaResponse.totalResponseTime)
+      const responseRate =
+        totalResponseRequests > 0
+          ? (answeredResponses /
+            totalResponseRequests) *
+          100
+          : 100
+      const responseTime =
+        answeredResponses > 0
+          ? totalResponseTime /
+          answeredResponses
+          : 0
+      const totalQuantity =
+        orderStats._sum.quantity ?? 0
+      const returnedQuantity =
+        orderStats._sum.returnedQty ?? 0
+      const saleCount = Math.max(
+        0,
+        totalQuantity - returnedQuantity,
+      )
+      const returnCount = Math.max(
+        0,
+        returnedQuantity,
+      )
+      return tx.storeRating.update({
+        where: {
+          storeId,
+        },
+        data: {
+          avgRating,
+          ratingTotal,
+          totalReviews,
+
+          productCount,
+
+          productQuality,
+          productQualityTotal,
+          productQualityCount,
+
+          totalResponseRequests,
+          answeredResponses,
+          totalResponseTime,
+          responseRate,
+          responseTime,
+
+          saleCount,
+          returnCount,
+
+          // فعلاً دست نخورده:
+          // communication
+          // onTimeDelivery
+        },
+      })
     })
   }
 }

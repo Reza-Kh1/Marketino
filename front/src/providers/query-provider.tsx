@@ -10,8 +10,8 @@ export function ReactQueryProvider({ children }: { children: React.ReactNode }) 
         queryCache: new QueryCache({
           onError: (err: any) => {
             const status = err?.response?.status;
-
-            if (status === 403) {
+            const statusCode = err?.response?.statusCode;
+            if (status === 403 || statusCode === 403) {
               toast.error("شما مجاز به این عملیات نیستید !");
               window.location.href = "/";
             } else {

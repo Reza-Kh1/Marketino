@@ -7,7 +7,7 @@ import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 
 @Injectable()
 export class AddressesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * ایجاد آدرس جدید برای کاربر
@@ -37,6 +37,10 @@ export class AddressesService {
   async getUserAddresses(userId: string) {
     const addresses = await this.prisma.address.findMany({
       where: { userId },
+      include: {
+        city: { select: { name: true, nameEn: true } },
+        province: { select: { name: true, nameEn: true } }
+      },
       orderBy: { createdAt: 'desc' },
     });
     return addresses;
@@ -57,21 +61,16 @@ export class AddressesService {
    * به‌روزرسانی آدرس
    */
   async update(addressId: string, userId: string, dto: UpdateAddressDto) {
-    const address = await this.findOne(addressId, userId);
-
-    // اگر isDefault=true، بقیه آدرس‌ها را non-default کن
     if (dto.isDefault) {
       await this.prisma.address.updateMany({
         where: { userId, id: { not: addressId }, isDefault: true },
         data: { isDefault: false },
       });
     }
-
     const updated = await this.prisma.address.update({
       where: { id: addressId },
       data: dto,
     });
-
     return updated;
   }
 
@@ -80,7 +79,7 @@ export class AddressesService {
    */
   async delete(addressId: string, userId: string) {
     const address = await this.findOne(addressId, userId);
-    
+
     await this.prisma.address.delete({
       where: { id: addressId },
     });
@@ -115,6 +114,10 @@ export class AddressesService {
   async getDefaultAddress(userId: string) {
     const address = await this.prisma.address.findFirst({
       where: { userId, isDefault: true },
+      include: {
+        province: { select: { name: true, nameEn: true, id: true } },
+        city: { select: { name: true, nameEn: true, id: true } }
+      }
     });
     return address;
   }

@@ -115,9 +115,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
 
   const onSubmit = async () => {
     const isValid = await trigger()
-    const ok = getValues('colorId')
-    console.log(ok);
-
     if (!getValues('colorId')) {
       toast.error('رنگ محصول حتما انتخاب شود')
     }
@@ -185,7 +182,7 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
     if (attributeData?.data) {
       const defaultAttrs = attributeData.data.map((att) => ({
         attributeId: att.id,
-        value: '', // یا مقداری که از قبل وجود داشته
+        value: '',
       }));
       setValue('attributes', defaultAttrs);
     }
@@ -394,9 +391,7 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                   if (isExpired) return { text: 'منقضی شده', color: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' };
                   return { text: 'فعال و اعمال‌شده', color: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' };
                 };
-
                 const statusBadge = hasDiscount ? getDiscountStatusBadge() : null;
-
                 return (
                   <div
                     key={v.id}
@@ -424,8 +419,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                             </span>
                           </button>
                         </PopoverTrigger>
-
-                        {/* پاپ‌آپ کامل اطلاعات تخفیف */}
                         <PopoverContent
                           className="w-80 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl z-50 dir-rtl"
                           align="start"
@@ -440,7 +433,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                                 {statusBadge?.text}
                               </span>
                             </div>
-
                             <div className="space-y-2 text-xs">
                               {discountObj.code && (
                                 <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -450,14 +442,12 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                                   </span>
                                 </div>
                               )}
-
                               <div className="flex justify-between items-center p-1">
                                 <span className="text-slate-500 dark:text-slate-400">نوع تخفیف:</span>
                                 <span className="font-medium text-slate-800 dark:text-slate-200">
                                   {discountObj.type === 'percentage' ? 'درصدی' : 'مبلغ ثابت'}
                                 </span>
                               </div>
-
                               <div className="flex justify-between items-center p-1">
                                 <span className="text-slate-500 dark:text-slate-400">مقدار تخفیف:</span>
                                 <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
@@ -466,7 +456,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                                     : `${Number(discountObj.value).toLocaleString()} تومان`}
                                 </span>
                               </div>
-
                               {startsAt && (
                                 <div className="flex justify-between items-center p-1">
                                   <span className="text-slate-500 dark:text-slate-400">تاریخ شروع:</span>
@@ -475,7 +464,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                                   </span>
                                 </div>
                               )}
-
                               {endsAt && (
                                 <div className="flex justify-between items-center p-1">
                                   <span className="text-slate-500 dark:text-slate-400">تاریخ انقضا:</span>
@@ -489,8 +477,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                         </PopoverContent>
                       </Popover>
                     )}
-
-                    {/* ۲. محتوای اصلی کارت */}
                     <div className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${hasDiscount ? 'pt-8 sm:pt-6' : ''}`}>
                       <div className="flex items-start sm:items-center gap-4 min-w-0">
                         {v.image && v.image !== 'adad' ? (
@@ -525,15 +511,12 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                                 <span>{v.color.name}</span>
                               </span>
                             )}
-
                             {v.sku && (
                               <span className="font-mono text-[11px] bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 dir-ltr text-slate-600 dark:text-slate-400">
                                 SKU: {v.sku}
                               </span>
                             )}
                           </div>
-
-                          {/* ویژگی‌ها (Attributes) */}
                           {v.attributes && v.attributes.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 pt-1">
                               {v.attributes.map((att: any) => (
@@ -549,8 +532,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                           )}
                         </div>
                       </div>
-
-                      {/* بخش قیمت، موجودی و دکمه‌ها */}
                       <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-200 dark:border-slate-800/80 shrink-0">
                         <div className="flex flex-col gap-1 justify-between items-start">
                           <div className="relative inline-flex flex-col gap-0.5 dir-rtl pt-2 pr-3">
@@ -569,7 +550,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                               </span>
                             </div>
                           </div>
-
                           <div className="text-right">
                             <div className="text-[11px] text-slate-500 dark:text-slate-400">موجودی</div>
                             <div className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
@@ -577,8 +557,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                             </div>
                           </div>
                         </div>
-
-                        {/* دکمه‌های ویرایش و حذف */}
                         <div className="flex flex-col items-center gap-1">
                           {idVariant === v.id ? (
                             <CustomButton

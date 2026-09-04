@@ -23,13 +23,32 @@ export class UsersService {
       where: { id },
       select: {
         id: true, username: true, email: true, firstName: true, lastName: true,
-        phone: true, avatar: true, role: true, store: { select: { commissionRate: true } },
+        phone: true, avatar: true, role: true, store: { select: { commissionRate: true, id: true, slug: true } },
         isActive: true, isVerified: true, emailVerified: true,
-        hasSetPassword: true, language: true, lastLogin: true, createdAt: true, updatedAt: true,
+        hasSetPassword: true, language: true, lastLogin: true, createdAt: true, updatedAt: true, permissions: true
       },
     });
     if (!user) throw new NotFoundException('کاربر یافت نشد');
     return user;
+  }
+
+
+  async getSellerList() {
+    const sellers = await this.prisma.user.findMany({
+      where: { role: 'seller' },
+      select: {
+        id: true,
+        username: true,
+        store: { select: { id: true, name: true, slug: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return sellers.map(s => ({
+      id: s.store?.id,
+      username: s.username,
+      storeName: s.store?.name,
+      storeSlug: s.store?.slug,
+    }));
   }
 
   /**
@@ -84,7 +103,7 @@ export class UsersService {
   /**
    * تغییر نقش کاربر - فقط ادمین
    */
-  async updateRole(userId: string, role: UserRole) {    
+  async updateRole(userId: string, role: UserRole) {
     if (!['buyer', 'seller', 'admin', 'superAdmin'].includes(role)) {
       throw new BadRequestException('نقش نامعتبر است');
     }

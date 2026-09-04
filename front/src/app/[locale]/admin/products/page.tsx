@@ -1,9 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Package, Star, CheckCircle, Eye, Trash2, TrendingUp, Plus, Edit3 } from 'lucide-react';
-import { AllProduct, VariantType, type Product } from '@/lib/api';
-import { useAdminProducts, useApproveProduct, useFeatureProduct, useDeleteAdminProduct, useAdminSellerList, } from '@/lib/react-query-hooks';
+import { CheckCircle, Eye, Trash2, TrendingUp, Plus, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { Link } from '@/i18n/navigation';
@@ -12,26 +9,29 @@ import { useSearchParams } from 'next/navigation';
 import DynamicTable from '@/components/DynamicTable';
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
 import DialogView from '@/components/DialogView';
 import { format } from 'date-fns-jalali';
 import SearchBox from '@/components/admin/SearchBox';
-import { useColors } from '@/hooks/color.hook';
 import { useDiscountsList } from '@/hooks/discount.hook';
-import { CategorysTypes } from '@/services/category.service';
-import { useCategoriesAdmin, useCategoriesProducts } from '@/hooks/category.hook';
+import { useCategoriesProducts } from '@/hooks/category.hook';
 import { useBrandAdmin } from '@/hooks/brand.hook';
 import { ProductEntity } from '@/services/product.service';
+import { useProductsAdmin, useApproveProduct, useDeleteProduct, useFeatureProduct, } from '@/hooks/product.hook';
+import CustomButton from '@/components/CustomButton';
+import DialogDelete from '@/components/DialogDelete';
+import { useSellerList } from '@/hooks/user.hook';
 
-export default function AdminProductsPage() {
+export default function AdminProductsPage({ isStore = false, storeId }: { isStore: boolean, storeId?: string|null }) {
   const [selectedProduct, setSelectedProduct] = useState<ProductEntity | null>(null);
+  const [productId, setProductId] = useState<string | null>(null)
+  const [openDelete, setOpenDelete] = useState(false)
   const { data: discountData, isLoading: loadingDiscount } = useDiscountsList()
   const { data: dataCategory, isFetching: loadCategories } = useCategoriesProducts()
   const { data: dataBrand, isFetching: loadingBrand } = useBrandAdmin()
-  const { data: dataSeller, isLoading: loadingSeller } = useAdminSellerList()
-  const approveMutation = useApproveProduct();
-  const featureMutation = useFeatureProduct();
-  const deleteMutation = useDeleteAdminProduct();
+  const { data: dataSeller, isLoading: loadingSeller } = useSellerList(!isStore)
+  const { mutate: apporveMutate, isPending: apporvePending } = useApproveProduct();
+  const { mutate: deleteMutate, isPending: deletePending } = useDeleteProduct()
+  const { mutate: featureMutate, isPending: featurePending } = useFeatureProduct();
   const searchParams = useSearchParams();
 
   const filters = useMemo(() => {
@@ -50,7 +50,7 @@ export default function AdminProductsPage() {
       discountId: searchParams.get('discountId') || undefined,
       order: searchParams.get('order') || undefined,
       categoryId: searchParams.get('categoryId') || undefined,
-      sellerId: searchParams.get('sellerId') || undefined,
+      sellerId: isStore ? storeId : searchParams.get('sellerId') || undefined,
       brandId: searchParams.get('brandId') || undefined,
       priority: searchParams.get('priority') || undefined,
       ...((minPrice !== 0 && maxPrice !== 0) && {
@@ -60,29 +60,7 @@ export default function AdminProductsPage() {
 
     };
   }, [searchParams]);
-
-  const { data, isLoading } = useAdminProducts(filters);
-
-  const handleApprove = (id: string) => {
-    approveMutation.mutate(id, {
-      onSuccess: () => toast.success('محصول تأیید شد'),
-      onError: (err: any) => toast.error(err?.message || 'خطا'),
-    });
-  };
-  const handleFeature = (id: string) => {
-    featureMutation.mutate(id, {
-      onSuccess: () => toast.success('وضعیت ویژه تغییر کرد'),
-      onError: (err: any) => toast.error(err?.message || 'خطا'),
-    });
-  };
-  const handleDelete = (id: string) => {
-    if (!confirm('آیا از حذف این محصول اطمینان دارید؟')) return;
-    deleteMutation.mutate(id, {
-      onSuccess: () => toast.success('محصول حذف شد'),
-      onError: (err: any) => toast.error(err?.message || 'خطا'),
-    });
-  };
-
+  const { data, isLoading } = useProductsAdmin(filters);
   const formattedSellerOptions = useMemo(() => {
     return dataSeller?.map((item) => ({
       id: item.id,
@@ -159,7 +137,8 @@ export default function AdminProductsPage() {
       id: 'reviewCount',
       header: 'نظرات',
       cell: ({ row }) => <span className="text-xs">{row.original.reviewCount.toLocaleString()}</span>
-    }, {
+    },
+    {
       accessorKey: 'rating',
       id: 'rating',
       header: 'امتیاز',
@@ -197,26 +176,45 @@ export default function AdminProductsPage() {
       cell: ({ row }: any) => (
         <div className="flex items-center gap-1">
           <div className="flex gap-1">
-            {row.original.status !== 'approved' && (
-              <button onClick={() => handleApprove(row.original.id)} className="p-2 rounded-lg hover:bg-emerald-50 text-emerald-500 transition-colors" title="تأیید">
-                <CheckCircle className="w-4 h-4" />
-              </button>
+            {!isStore && row.original.status !== 'approved' && (
+              <CustomButton
+                isPending={apporvePending || deletePending || featurePending}
+                onClick={() => apporveMutate(row.original.id)}
+                iconStart={<CheckCircle className="w-4 h-4" />}
+                color='icon'
+                className={cn('p-2 rounded-lg hover:bg-emerald-50 text-emerald-500 transition-colors')}
+              />
             )}
-            <button onClick={() => handleFeature(row.original.id)}
-              className={cn('p-2 rounded-lg transition-colors', row.original.isFeatured ? 'text-violet-500 hover:bg-violet-50' : 'text-muted-foreground hover:bg-accent')} title="ویژه">
-              <TrendingUp className="w-4 h-4" />
-            </button>
-            <Link href={`/admin/products/${row.original.id}/edit`}
+            {!isStore &&
+              <CustomButton
+                isPending={apporvePending || deletePending || featurePending}
+                onClick={() => featureMutate(row.original.id)}
+                iconStart={<TrendingUp className="w-4 h-4" />}
+                color='icon'
+                className={cn('p-2 rounded-lg transition-colors', row.original.isFeatured ? 'text-violet-500 hover:bg-violet-50' : 'text-muted-foreground hover:bg-accent')}
+              />
+            }
+            <Link href={`/${isStore ? 'seller' : 'admin'}/products/${row.original.id}`}
               className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground" title="ویرایش">
               <Edit3 className="w-4 h-4" />
             </Link>
-            <button onClick={() => setSelectedProduct(row.original)} className="p-2 rounded-lg hover:bg-accent transition-colors" title="مشاهده">
-              <Eye className="w-4 h-4" />
-            </button>
-            <button onClick={() => handleDelete(row.original.id)}
-              className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="حذف">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <CustomButton
+              onClick={() => setSelectedProduct(row.original)}
+              iconStart={<Eye className="w-4 h-4" />}
+              color='icon'
+              className={cn('p-2 rounded-lg hover:bg-accent transition-colors')}
+            />
+            <CustomButton
+              isPending={apporvePending || deletePending || featurePending}
+              onClick={() => {
+                setOpenDelete(true)
+                setProductId(row.original.id)
+              }}
+              iconStart={<Trash2 className="w-4 h-4" />}
+              color='icon'
+              className={cn('p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors')}
+            />
+
           </div>
         </div>
       )
@@ -231,7 +229,7 @@ export default function AdminProductsPage() {
           <p className="text-muted-foreground text-sm">تأیید، ویرایش و مدیریت محصولات ({data?.pagination?.total})</p>
         </div>
         <Link
-          href="/admin/products/new"
+          href={isStore ? "/seller/products/new" : "/admin/products/new"}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -297,21 +295,38 @@ export default function AdminProductsPage() {
             options: dataBrand || [],
             placeholder: loadingBrand ? 'صبر کنید ...' : 'انتخاب کنید',
             setValue: 'brandId',
-          }, {
-            options: formattedSellerOptions
-            , label: 'فروشندگان', placeholder: loadingSeller ? 'صبر کنید ...' : 'انتخاب کنید', setValue: 'sellerId'
           },
+          ...(!isStore ? [{
+            options: formattedSellerOptions,
+            label: 'فروشندگان',
+            placeholder: loadingSeller ? 'صبر کنید ...' : 'انتخاب کنید',
+            setValue: 'sellerId',
+          }] : [])
         ]}
       />
       <DynamicTable
         limitPage={10}
-        data={data?.data || []}
+        data={data?.products || []}
         columns={columns}
         totalRows={data?.pagination.total || 0}
         nextPage={data?.pagination.nextPage}
         prevPage={data?.pagination.prevPage}
         isLoading={isLoading}
         onBulkDelete={() => { }}
+      />
+      <DialogDelete
+        closeModal={() => setOpenDelete(false)}
+        onDelete={() => {
+          productId && deleteMutate(productId, {
+            onSuccess: () => {
+              setOpenDelete(false)
+              setProductId(null)
+            },
+          });
+        }}
+        open={openDelete}
+        helpText="آیا از حذف این محصول اطمینان دارید"
+        isPending={deletePending}
       />
       <DialogView
         open={selectedProduct?.id ? true : false}

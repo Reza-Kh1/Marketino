@@ -49,9 +49,9 @@ export class AdminService {
       this.prisma.order.count(),
       this.prisma.order.groupBy({ by: ['status'], _count: true }),
       this.prisma.order.count({ where: { createdAt: { gte: today } } }),
-      this.prisma.order.aggregate({ where: { createdAt: { gte: today } }, _sum: { total: true } }),
-      this.prisma.order.aggregate({ _sum: { total: true } }),
-      this.prisma.order.aggregate({ where: { createdAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+      this.prisma.order.aggregate({ where: { createdAt: { gte: today } }, _sum: { totalPrice: true } }),
+      this.prisma.order.aggregate({ _sum: { totalPrice: true } }),
+      this.prisma.order.aggregate({ where: { createdAt: { gte: thirtyDaysAgo } }, _sum: { totalPrice: true } }),
       this.prisma.order.aggregate({ _sum: { commissionAmount: true } }),
       this.prisma.walletTransaction.aggregate({ _sum: { amount: true } }),
     ]);
@@ -80,7 +80,7 @@ export class AdminService {
     // Revenue chart (30 days)
     const dailyRevenue = await this.prisma.order.findMany({
       where: { createdAt: { gte: thirtyDaysAgo } },
-      select: { total: true, commissionAmount: true, createdAt: true },
+      select: { totalPrice: true, commissionAmount: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -91,9 +91,9 @@ export class AdminService {
       const dayOrders = dailyRevenue.filter(o => o.createdAt.toISOString().split('T')[0] === dateStr);
       chartData.push({
         date: dateStr,
-        total: dayOrders.reduce((s, o) => s + o.total, 0),
+        total: dayOrders.reduce((s, o) => s + Number(o.totalPrice), 0),
         count: dayOrders.length,
-        commission: dayOrders.reduce((s, o) => s + o.commissionAmount, 0),
+        commission: dayOrders.reduce((s, o) => s + Number(o.commissionAmount), 0),
       });
     }
 
@@ -162,13 +162,13 @@ export class AdminService {
         shippedOrders: ordersByStatus['shipped'] || 0,
         deliveredOrders: ordersByStatus['delivered'] || 0,
         ordersByStatus,
-        totalRevenue: totalRevenueResult._sum.total || 0,
-        monthlyRevenue: monthlyRevenueResult._sum.total || 0,
+        totalRevenue: totalRevenueResult._sum.totalPrice || 0,
+        monthlyRevenue: monthlyRevenueResult._sum.totalPrice || 0,
         totalCommission: totalCommissionResult._sum.commissionAmount || 0,
         walletBalance: walletBalanceResult._sum.amount || 0,
         newUsersToday,
         ordersToday,
-        revenueToday: revenueTodayRaw._sum.total || 0,
+        revenueToday: revenueTodayRaw._sum.totalPrice || 0,
         totalSellerReviews,
       },
       recentOrders,
@@ -221,13 +221,13 @@ export class AdminService {
     });
 
     const totalCommission = commissionResult._sum.commissionAmount || 0;
-    const totalCosts = Math.abs(costsResult._sum.amount || 0);
-    const netProfit = totalCommission - totalCosts;
+    const totalCosts = Math.abs(Number(costsResult._sum.amount) || 0);
+    const netProfit = Number(totalCommission) - totalCosts;
 
     // Monthly breakdown
     const monthlyOrders = await this.prisma.order.findMany({
       where: { createdAt: { gte: startDate } },
-      select: { total: true, commissionAmount: true, createdAt: true },
+      select: { totalPrice: true, commissionAmount: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -242,8 +242,8 @@ export class AdminService {
       );
       monthlyBreakdown.push({
         month: month.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long' }),
-        revenue: monthOrders.reduce((s, o) => s + o.total, 0),
-        commission: monthOrders.reduce((s, o) => s + o.commissionAmount, 0),
+        revenue: monthOrders.reduce((s, o) => s + Number(o.totalPrice), 0),
+        commission: monthOrders.reduce((s, o) => s + Number(o.commissionAmount), 0),
         orders: monthOrders.length,
       });
     }
@@ -288,7 +288,7 @@ export class AdminService {
             rating: {
               select: {
                 avgRating: true, totalReviews: true, responseRate: true,
-                onTimeDelivery: true, productQuality: true, communication: true,
+                productQuality: true,
               },
             },
             storeReview: { select: { rating: true } },

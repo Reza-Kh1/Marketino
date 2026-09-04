@@ -24,6 +24,15 @@ export function useAdminReviews(params?: SearchReviewDTO) {
   });
 }
 
+export function useStoreReviews(params?: SearchReviewDTO) {
+  return useQuery<ReviewResponse>({
+    queryKey: REVIEW_KEYS.adminFilters(params || {}),
+    queryFn: () => reviewService.getStoreAll(params),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useProductReviews(productId: string, page: number = 1, enabled: boolean = true) {
   return useInfiniteQuery<ReviewResponse>({
     queryKey: REVIEW_KEYS.product(productId),

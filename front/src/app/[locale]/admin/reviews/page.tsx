@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MessageSquare, CircleAlert , Send, AlertTriangle, Clock, CircleCheck  , CheckCircle, XCircle, Eye, SendHorizontal, Trash2, Check, X, MessageCircle, Star, User, ShoppingBag, FileText } from 'lucide-react';
+import { MessageSquare, CircleAlert, Send, AlertTriangle, Clock, CircleCheck, CheckCircle, XCircle, Eye, Trash2, Check, X, MessageCircle, Star, User, ShoppingBag, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAdminReviews, useDeleteReview, useModerateReview, useAnswerReview } from '@/hooks/review.hook';
+import { useAdminReviews, useDeleteReview, useModerateReview, useAnswerReview, useStoreReviews } from '@/hooks/review.hook';
 import { ReviewModerateStatus } from '@/services/review.service';
 import PendingApi from '@/components/PendingApi';
 import DynamicTable from '@/components/DynamicTable';
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Link, useRouter } from '@/i18n/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useTranslations } from 'next-intl';
 import DialogView from '@/components/DialogView';
 import SearchBox from '@/components/admin/SearchBox';
 import { useSearchParams } from 'next/navigation';
@@ -19,11 +18,8 @@ import { ReviewEntity } from '@/services/review.service';
 import TooltipCustom from '@/components/TooltipCustom';
 import DialogDelete from '@/components/DialogDelete';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CustomButton from '@/components/CustomButton';
-import { Calendar } from 'react-multi-date-picker';
-import { Separator } from 'radix-ui';
 import MotionWrapper from '@/components/motion/MotionWrapper';
 import InputForm from '@/components/inputs/InputForm';
 
@@ -40,7 +36,7 @@ const statusConfig = {
     }
 };
 
-export default function AdminReviewsPage() {
+export default function AdminReviewsPage({ isStore, storeId }: { isStore?: boolean, storeId?: string | null }) {
     const [modalMode, setModalMode] = useState<'view' | 'delete' | 'answer' | null>(null);
     const [selectReview, setSelectReview] = useState<ReviewEntity | null>(null);
     const [answerText, setAnswerText] = useState('');
@@ -65,22 +61,11 @@ export default function AdminReviewsPage() {
             ...(productId && { productId: productId }),
         } as any
     }, [searchParams]);
-
-    const { data: reviewsData, isError, isFetching } = useAdminReviews(filters);
-
-    const getRoleLabel = (role: string) => {
-        const map: Record<string, string> = {
-            'USER': 'کاربر',
-            'ADMIN': 'ادمین',
-            'SUPER_ADMIN': 'مدیر کل',
-        };
-        return map[role] || role || '-';
-    };
-
+    const useReviews = isStore ? useStoreReviews : useAdminReviews;
+    const { data: reviewsData, isError, isFetching } = useReviews(filters);
     const moderateReview = (id: string, status: ReviewModerateStatus) => {
         moderateMutate({ id, data: { isApproved: status } });
     };
-
     const submitAnswer = () => {
         if (selectReview?.id && answerText.trim()) {
             answerMutate({ id: selectReview.id, data: { answer: answerText } }, {
@@ -140,7 +125,7 @@ export default function AdminReviewsPage() {
             id: 'product',
             header: 'محصول',
             cell: ({ row }) => (
-                <Link href={'/admin/products/' + row.original.product.id + '/edit'} className="text-xs hover:text-blue-500">
+                <Link href={`/${isStore ? 'seller' : 'admin'}/products/` + row.original.product.id} className="text-xs hover:text-blue-500">
                     {row.original.product?.title || '-'}
                 </Link>
             )

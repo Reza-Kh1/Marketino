@@ -6,19 +6,21 @@
  * ============================================================
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { User } from '@/lib/api';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, use } from 'react';
 import { authApi, setAuthToken } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useRouter } from '@/i18n/navigation';
 import Cookies from 'js-cookie';
+import { userService, UserType } from '@/services/user.service';
 interface AuthState {
-  user: User | null;
+  user: UserType | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isSeller: boolean;
   isAdmin: boolean;
+  storeId: null | string
+  storeSlug: string | null
 }
 
 interface AuthContextType extends AuthState {
@@ -27,7 +29,7 @@ interface AuthContextType extends AuthState {
   register: (data: Record<string, string>) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateUser: (user: User) => void;
+  updateUser: (user: UserType) => void;
   sendEmailOTP: (email: string) => Promise<void>;
   sendPhoneOTP: (phone: string) => Promise<void>;
   verifyEmailOTP: (data: { email: string; code: string; isRegister?: boolean; username?: string; firstName?: string; lastName?: string; password?: string }) => Promise<{ isNewUser: boolean }>;
@@ -36,6 +38,7 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -46,6 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
     isSeller: false,
     isAdmin: false,
+    storeId: null,
+    storeSlug: null
   });
 
   // 🔄 Try to restore session from token on mount
@@ -60,15 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setState(s => ({ ...s, isLoading: false }));
           return;
         }
-        const res = await authApi.me();
-        if (res && res.user) {
+        const res = await userService.profile();
+        if (res.id) {
           setState({
-            user: res.user,
+            user: res,
             token: storedToken,
             isLoading: false,
             isAuthenticated: true,
-            isSeller: res.user.role === 'seller',
-            isAdmin: res.user.role === 'admin' || res.user.role === 'superAdmin',
+            isSeller: res.role === 'seller',
+            isAdmin: res.role === 'admin' || res.role === 'superAdmin',
+            storeId: res?.store?.id || null,
+            storeSlug: res?.store?.slug || null
           });
           return;
         }
@@ -85,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
-  const setAuth = useCallback((user: User, token?: string) => {
+  const setAuth = useCallback((user: UserType, token?: string) => {
     setState({
       user,
       token: token || null,
@@ -93,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: true,
       isSeller: user.role === 'seller',
       isAdmin: user.role === 'admin',
+      storeId: user?.store?.id || null,
+      storeSlug: user?.store?.slug || null
     });
   }, []);
 
@@ -147,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isSeller: false,
       isAdmin: false,
+      storeId: null,
+      storeSlug: null
     }));
     toast.success('خارج شدید');
     router.push('/');
@@ -160,12 +171,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return [];
   })();
 
-  const updateUser = useCallback((user: User) => {
+  const updateUser = useCallback((user: UserType) => {
     setState(s => ({
       ...s,
       user,
       isSeller: user.role === 'seller',
       isAdmin: user.role === 'admin',
+      storeId: user?.store?.id || null,
+      storeSlug: user?.store?.slug || null
     }));
   }, []);
 

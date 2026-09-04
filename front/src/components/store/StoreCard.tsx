@@ -30,7 +30,7 @@ export default function StoreCard({ store, rank, className, variant = 'default' 
   const isCompact = variant === 'compact';
 
   return (
-    <Link href={`/store/${store.slug}`}
+    <Link href={`/stores/${store.slug}`}
       className={cn(
         'group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300',
         'border-border/70 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10',
@@ -101,11 +101,8 @@ export default function StoreCard({ store, rank, className, variant = 'default' 
             {(store.city || store.province) && (
               <span className="inline-flex items-center gap-0.5">
                 <MapPin className="size-3 opacity-70" />
-                {[store.city, store.province].filter(Boolean).join('، ')}
+                {[store.city?.name, store.province?.name].filter(Boolean).join('، ')}
               </span>
-            )}
-            {store.businessType && (
-              <span className="rounded-md bg-muted/80 px-1.5 py-0.5 font-medium">{store.businessType}</span>
             )}
           </div>
         </div>

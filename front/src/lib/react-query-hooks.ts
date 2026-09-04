@@ -144,10 +144,11 @@ export function useAdminOrders(params?: Record<string, any>) {
   });
 }
 
-export function useAdminSellerList() {
+export function useAdminSellerList(enabled?:boolean) {
   return useQuery({
     queryKey: ['admin', 'sellers', 'list-selector'],
     queryFn: () => adminApi.sellerList(),
+    enabled
   });
 }
 

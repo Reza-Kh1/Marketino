@@ -2,6 +2,7 @@
 
 import CustomButton from "@/components/CustomButton";
 import InputForm from "@/components/inputs/InputForm";
+import ProvinceInput from "@/components/inputs/ProvinceInput";
 import { useAddresses, useCreateAddress, useDeleteAddress, useSetDefaultAddress, useUpdateAddress } from "@/hooks/address.hook";
 import { useRouter } from "@/i18n/navigation";
 import { AddressSchema, FormAddressSchema } from "@/schemas/address.schema";
@@ -26,19 +27,22 @@ export default function AddressesPage() {
   const { mutate: setDefaultAddress, isPending: isSettingDefault } = useSetDefaultAddress();
 
   // Form
-  const { handleSubmit, register, reset, formState: { errors }, setValue } = useForm({
+  const { handleSubmit, register, reset, formState: { errors }, setValue, watch } = useForm({
     resolver: zodResolver(AddressSchema),
     defaultValues: {
       title: "",
       fullName: "",
       phone: "",
-      province: "",
-      city: "",
+      provinceId: "",
+      cityId: "",
       address: "",
       postalCode: "",
-      isDefault: false,
+      isDefault: true,
     }
   });
+
+  const provinceId = watch('provinceId')
+  const cityId = watch('cityId')
 
   // پر کردن فرم با داده‌های آدرس برای ویرایش
   useEffect(() => {
@@ -48,8 +52,8 @@ export default function AddressesPage() {
         setValue("title", address.title || "");
         setValue("fullName", address.fullName);
         setValue("phone", address.phone);
-        setValue("province", address.province);
-        setValue("city", address.city);
+        setValue("provinceId", address.provinceId);
+        setValue("cityId", address.cityId);
         setValue("address", address.address);
         setValue("postalCode", address.postalCode || "");
         setValue("isDefault", address.isDefault);
@@ -63,8 +67,8 @@ export default function AddressesPage() {
       title: "",
       fullName: "",
       phone: "",
-      province: "",
-      city: "",
+      provinceId: "",
+      cityId: "",
       address: "",
       postalCode: "",
       isDefault: false,
@@ -203,27 +207,14 @@ export default function AddressesPage() {
               error={errors.phone}
               required
             />
-
-            {/* استان و شهر */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputForm
-                name="province"
-                register={register}
-                label="استان"
-                placeholder="استان"
-                error={errors.province}
-                required
-              />
-              <InputForm
-                name="city"
-                register={register}
-                label="شهر"
-                placeholder="شهر"
-                error={errors.city}
-                required
-              />
-            </div>
-
+            <ProvinceInput
+              changeCity={(value) => setValue('cityId', value)}
+              changeProvince={(value) => setValue('provinceId', value)}
+              valueCity={cityId}
+              valueProvince={provinceId}
+              errorCity={errors.cityId}
+              errorProvince={errors.provinceId}
+            />
             {/* آدرس */}
             <InputForm
               name="address"
@@ -314,7 +305,7 @@ export default function AddressesPage() {
                     {address.address}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {address.province}، {address.city}
+                    {address.province.name}، {address.city.name}
                   </p>
                   {address.postalCode && (
                     <p className="text-sm text-muted-foreground dir-ltr">

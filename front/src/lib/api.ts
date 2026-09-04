@@ -17,28 +17,6 @@ const MOCK_MODE = false;
  * 🧩 TYPES
  * ────────────────────────────────────────────── */
 
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  avatar?: string;
-  role: 'buyer' | 'seller' | 'admin' | 'superAdmin';
-  sellerStatus?: 'pending' | 'approved' | 'rejected';
-  storeName?: string;
-  storeLogo?: string;
-  storeDescription?: string;
-  businessType?: string;
-  isVerified: boolean;
-  isActive: boolean;
-  wallet?: number;
-  createdAt: string;
-  permissions?: string[];
-  commissionRate?: number;
-}
-
 export interface VariantType {
   id: string;
   name: string;
@@ -261,7 +239,7 @@ export interface DiscountCode {
 }
 
 export interface AllDiscount {
-  discounts: DiscountCode[] | []
+  discounts: DiscountCode[]
   pagination: PaginationType
 }
 

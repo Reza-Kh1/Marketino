@@ -16,16 +16,18 @@ import InputForm from '@/components/inputs/InputForm';
 import UploadMedia from '@/components/upload/UploadMedia';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import { useStore, useUpdateStore } from '@/hooks/store.hook';
+import { useCreateStore, useStore, useUpdateStore } from '@/hooks/store.hook';
 import { Store } from '@/services/store.service';
 import SelectCustom from '@/components/inputs/SelectCustom';
+import ProvinceInput from '@/components/inputs/ProvinceInput';
 
-export default function StorForm({ store }: { store?: Store }) {
+export default function StorForm({ store, isStore = false }: { store?: Store, isStore?: boolean }) {
     const router = useRouter();
     const [openEn, setOpenEn] = useState(false);
     const { mutate: updateStore, isPending } = useUpdateStore();
+    const { mutate: createStore, isPending: pendingCreate } = useCreateStore();
 
-    const { register, reset, setValue, watch, getValues, handleSubmit } = useForm<StoreFormValues>({
+    const { register, reset, setValue, watch, getValues, handleSubmit, setValues } = useForm<StoreFormValues>({
         resolver: zodResolver(storeFormSchema),
         defaultValues: {
             name: '',
@@ -38,8 +40,8 @@ export default function StorForm({ store }: { store?: Store }) {
             businessType: '',
             nationalId: '',
             economicCode: '',
-            province: '',
-            city: '',
+            provinceId: '',
+            cityId: '',
             address: '',
             phone: '',
             email: '',
@@ -52,6 +54,8 @@ export default function StorForm({ store }: { store?: Store }) {
     const isVerified = watch('isVerified')
     const hasPhysicalStore = watch('hasPhysicalStore')
     const businessType = watch('businessType')
+    const cityId = watch('cityId')
+    const provinceId = watch('provinceId')
 
     useEffect(() => {
         if (store) {
@@ -66,8 +70,8 @@ export default function StorForm({ store }: { store?: Store }) {
                 businessType: store.businessType || 'false',
                 nationalId: store.nationalId || '',
                 economicCode: store.economicCode || '',
-                province: store.province || '',
-                city: store.city || '',
+                provinceId: store.provinceId || '',
+                cityId: store.cityId || '',
                 address: store.address || '',
                 phone: store.phone || '',
                 email: store.email || '',
@@ -79,24 +83,35 @@ export default function StorForm({ store }: { store?: Store }) {
                 statusReason: store.statusReason || '',
                 hasPhysicalStore: store.hasPhysicalStore ? 'true' : 'false',
                 isVerified: store.isVerified ? 'true' : 'false',
+                bale: store.bale || '',
+                shippingTime: store.shippingTime || '',
+                robika: store.robika || '',
+                whatsApp: store.whatsApp || ''
             });
         }
     }, [store, reset]);
 
     const onSubmit = (data: StoreFormValues) => {
-        if (!store?.id) return
         const body = {
             ...data,
             isVerified: data.isVerified === 'true' ? true : false,
             hasPhysicalStore: data.hasPhysicalStore === 'true' ? true : false
         }
-        updateStore({ id: store.id, data: body }, {
-            onSuccess: () => {
-                router.push('/admin/store');
-            }
-        });
-    };
+        if (store?.id) {
+            updateStore({ id: store.id, data: body }, {
+                onSuccess: () => {
+                    router.push('/admin/store');
+                }
+            });
+        } else {
+            createStore(body, {
+                onSuccess: () => {
+                    router.push('/admin/store');
+                }
+            })
+        }
 
+    };
     const onError = (err: any) => {
         console.log(err);
     };
@@ -107,8 +122,8 @@ export default function StorForm({ store }: { store?: Store }) {
         <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-bold">ویرایش فروشگاه</h2>
-                    <p className="text-sm text-muted-foreground mt-1">اطلاعات فروشگاه را ویرایش کنید</p>
+                    <h2 className="text-xl font-bold">{store?.id ? 'ویرایش فروشگاه' : 'ثبت فروشگاه'}</h2>
+                    <p className="text-sm text-muted-foreground mt-1">اطلاعات فروشگاه را وارد کنید</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="mr-auto">
@@ -117,7 +132,7 @@ export default function StorForm({ store }: { store?: Store }) {
                         {store?.status === 'rejected' && 'رد شده'}
                     </Badge>
                     <CustomButton
-                        name={isPending ? 'در حال بروزرسانی...' : 'بروزرسانی فروشگاه'}
+                        name={isPending || pendingCreate ? 'در حال بروزرسانی...' : 'بروزرسانی فروشگاه'}
                         disabled={isPending}
                         type="submit"
                         iconStart={isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -165,27 +180,24 @@ export default function StorForm({ store }: { store?: Store }) {
                             placeholder="info@marketino.com"
                             register={register}
                         />
-                        <InputForm
-                            label='استان'
-                            name='province'
-                            placeholder="تهران"
-                            register={register}
-                        />
-                        <InputForm
-                            label='شهر'
-                            name='city'
-                            placeholder="تهران"
-                            register={register}
-                        />
-                        <InputForm
-                            label='آدرس'
-                            name='address'
-                            type='textarea'
-                            rows={4}
-                            classDiv='col-span-2'
-                            placeholder="آدرس کامل فروشگاه"
-                            register={register}
-                        />
+                        <div className='w-full col-span-2'>
+                            <ProvinceInput
+                                changeCity={(value) => setValue('cityId', value)}
+                                changeProvince={(value) => setValue('provinceId', value)}
+                                valueCity={cityId} valueProvince={provinceId}
+                            />
+                        </div>
+                        {hasPhysicalStore === 'true' && (
+                            <InputForm
+                                label='آدرس'
+                                name='address'
+                                type='textarea'
+                                rows={4}
+                                classDiv='col-span-2'
+                                placeholder="آدرس کامل فروشگاه"
+                                register={register}
+                            />
+                        )}
                     </div>
                     {/* Images */}
                     <div className="card p-4">
@@ -200,11 +212,12 @@ export default function StorForm({ store }: { store?: Store }) {
                                     setValue('logo', newUrl[0])
                                 }
                             }}
-                            helperText="لوگو فروشگاه"
+                            helperText="تصویر بنر با اندازه 512*512 باید باشد و حجم آن بیش از 200kb نباشد."
                         />
                         <div className="mt-4">
                             <UploadMedia
                                 boxUploader
+                                title="بنر فروشگاه"
                                 type='image'
                                 limit={1}
                                 valueEdit={getValidArray(getValues('banner'))}
@@ -214,13 +227,34 @@ export default function StorForm({ store }: { store?: Store }) {
                                         setValue('banner', newUrl[0])
                                     }
                                 }}
-                                helperText="بنر فروشگاه"
+                                helperText="تصویر بنر با اندازه 400*1920 باید باشد و حجم آن بیش از 300kb نباشد."
                             />
                         </div>
                     </div>
                 </div>
                 {/* Sidebar */}
                 <div className="space-y-6">
+                    <MotionWrapper staggerChildren={0.1} preset='slideUpBlur' className="bg-card border border-border rounded-2xl p-6" >
+                        <h3 className="font-black text-sm mb-4">راهنمای سریع</h3>
+                        <ul className="space-y-3 text-sm text-muted-foreground">
+                            <li className="flex gap-2">
+                                <span className="text-emerald-500">✓</span>
+                                لوگوی باکیفیت باعث افزایش اعتماد خریداران می‌شود
+                            </li>
+                            <li className="flex gap-2">
+                                <span className="text-emerald-500">✓</span>
+                                توضیحات کامل فروشگاه به بهبود سئو کمک می‌کند
+                            </li>
+                            <li className="flex gap-2">
+                                <span className="text-emerald-500">✓</span>
+                                اطلاعات تماس دقیق، ارتباط با مشتریان را آسان‌تر می‌کند
+                            </li>
+                            <li className="flex gap-2">
+                                <span className="text-emerald-500">✓</span>
+                                بنر فروشگاه اولین چیزیست که خریداران می‌بینند
+                            </li>
+                        </ul>
+                    </MotionWrapper>
                     <div className="card p-4 space-y-4">
                         <SelectCustom
                             children={[
@@ -243,18 +277,22 @@ export default function StorForm({ store }: { store?: Store }) {
                             label='نوع کسب‌وکار'
                             setValue={(e) => setValue('businessType', e)}
                         />
-                        <InputForm
-                            label='کد ملی / شناسه ملی'
-                            name='nationalId'
-                            placeholder="1234567890"
-                            register={register}
-                        />
-                        <InputForm
-                            label='کد شرکت (در صورتی که از سمت شرکت ثبت نام کرده اید)'
-                            name='economicCode'
-                            placeholder="1234567890"
-                            register={register}
-                        />
+                        {businessType === 'individual' && (
+                            <InputForm
+                                label='کد ملی / شناسه ملی'
+                                name='nationalId'
+                                placeholder="1234567890"
+                                register={register}
+                            />
+                        )}
+                        {businessType === 'company' && (
+                            <InputForm
+                                label='کد شرکت (در صورتی که از طریق شرکت ثبت نام کرده اید)'
+                                name='economicCode'
+                                placeholder="1234567890"
+                                register={register}
+                            />
+                        )}
                         {store?.slug && (
                             <InputForm
                                 label='اسلاگ'
@@ -279,40 +317,66 @@ export default function StorForm({ store }: { store?: Store }) {
                             register={register}
                         />
                         <InputForm
+                            label='واتس اپ'
+                            name='whatsApp'
+                            placeholder="https://whats_app/marketino"
+                            register={register}
+                        />
+                        <InputForm
+                            label='بله'
+                            name='bale'
+                            placeholder="https://bale/marketino"
+                            register={register}
+                        />
+                        <InputForm
+                            label='روبیکا'
+                            name='robika'
+                            placeholder="https://robika/marketino"
+                            register={register}
+                        />
+                        <InputForm
+                            label='زمان ارسال'
+                            name='shippingTime'
+                            placeholder="۸:۰۰ تا ۲۲:۰۰"
+                            register={register}
+                        />
+                        <InputForm
                             label='ساعت کاری'
                             name='workingHours'
                             placeholder="۸:۰۰ تا ۲۲:۰۰"
                             register={register}
                         />
                     </div>
-                    <div className="card p-4 space-y-4">
-                        <InputForm
-                            label='توضیح وضعیت'
-                            type='textarea'
-                            rows={3}
-                            name='statusReason'
-                            placeholder="مدارک تایید شدن..."
-                            register={register}
-                        />
-                        <InputForm
-                            label='درصد کمیسیون'
-                            name='commissionRate'
-                            placeholder="7"
-                            type='number'
-                            min={0}
-                            register={register}
-                        />
-                        <SelectCustom
-                            children={[
-                                { id: 'true', name: 'تایید میشود' },
-                                { id: 'false', name: 'رد میشود' },
-                            ]}
-                            placeHolder=''
-                            value={isVerified}
-                            label='تایید فروشگاه'
-                            setValue={(e) => setValue('isVerified', e)}
-                        />
-                    </div>
+                    {!isStore && (
+                        <div className="card p-4 space-y-4">
+                            <InputForm
+                                label='توضیح وضعیت'
+                                type='textarea'
+                                rows={3}
+                                name='statusReason'
+                                placeholder="مدارک تایید شدن..."
+                                register={register}
+                            />
+                            <InputForm
+                                label='درصد کمیسیون'
+                                name='commissionRate'
+                                placeholder="7"
+                                type='number'
+                                min={0}
+                                register={register}
+                            />
+                            <SelectCustom
+                                children={[
+                                    { id: 'true', name: 'تایید میشود' },
+                                    { id: 'false', name: 'رد میشود' },
+                                ]}
+                                placeHolder=''
+                                value={isVerified}
+                                label='تایید فروشگاه'
+                                setValue={(e) => setValue('isVerified', e)}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -355,7 +419,7 @@ export default function StorForm({ store }: { store?: Store }) {
                 <CustomButton
                     color='white'
                     type='submit'
-                    name={isPending ? 'در حال بروزرسانی...' : 'بروزرسانی فروشگاه'}
+                    name={isPending || pendingCreate ? 'در حال بروزرسانی...' : 'بروزرسانی فروشگاه'}
                     iconStart={isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                     disabled={isPending}
                 />
@@ -367,6 +431,6 @@ export default function StorForm({ store }: { store?: Store }) {
                     onClick={() => router.push('/admin/stores')}
                 />
             </div>
-        </form>
+        </form >
     );
 }

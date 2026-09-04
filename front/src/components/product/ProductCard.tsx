@@ -33,15 +33,11 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       )}
     >
       <LikeButton isCard productId={product.id} />
-
       {/* soft accent glow on hover only */}
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-linear-to-br from-cyan-500/10 via-transparent to-fuchsia-500/10"
       />
-
-      {/* Image area */}
-      {/* Image area */}
       <div className="relative aspect-4/3 w-full overflow-hidden bg-muted/40 dark:bg-muted/20">
         {imageUrl ? (
           <ImgTag
@@ -60,7 +56,6 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         {isFeatured && <FeaturedBtn />}
         <OffBtn value={discountPercent} />
         <QuickViewDialog product={product} />
-
         {/* bottom fade */}
         <div
           aria-hidden

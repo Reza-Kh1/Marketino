@@ -77,7 +77,7 @@ export function useUpdateStore() {
   });
 }
 
-const errorhandler = (error: any, msg: string) => {
+export const errorhandler = (error: any, msg: string) => {
   const messages = error?.response?.data?.message;
   const list = Array.isArray(messages) ? messages : [messages ?? msg];
   list.forEach((msg: string) => {
@@ -89,6 +89,19 @@ export function useUpdateStoreStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => storeService.updateStatus(id, status),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: STORE_KEYS.allAdmin });
+      qc.invalidateQueries({ queryKey: STORE_KEYS.all });
+      toast.success('وضعیت فروشگاه بروزرسانی شد');
+    },
+    onError: (err: any) => errorhandler(err, 'خطا در ویرایش فروشگاه'),
+  });
+}
+
+export function useRebuildStoreRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => storeService.RebuildStore(id),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: STORE_KEYS.allAdmin });
       qc.invalidateQueries({ queryKey: STORE_KEYS.all });
@@ -112,10 +125,9 @@ export function useDeleteStore() {
 }
 
 //  Review
-
-export function useStoreReview(storeId: string, page: number = 1, enabled: boolean = true) {
+export function useStoreReview(storeId: string, enabled: boolean = true) {
   return useInfiniteQuery<AllStoreReviewEntity>({
-    queryKey: [...STORE_KEYS_REVIEW.listWithFilters({ storeId }), page],
+    queryKey: [...STORE_KEYS_REVIEW.listWithFilters({ storeId })],
     queryFn: ({ pageParam = 1 }) => storeService.listReview(storeId, pageParam),
     staleTime: 2 * 60 * 1000,
     initialPageParam: 1,
@@ -174,10 +186,23 @@ export function useRejectStoreReview() {
   });
 }
 
+export function useDeleteStoreReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: string) => storeService.deleteReview(reviewId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: STORE_KEYS_REVIEW.all });
+      qc.invalidateQueries({ queryKey: STORE_KEYS_REVIEW.allAdmin });
+      toast.success('نظر حذف شد');
+    },
+    onError: (err: any) => errorhandler(err, 'خطا در ثبت پاسخ'),
+  });
+}
+
 export function useAnswerStoreReview() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ reviewId, answer }: { reviewId: string; answer: string }) => storeService.answerReview(reviewId, answer),
+    mutationFn: ({ reviewId, answer }: { reviewId: string; answer: any }) => storeService.answerReview(reviewId, answer),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: STORE_KEYS_REVIEW.all });
       qc.invalidateQueries({ queryKey: STORE_KEYS_REVIEW.allAdmin });

@@ -130,7 +130,7 @@ export default function AdminQnAPage() {
             id: 'product',
             header: 'محصول',
             cell: ({ row }) => (
-                <Link href={'/admin/products/' + row.original.productId + '/edit'} className="text-xs hover:text-blue-500">{row.original.product?.title || '-'}</Link>
+                <Link href={'/admin/products/' + row.original.productId} className="text-xs hover:text-blue-500">{row.original.product?.title || '-'}</Link>
             )
         },
         {

@@ -9,9 +9,46 @@ import { AddToCartDto, UpdateCartItemDto } from './dto/cart.dto';
 export class CartService {
   constructor(private readonly prisma: PrismaService) { }
 
-  /**
-   * دریافت سبد خرید کاربر
-   */
+
+  private groupCartByStore(cartItems: any[]) {
+    const storesMap = new Map();
+
+    for (const item of cartItems) {
+      const storeId = item.product.storeId;
+
+      if (!storesMap.has(storeId)) {
+        storesMap.set(storeId, {
+          storeId: storeId,
+          storeName: item.product.store.name,
+          storeNameEn: item.product.store.nameEn,
+          storeSlug: item.product.store.slug,
+          commissionRate: item.product.store.commissionRate,
+          carts: [],
+        });
+      }
+      const store = storesMap.get(storeId);
+      const price = Number(item.variant.price);
+      const discountValue = item.variant.discount?.isActive
+        ? (item.variant.discount.type === 'fixed'
+          ? Number(item.variant.discount.value)
+          : price * (Number(item.variant.discount.value) / 100))
+        : 0;
+
+      const finalPrice = price - discountValue;
+      const totalPrice = finalPrice * item.quantity;
+      const totalDiscount = discountValue * item.quantity;
+
+      store.carts.push({
+        ...item,
+        totalPrice,
+        totalDiscount,
+      });
+    }
+    const stores = Array.from(storesMap.values());
+    return {
+      stores,
+    };
+  }
   async getCart(userId: string) {
     const items = await this.prisma.cartItem.findMany({
       where: { userId: userId },
@@ -23,9 +60,12 @@ export class CartService {
         product: {
           select: {
             id: true,
+            storeId: true,
             title: true,
             titleEn: true,
-            condition: true,
+            slug: true,
+            slugEn: true,
+            store: { select: { commissionRate: true, name: true, nameEn: true, slug: true } },
             images: { select: { alt: true, url: true }, take: 1, orderBy: { createdAt: 'desc' } }
           }
         },
@@ -37,7 +77,7 @@ export class CartService {
             color: { select: { name: true, nameEn: true } },
             price: true,
             sku: true,
-            attributes: { select: { value: true, id: true, attribute: { select: { key: true, label: true, id: true } } } },
+            attributes: { select: { value: true, id: true, attribute: { select: { key: true, label: true, id: true } } }, take: 2 },
             discount: { select: { isActive: true, value: true, id: true, type: true, endsAt: true } }
           }
         }
@@ -57,16 +97,17 @@ export class CartService {
         (!discount.endsAt || new Date(discount.endsAt) > new Date());
       if (isDiscountValid) {
         if (discount.type === 'percentage') {
-          finalUnitPrice = rawPrice - (rawPrice * (discount.value / 100));
+          finalUnitPrice = rawPrice - (rawPrice * (Number(discount.value) / 100));
         } else if (discount.type === 'fixed' || discount.type === 'amount') {
-          finalUnitPrice = Math.max(0, rawPrice - discount.value);
+          finalUnitPrice = Math.max(0, rawPrice - Number(discount.value));
         }
       }
 
       return sum + (finalUnitPrice * item.quantity);
     }, 0);
 
-    return { carts: items, totalItems: totalItems || 0, totalPrice };
+    const { stores } = this.groupCartByStore(items)
+    return { totalItems: totalItems || 0, totalPrice, stores };
   }
 
   /**

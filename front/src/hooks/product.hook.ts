@@ -7,10 +7,21 @@ const PRODUCT_KEYS = {
     all: ["products"] as const,
     lists: () => [...PRODUCT_KEYS.all, "list"] as const,
     listWithFilters: (filters: Record<string, any>) => [...PRODUCT_KEYS.lists(), filters] as const,
+    listsAdmin: () => [...PRODUCT_KEYS.all, "list-admin"] as const,
+    listWithFiltersAdmin: (filters: Record<string, any>) => [...PRODUCT_KEYS.listsAdmin(), filters] as const,
     details: () => [...PRODUCT_KEYS.all, "detail"] as const,
     detail: (slug: string) => [...PRODUCT_KEYS.details(), slug] as const,
     dropdown: () => [...PRODUCT_KEYS.all, "dropdown"] as const,
 } as const;
+
+export function useProductsAdmin(filter?: any) {
+    return useQuery<AllProductsEntity>({
+        queryKey: PRODUCT_KEYS.listWithFiltersAdmin(filter),
+        queryFn: () => ProductService.listAdmin(filter),
+        staleTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+}
 
 export function useProducts(filter?: any) {
     return useQuery<AllProductsEntity>({
@@ -35,16 +46,15 @@ export function useCreateProduct() {
 
     return useMutation({
         mutationFn: (data: FormProductDTO) => {
-            return ProductService.create(data)
+            return ProductService.create(data);
         },
         onSuccess: () => {
+            // فقط اینوالیدیت کن تا دیتا از اول گرفته بشه
             queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
             toast.success("محصول با موفقیت ایجاد شد");
         },
         onError: (error: any) => {
-
             const messages = error?.response?.data?.message;
-
             const list = Array.isArray(messages)
                 ? messages
                 : [messages ?? "خطای نامشخص"];
@@ -60,8 +70,40 @@ export function useUpdateProduct() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: FormProductDTO }) => ProductService.update(id, data),
-        onSuccess: (_data, variables) => {
+        mutationFn: ({ id, data }: { id: string; data: FormProductDTO }) => 
+            ProductService.update(id, data),
+        onSuccess: () => {
+            // فقط اینوالیدیت کن تا دیتا از اول گرفته بشه
+            queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
+            toast.success("محصول با موفقیت بروزرسانی شد");
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || "خطا در بروزرسانی محصول");
+        },
+    });
+}
+
+export function useFeatureProduct() {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: (id: string) => ProductService.featureProduct(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
+            toast.success("محصول با موفقیت بروزرسانی شد");
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || "خطا در بروزرسانی محصول");
+        },
+    });
+}
+
+export function useApproveProduct() {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: (id: string) => ProductService.approveProduct(id),
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
             toast.success("محصول با موفقیت بروزرسانی شد");
         },
@@ -73,9 +115,11 @@ export function useUpdateProduct() {
 
 export function useDeleteProduct() {
     const queryClient = useQueryClient();
+    
     return useMutation({
         mutationFn: (id: string) => ProductService.delete(id),
         onSuccess: () => {
+            // فقط اینوالیدیت کن تا دیتا از اول گرفته بشه
             queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
             toast.success("محصول با موفقیت حذف شد");
         },

@@ -15,7 +15,6 @@ import MotionWrapper from '@/components/motion/MotionWrapper';
 import { useCategoriesProducts } from '@/hooks/category.hook';
 import { useSearch } from '@/hooks/search.hook';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import PendingApi from '@/components/PendingApi';
 import { SearchParamsDto, SortSearchOption } from '@/services/search.service';
 import AutocompleteCustom from '@/components/inputs/AutoCompleteCustom';
 import { useBrands } from '@/hooks/brand.hook';
@@ -23,8 +22,6 @@ import { Link } from '@/i18n/navigation';
 import { BreadcrumbsType } from '@/types/types';
 import LoadingPage from '@/components/LoadingPage';
 import { useStores } from '@/hooks/store.hook';
-import { StoreEntity } from '@/components/store/types';
-
 interface SavedSearch {
   id: string;
   label: string;
@@ -83,7 +80,6 @@ function useDebouncedValue<T>(value: T, delay: number) {
 
   return [debounced, isPending, setDebounced] as const;
 }
-
 interface FilterPanelProps {
   control: Control<SearchParamsDto>;
   mobile?: boolean;

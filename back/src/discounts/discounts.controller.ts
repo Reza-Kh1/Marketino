@@ -1,7 +1,7 @@
 /**
  * DiscountsController - کنترلر کدهای تخفیف
  */
-import { Controller, Get, Post, Delete, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Put, Body, Param, Query, UseGuards, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { DiscountsService } from './discounts.service';
 import { CreateDiscountDto } from './dto/discount.dto';
@@ -19,10 +19,8 @@ export class DiscountsController {
 
   @Public()
   @Post('validate')
-  @ApiOperation({ summary: 'اعتبارسنجی کد تخفیف' })
-  @ApiBody({ type: ValidateDiscountDto })
-  async validate(@Body() body: ValidateDiscountDto) {
-    return this.discountsService.validate(body);
+  async validate(@Body() body: ValidateDiscountDto, @CurrentUser('id') userId: string) {
+    return this.discountsService.validate(body, userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -50,6 +48,15 @@ export class DiscountsController {
   @ApiOperation({ summary: 'ایجاد کد تخفیف جدید (ادمین)' })
   async create(@CurrentUser('id') userId: string, @Body() dto: CreateDiscountDto) {
     return this.discountsService.create(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'superAdmin')
+  @Patch(':discountId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'ویرایش کد تخفیف (ادمین)' })
+  async update(@Param('discountId') discountId: string, @Body() dto: CreateDiscountDto) {
+    return this.discountsService.update(discountId, dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Store, Store as StoreIcon, ChevronDown, Edit, Eye, Trash2, Check, X, Clock, CheckCircle, XCircle, AlertTriangle, Plus } from 'lucide-react';
+import { Store, Store as StoreIcon, ChevronDown, Edit, Eye, Trash2, Check, X, Clock, CheckCircle, XCircle, AlertTriangle, Plus, ListChecks, Skull } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PendingApi from '@/components/PendingApi';
 import DynamicTable from '@/components/DynamicTable';
@@ -18,7 +18,7 @@ import TooltipCustom from '@/components/TooltipCustom';
 import DialogDelete from '@/components/DialogDelete';
 import { Badge } from '@/components/ui/badge';
 import CustomButton from '@/components/CustomButton';
-import { useDeleteStore, useStoresAdmin, useUpdateStoreStatus } from '@/hooks/store.hook';
+import { useDeleteStore, useRebuildStoreRate, useStoresAdmin, useUpdateStoreStatus } from '@/hooks/store.hook';
 import { StoreResponseEntity } from '@/services/store.service';
 import ImgTag from '@/components/ImgTag';
 
@@ -45,6 +45,7 @@ export default function AdminStoresPage() {
     const [selectStore, setSelectStore] = useState<StoreResponseEntity | null>(null);
     const { mutate: deleteMutate, isPending: pendingDelete } = useDeleteStore();
     const { mutate: updateStatusMutate, isPending: pendingStatus } = useUpdateStoreStatus();
+    const { mutate: RebuildMutate } = useRebuildStoreRate();
     const { refresh } = useRouter();
     const searchParams = useSearchParams();
 
@@ -138,14 +139,6 @@ export default function AdminStoresPage() {
             header: 'مالک',
             cell: ({ row }) => (
                 <span className="text-xs">{row.original.owner?.username || '-'}</span>
-            )
-        },
-        {
-            accessorKey: 'businessType',
-            id: 'businessType',
-            header: 'نوع کسب‌وکار',
-            cell: ({ row }) => (
-                <span className="text-xs">{row.original.businessType === 'individual' ? 'حقیقی' : row.original.businessType === 'company' ? 'حقوقی' : '-'}</span>
             )
         },
         {
@@ -292,6 +285,16 @@ export default function AdminStoresPage() {
                             className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
                         >
                             <Trash2 className="w-4 h-4" />
+                        </Button>
+                    </TooltipCustom>
+                    <TooltipCustom placeHolder="بازنشانی تمام امتیازات فروشگاه تا چند دقیقه طول میکشه">
+                        <Button
+                            onClick={() => { RebuildMutate(row.original.id) }}
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-orange-500 cursor-pointer hover:bg-orange-500/20"
+                        >
+                            <Skull className="w-4 h-4" />
                         </Button>
                     </TooltipCustom>
                 </div>

@@ -46,7 +46,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/products', label: tNav('products') },
-    { href: '/store', label: tNav('shops') },
+    { href: '/stores', label: tNav('shops') },
     { href: '/products?tag=تخفیف', label: tNav('discounts'), highlight: true },
   ];
 

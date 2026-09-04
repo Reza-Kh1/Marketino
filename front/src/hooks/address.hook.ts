@@ -55,8 +55,8 @@ export function useCreateAddress() {
             return addressService.create(data);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ADDRESS_KEYS.lists() });
-            queryClient.invalidateQueries({ queryKey: ADDRESS_KEYS.default() });
+            queryClient.invalidateQueries({ queryKey: ADDRESS_KEYS.all });
+            queryClient.invalidateQueries({ queryKey: ADDRESS_KEYS.all });
             toast.success("آدرس با موفقیت ایجاد شد");
         },
         onError: (error: any) => {

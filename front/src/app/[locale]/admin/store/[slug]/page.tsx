@@ -1,7 +1,7 @@
 'use client'
 import { useStore } from '@/hooks/store.hook';
 import { Link, usePathname } from '@/i18n/navigation';
-import { ArrowRight, Edit3, Loader2 } from 'lucide-react';
+import { ArrowRight, Edit3, Loader2, Plus } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import StorForm from './StoreForm';
 
@@ -9,7 +9,22 @@ export default function page() {
     const params = useParams()
     if (params?.slug === 'create-new-store') {
         return (
-            <StorForm />
+            <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                    <Link
+                        href="/admin/store"
+                        className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center hover:bg-accent transition-colors"
+                    >
+                        <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-black flex items-center gap-2">
+                            ثبت فروشگاه
+                        </h1>
+                    </div>
+                </div>
+                <StorForm />
+            </div>
         )
     }
     const { isFetching, isError, data } = useStore((params?.slug)?.toString() || '')

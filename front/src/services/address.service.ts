@@ -7,21 +7,31 @@ export interface AddressType {
     title: string | null;        // e.g. "خانه", "محل کار"
     fullName: string;
     phone: string;
-    province: string;
-    city: string;
+    provinceId: string;
+    cityId: string;
     address: string;
     postalCode: string | null;
     isDefault: boolean;
     createdAt: string;
     updatedAt: string;
+    city:{
+        name:string
+        nameEn:string
+        id:string
+    }
+    province:{
+        name:string
+        nameEn:string
+        id:string
+    }
 }
 
 export interface FormAddressDTO {
     title?: string | null;
     fullName: string;
     phone: string;
-    province: string;
-    city: string;
+    provinceId: string;
+    cityId: string;
     address: string;
     postalCode?: string | null;
     isDefault?: boolean;
@@ -31,8 +41,8 @@ export interface UpdateAddressDTO {
     title?: string | null;
     fullName?: string;
     phone?: string;
-    province?: string;
-    city?: string;
+    provinceId?: string;
+    cityId?: string;
     address?: string;
     postalCode?: string | null;
     isDefault?: boolean;

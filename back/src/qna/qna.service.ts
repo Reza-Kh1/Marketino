@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Qna, ReviewApproval, UserRole } from '@prisma/client';
+import { Prisma, Qna, ReviewApproval, UserRole } from '@prisma/client';
 import { CreateQnaDto, UpdateQnaDto } from './dto/qna.create.dto';
 import { SearchQnaDto } from './dto/qna.search.dto';
 import { ConfigService } from '@nestjs/config';
@@ -84,6 +84,59 @@ export class QnaService {
         }
       }),
       this.prisma.qna.count({ where })
+    ]);
+    return {
+      items,
+      pagination: pagination(total, page, limitPage),
+    };
+  }
+
+  async findByStore(query: SearchQnaDto, storeId: string) {
+    const { productId, limit, order = 'desc', page = 1, parentId, status } = query;
+    const limitPage = Number(limit) || Number(this.configService.get('limit.qna'));
+    const skip = (page - 1) * limitPage;
+    const where: Prisma.QnaWhereInput = {
+      product: {
+        storeId,
+      },
+    };
+    if (status && status !== 'ALL') where.status = status;
+    if (parentId) where.parentId = parentId;
+    if (productId) where.productId = productId;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.qna.findMany({
+        where,
+        skip,
+        take: limitPage,
+        orderBy: {
+          createdAt: order, // یا هر فیلدی که می‌خوای
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          parent: {
+            select: {
+              content: true,
+              role: true,
+              userId: true,
+            },
+          },
+          product: {
+            select: {
+              id: true,
+              title: true,
+              titleEn: true,
+            },
+          },
+        },
+      }),
+      this.prisma.qna.count({ where }),
     ]);
     return {
       items,

@@ -9,6 +9,7 @@ import {
   Package,
   MessageSquareText,
   RotateCcw,
+  PackageCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StoreRating } from '@/services/store.service';
@@ -31,9 +32,10 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
     {
       label: 'کیفیت محصولات',
       value: rating.productQuality,
-      icon: ThumbsUp,
+      icon: PackageCheck,
       color: 'from-violet-500 to-purple-500',
-      suffix: '',
+      suffix: <Star className="size-3 fill-amber-400 text-amber-400" />,
+      isPercent: false
     },
     {
       label: 'درصد پاسخگویی به سوالات',
@@ -41,6 +43,7 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
       icon: MessageSquare,
       color: 'from-cyan-500 to-blue-500',
       suffix: '%',
+      isPercent: true
     },
     {
       label: 'محصولات در حال عرضه',
@@ -48,7 +51,7 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
       icon: Package,
       color: 'from-emerald-500 to-teal-500',
       suffix: '',
-      isPercent: true,
+      isPercent: false,
     },
     {
       label: 'فروش موفق',
@@ -56,6 +59,7 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
       icon: ShoppingBag,
       color: 'from-amber-500 to-orange-500',
       suffix: '',
+      isPercent: false
     },
   ];
 
@@ -67,7 +71,22 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
     { star: 2, pct: 2 },
     { star: 1, pct: 1 },
   ];
+  function formatResponseTime(minutes: number) {
+    if (minutes < 1) return 'کمتر از ۱ دقیقه'
 
+    if (minutes < 60) {
+      return `حدود ${Math.round(minutes)} دقیقه`
+    }
+
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = Math.round(minutes % 60)
+
+    if (remainingMinutes === 0) {
+      return `حدود ${hours} ساعت`
+    }
+
+    return `حدود ${hours} ساعت و ${remainingMinutes} دقیقه`
+  }
   return (
     <div className={cn('space-y-5', className)}>
       <div className="grid gap-4 md:grid-cols-2">
@@ -142,8 +161,8 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
                 <m.icon className="size-4" />
               </div>
               <div className="text-[10px] font-medium text-muted-foreground">{m.label}</div>
-              <div className="mt-0.5 text-lg font-black tabular-nums text-foreground">
-                {m.isPercent
+              <div className="mt-0.5 text-lg flex gap-1 items-center font-black tabular-nums text-foreground">
+                {!m.isPercent
                   ? m.value.toLocaleString('fa-IR')
                   : m.value.toLocaleString('fa-IR', {
                     minimumFractionDigits: 1,
@@ -170,8 +189,8 @@ export default function StoreRatingPanel({ rating, className }: StoreRatingPanel
         />
         <StatBox
           icon={Clock}
-          label="میانگین پاسخ"
-          value={`${rating.responseTime.toLocaleString('fa-IR', { maximumFractionDigits: 1 })} ساعت`}
+          label="میانگین زمان پاسخ"
+          value={formatResponseTime(rating.responseTime)}
         />
       </div>
     </div>

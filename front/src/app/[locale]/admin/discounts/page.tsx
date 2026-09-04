@@ -1,229 +1,398 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Tag, Plus, Save, X, Calendar, Percent, Loader2, Trash2, CirclePower } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import {
+  Plus, X, Eye, Trash2, CheckCircle, XCircle, AlertTriangle,
+  Edit, Power, PowerOff, Save
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { adminApi, PaginationType, type DiscountCode } from '@/lib/api';
-import FormDatePicker from '@/components/inputs/FormDatePicker';
-import { useForm } from 'react-hook-form';
-import PaginationBar from '@/components/admin/PaginationBar';
+import { useDiscounts, useCreateDiscount, useUpdateDiscount, useDeleteDiscount, useToggleDiscount } from '@/hooks/discount.hook';
+import { useStores } from '@/hooks/store.hook';
+import PendingApi from '@/components/PendingApi';
+import DynamicTable from '@/components/DynamicTable';
+import { Button } from '@/components/ui/button';
+import { useRouter } from '@/i18n/navigation';
+import { ColumnDef } from '@tanstack/react-table';
+import { Checkbox } from '@/components/ui/checkbox';
+import DialogView from '@/components/DialogView';
+import SearchBox from '@/components/admin/SearchBox';
 import { useSearchParams } from 'next/navigation';
-import InputForm from '@/components/inputs/InputForm';
-import SelectCustom from '@/components/inputs/SelectCustom';
-import { z } from "zod";
-import { zodResolver } from '@hookform/resolvers/zod';
+import TooltipCustom from '@/components/TooltipCustom';
+import DialogDelete from '@/components/DialogDelete';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CustomButton from '@/components/CustomButton';
-import { toast } from 'sonner';
+import InputForm from '@/components/inputs/InputForm';
+import { Label } from '@/components/ui/label';
+import { DiscountType } from '@/services/discount.service';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import AutocompleteCustom from '@/components/inputs/AutoCompleteCustom';
+import { Switch } from '@/components/ui/switch';
+import FormDatePicker from '@/components/inputs/FormDatePicker';
 import { format } from 'date-fns-jalali';
+import { discountSchema } from '@/schemas/discount.schema';
+import SelectCustom from '@/components/inputs/SelectCustom';
 
-export const discountSchema = z
-  .object({
-    code: z
-      .string()
-      .trim()
-      .min(3, "کد تخفیف باید حداقل ۳ کاراکتر باشد")
-      .max(50, "کد تخفیف بیش از حد طولانی است"),
-    type: z.enum(["percentage", "fixed"], {
-      error: "نوع تخفیف را انتخاب کنید",
-    }),
-    value: z
-      .number({
-        error: "مقدار تخفیف الزامی است",
-      })
-      .positive("مقدار تخفیف باید بیشتر از صفر باشد"),
-    minOrderAmount: z
-      .number()
-      .min(0, "حداقل مبلغ سفارش نمی‌تواند منفی باشد")
-      .default(0),
-    maxDiscount: z
-      .number()
-      .min(0, "سقف تخفیف نمی‌تواند منفی باشد")
-      .optional(),
-    usageLimit: z
-      .number()
-      .int("باید عدد صحیح باشد")
-      .min(0)
-      .default(0),
-    perUserLimit: z
-      .number()
-      .int("باید عدد صحیح باشد")
-      .min(0)
-      .default(0),
-    startsAt: z.coerce.date({
-      error: "تاریخ شروع الزامی است",
-    }),
-    endsAt: z.coerce.date({
-      error: "تاریخ پایان الزامی است",
-    }),
-    isActive: z.string().default('true'),
-    description: z
-      .string()
-      .max(500, "توضیحات بیش از حد طولانی است")
-      .optional(),
-  })
-  .refine(
-    (data) => data.endsAt > data.startsAt,
-    {
-      message: "تاریخ پایان باید بعد از تاریخ شروع باشد",
-      path: ["endsAt"],
-    }
-  )
-  .refine(
-    (data) =>
-      data.type !== "percentage" ||
-      (data.value > 0 && data.value <= 100),
-    {
-      message: "درصد تخفیف باید بین ۱ تا ۱۰۰ باشد",
-      path: ["value"],
-    }
-  );
-type DiscountFormType = z.infer<typeof discountSchema>;
+type DiscountFormData = z.infer<typeof discountSchema>;
 
 export default function AdminDiscountsPage() {
-  const { control, getValues, reset, register, formState: { errors }, setValue, watch, handleSubmit } = useForm({
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [modalMode, setModalMode] = useState<'view' | 'delete' | 'create' | 'edit' | null>(null);
+  const [selectedDiscount, setSelectedDiscount] = useState<DiscountType | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  // --- فیلترها از URL ---
+  const filters = useMemo(() => {
+    const limit = searchParams.get('limit') || undefined;
+    const page = searchParams.get('page') || undefined;
+    const search = searchParams.get('search') || undefined;
+    const isActive = searchParams.get('isActive') || undefined;
+    const storeId = searchParams.get('storeId') || undefined;
+    const dateFrom = searchParams.get('dateFrom') || undefined;
+    const dateTo = searchParams.get('dateTo') || undefined;
+
+    return {
+      limit: limit && !isNaN(Number(limit)) ? Number(limit) : undefined,
+      page: page && !isNaN(Number(page)) ? Number(page) : undefined,
+      ...(search && { search }),
+      ...(isActive && isActive !== 'ALL' && { isActive: isActive === 'true' }),
+      ...(storeId && { storeId }),
+      ...(dateFrom && { dateFrom }),
+      ...(dateTo && { dateTo }),
+    };
+  }, [searchParams]);
+
+  const { data: discountsData, isError, isFetching, isLoading } = useDiscounts(filters);
+  const { data: storeData, isLoading: loadingStore } = useStores({ forSelect: true });
+  const { mutate: createMutate, isPending: isCreating } = useCreateDiscount();
+  const { mutate: updateMutate, isPending: isUpdating } = useUpdateDiscount();
+  const { mutate: deleteMutate, isPending: isDeleting } = useDeleteDiscount();
+  const { mutate: toggleMutate, isPending: isToggling } = useToggleDiscount();
+  // --- فرم با register مستقیم ---
+  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(discountSchema),
     defaultValues: {
       code: '',
-      type: 'percentage' as 'percentage' | 'fixed',
       value: 0,
       minOrderAmount: 0,
       maxDiscount: 0,
-      usageLimit: 100,
-      startsAt: null,
-      endsAt: null,
-      isActive: 'true'
+      usageLimit: 1,
+      startsAt: undefined,
+      endsAt: undefined,
+      description: '',
+      isActive: true,
+      status: 'PRODUCT',
+      storeId: [],
     }
-  })
+  });
+  const storeId = watch('storeId')
+  const status = watch('status')
+  const value = watch('value')
   const type = watch('type')
-  const isActiveWatch = watch('isActive')
-  const page = useSearchParams()
-  const [discounts, setDiscounts] = useState<DiscountCode[]>([]);
-  const [pagination, setPagination] = useState<PaginationType>();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-
-  const fetchDiscounts = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await adminApi.discounts(Number(page.get('page') || 1));
-      setDiscounts(res.discounts);
-      setPagination(res?.pagination);
-    } catch (err: any) {
-      toast.error('خطا در بارگذاری کدهای تخفیف');
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
-
+  const minOrderAmount = watch('minOrderAmount')
+  const maxDiscount = watch('maxDiscount')  
+  // برای ویرایش، مقداردهی اولیه فرم
   useEffect(() => {
-    fetchDiscounts();
-  }, [fetchDiscounts]);
+    if (modalMode === 'edit' && selectedDiscount) {
+      const storeIds = selectedDiscount.discountCodeStores?.length ? selectedDiscount.discountCodeStores.map(item => item.storeId) : []
+      reset({
+        perUserLimit: selectedDiscount.perUserLimit,
+        type: selectedDiscount.type,
+        code: selectedDiscount.code,
+        value: selectedDiscount.value,
+        minOrderAmount: selectedDiscount.minOrderAmount,
+        maxDiscount: selectedDiscount.maxDiscount || 0,
+        usageLimit: selectedDiscount.usageLimit,
+        startsAt: selectedDiscount.startsAt ? new Date(selectedDiscount.startsAt) : undefined,
+        endsAt: selectedDiscount.endsAt ? new Date(selectedDiscount.endsAt) : undefined,
+        description: selectedDiscount.description || '',
+        isActive: selectedDiscount.isActive,
+        status: selectedDiscount.status,
+        storeId: storeIds
+      });
+      setEditId(selectedDiscount.id);
+    } else if (modalMode === 'create') {
+      reset({
+        code: '',
+        value: 0,
+        minOrderAmount: 0,
+        maxDiscount: 0,
+        usageLimit: 1,
+        startsAt: undefined,
+        endsAt: undefined,
+        description: '',
+        perUserLimit: 0,
+        isActive: true,
+        status: 'PRODUCT',
+        storeId: [],
+        type: 'fixed'
+      });
+      setEditId(null);
+    }
+  }, [modalMode, selectedDiscount, reset]);
 
-  const handleCreate = async () => {
-    try {
-      const starts = getValues('startsAt') as string;
+  // --- تابع ارسال فرم ---
+  const onSubmitForm = (data: DiscountFormData) => {
+    function isValidStartDate(startsAt: Date): boolean {
       const now = new Date();
-      const startDate = new Date(starts);
-      if (isNaN(startDate.getTime())) {
-        throw new Error('تاریخ شروع نامعتبر است');
+      return startsAt.getTime() > now.getTime();
+    }
+    const payload = {
+      ...data,
+      startsAt: data.startsAt.toISOString(),
+      endsAt: data.endsAt.toISOString(),
+      isActive: !isValidStartDate(data.startsAt),
+      storeId: data.storeId || [],
+    };
+    if (selectedDiscount?.id) {
+      updateMutate({ data: payload, id: selectedDiscount.id }, {
+        onSuccess: () => {
+          setModalMode(null);
+          reset();
+        }
+      });
+    } else {
+      createMutate(payload, {
+        onSuccess: () => {
+          setModalMode(null);
+          reset();
+        }
+      });
+    }
+  };
+
+  const onError = (err: any) => {
+    console.log(err);
+  }
+
+  const columns: ColumnDef<DiscountType>[] = useMemo(() => [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+          onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+          className="border-admin-border"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(v) => row.toggleSelected(!!v)}
+          className="border-admin-border"
+        />
+      )
+    },
+    {
+      accessorKey: 'code',
+      header: 'کد تخفیف',
+      cell: ({ row }) => (
+        <span className="font-mono text-sm font-bold text-primary">{row.original.code}</span>
+      )
+    },
+    {
+      accessorKey: 'value',
+      header: 'مقدار تخفیف',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <span className="text-sm">{row.original.value.toLocaleString()}</span>
+          <span className="text-xs text-muted-foreground">{row.original.type === 'fixed' ? 'تومان' : '%'}</span>
+        </div>
+      )
+    },
+    {
+      accessorKey: 'usageLimit',
+      header: 'تعداد استفاده',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <span className="text-xs">{row.original.usedCount || 0}</span>
+          <span className="text-[10px] text-muted-foreground">/ {row.original.usageLimit}</span>
+        </div>
+      )
+    },
+    {
+      accessorKey: 'status',
+      header: 'نوع تخفیف',
+      cell: ({ row }) => (
+        <span className="text-xs">
+          {row.original.status === 'COMMISSION' ? 'کمیسیون' : row.original.status === 'PLATFORM' ? 'کل فروشگاه' : row.original.status === 'PRODUCT' ? 'محصولات' : 'فروشگاه'}
+        </span>
+      )
+    },
+    {
+      accessorKey: 'startsAt',
+      header: 'تاریخ شروع',
+      cell: ({ row }) => (
+        <span className="text-xs">
+          {row.original.startsAt ? format(new Date(row.original.startsAt), "yyyy/MM/dd - HH:mm") : '-'}
+        </span>
+      )
+    },
+    {
+      accessorKey: 'endsAt',
+      header: 'تاریخ پایان',
+      cell: ({ row }) => (
+        <span className="text-xs">
+          {row.original.endsAt ? format(new Date(row.original.endsAt), "yyyy/MM/dd - HH:mm") : '-'}
+        </span>
+      )
+    },
+    {
+      accessorKey: 'isActive',
+      header: 'وضعیت',
+      cell: ({ row }) => {
+        const isActive = row.original.isActive;
+        return (
+          <span className={cn(
+            "text-xs px-2 py-1 rounded-full border inline-flex items-center gap-1",
+            isActive
+              ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+              : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+          )}>
+            {isActive ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+            {isActive ? 'فعال' : 'غیرفعال'}
+          </span>
+        );
       }
-      const body = {
-        code: getValues('code'),
-        type: getValues('type'),
-        value: getValues('value'),
-        minOrderAmount: getValues('minOrderAmount'),
-        maxDiscount: getValues('maxDiscount'),
-        usageLimit: getValues('usageLimit'),
-        startsAt: getValues('startsAt'),
-        endsAt: getValues('endsAt'),
-        isActive: now >= startDate ? getValues('isActive') : false,
-      }      
-      setSaving(true);
-      await adminApi.createDiscount(body);
-      toast.success('کد تخفیف با موفقیت ایجاد شد');
-      reset()
-      setShowForm(false);
-      fetchDiscounts();
-    } catch (err: any) {
-      toast.error(err.message || 'خطا در ایجاد کد تخفیف');
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    {
+      id: 'actions',
+      header: 'عملیات',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <TooltipCustom placeHolder="تغییر وضعیت">
+            <Button
+              onClick={() => toggleMutate(row.original.id)}
+              disabled={isToggling}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 cursor-pointer hover:bg-amber-500/20"
+            >
+              {row.original.isActive ? (
+                <PowerOff className="w-4 h-4 text-red-500" />
+              ) : (
+                <Power className="w-4 h-4 text-green-500" />
+              )}
+            </Button>
+          </TooltipCustom>
+          <TooltipCustom placeHolder="ویرایش">
+            <Button
+              onClick={() => {
+                setSelectedDiscount(row.original);
+                setModalMode('edit');
+              }}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 cursor-pointer hover:bg-blue-500/20"
+            >
+              <Edit className="w-4 h-4 text-blue-500" />
+            </Button>
+          </TooltipCustom>
+          <TooltipCustom placeHolder="مشاهده">
+            <Button
+              onClick={() => { setSelectedDiscount(row.original); setModalMode('view'); }}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-admin-destructive/20"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+          </TooltipCustom>
+          <TooltipCustom placeHolder="حذف">
+            <Button
+              onClick={() => { setSelectedDiscount(row.original); setModalMode('delete'); }}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </TooltipCustom>
+        </div>
+      )
+    },
+  ], [storeData, isToggling, toggleMutate]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('آیا از حذف این کد تخفیف اطمینان دارید؟')) return;
-    try {
-      await adminApi.deleteDiscount(id);
-      toast.success('کد تخفیف حذف شد');
-      fetchDiscounts();
-    } catch (err: any) {
-      toast.error(err.message || 'خطا در حذف کد تخفیف');
-    }
-  };
+  // --- نمایش خطا و بارگذاری ---
+  if (isError) return (
+    <div className="text-center py-20">
+      <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+      <button onClick={() => router.refresh()} className="text-primary font-bold">تلاش مجدد</button>
+    </div>
+  );
 
-  const changeDiscount = async (id: string) => {
-    await adminApi.changeDiscount(id);
-    toast.success('کد تخفیف با موفقیت ویرایش شد');
-    fetchDiscounts();
-  }
-
-  const formatDate = (d: string | Date) => {
-    try { return format(new Date(d), "yyyy/MM/dd - HH:mm:ss"); } catch { return String(d); }
-  };
-
-  const isActive = (d: DiscountCode) => {
-    try {
-      const now = Date.now();
-      const start = new Date(d.startsAt).getTime();
-      const end = new Date(d.endsAt).getTime();
-      return d.isActive && now >= start && now <= end;
-    } catch { return d.isActive; }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (isLoading) return <PendingApi />;
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div className="flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-black">کدهای تخفیف</h2>
-          <p className="text-muted-foreground text-sm">مدیریت کدهای تخفیف و پیشنهادات ویژه</p>
+          <h2 className="text-2xl font-black mb-1">مدیریت کدهای تخفیف</h2>
+          <p className="text-muted-foreground text-sm">
+            {discountsData?.pagination?.total || 0} کد تخفیف
+          </p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
+        <Button
+          onClick={() => setModalMode('create')}
+          className="gap-2"
         >
-          <Plus className="w-4 h-4" /> کد تخفیف جدید
-        </button>
+          <Plus className="w-4 h-4" />
+          ایجاد تخفیف جدید
+        </Button>
       </div>
 
-      {/* New Discount Form */}
-      {showForm && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          className="bg-card border border-border rounded-2xl p-6 mb-8"
-        >
-          <h3 className="font-black text-lg mb-4">ایجاد کد تخفیف جدید</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InputForm
-              name='code'
-              type='text'
-              register={register}
-              label='کد تخفیف'
-              error={errors.code}
-              placeholder='مثلاً: SALE50'
-            />
-            <div>
+      {/* SearchBox */}
+      <SearchBox
+        selects={[
+          {
+            label: 'وضعیت',
+            placeHolder: 'همه',
+            setValue: 'isActive',
+            children: [
+              { id: 'ALL', name: 'نمایش همه' },
+              { id: 'true', name: 'فعال' },
+              { id: 'false', name: 'غیرفعال' },
+            ]
+          }
+        ]}
+        inputs={[
+          { label: 'کد تخفیف', name: 'search', placeholder: 'جستجو بر اساس کد...' },
+          { label: 'آیدی فروشگاه', name: 'storeId', placeholder: 'فیلتر بر اساس فروشگاه' },
+        ]}
+      />
+
+      {/* Table */}
+      <DynamicTable
+        data={discountsData?.discounts || []}
+        columns={columns}
+        totalRows={discountsData?.pagination?.total || 0}
+        isLoading={isFetching}
+        onBulkDelete={() => { }}
+        nextPage={discountsData?.pagination?.nextPage}
+        prevPage={discountsData?.pagination?.prevPage}
+      />
+
+      {/* Dialog Create/Edit */}
+      <Dialog open={modalMode === 'create' || modalMode === 'edit'} onOpenChange={() => { setModalMode(null), setEditId(null) }}>
+        <DialogContent dir="rtl" className="max-w-4xl! max-h-[90vh] overflow-y-auto bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right">
+          <DialogHeader>
+            <DialogTitle className="text-admin-text-primary text-xl font-bold">
+              {modalMode === 'create' ? 'ایجاد کد تخفیف جدید' : 'ویرایش کد تخفیف'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit(onSubmitForm, onError)} className="space-y-6 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputForm
+                label="کد تخفیف"
+                placeholder="مثال: SUMMER1404"
+                register={register}
+                name="code"
+                error={errors.code}
+                className="text-left font-mono"
+              />
               <SelectCustom
                 value={type}
                 placeHolder='انتخاب کنید'
@@ -235,171 +404,202 @@ export default function AdminDiscountsPage() {
                 ]}
                 error={errors.type}
               />
-            </div>
-            <InputForm
-              name='value'
-              type={'number'}
-              register={register}
-              label={type === 'percentage' ? 'درصد تخفیف' : 'مبلغ (تومان)'}
-              error={errors.value}
-            />
-            <InputForm
-              name='minOrderAmount'
-              type='number'
-              register={register}
-              label='حداقل سفارش'
-              error={errors.minOrderAmount}
-            />
-            <InputForm
-              name='maxDiscount'
-              type='number'
-              register={register}
-              label='سقف تخفیف'
-              error={errors.maxDiscount}
-            />
-            <InputForm
-              name='usageLimit'
-              type='number'
-              register={register}
-              label='محدودیت استفاده'
-              error={errors.usageLimit}
-            />
-            <FormDatePicker
-              name='startsAt'
-              control={control}
-              includeTime
-              placeholder=''
-              label='تاریخ شروع'
-            />
-            <FormDatePicker
-              name='endsAt'
-              control={control}
-              includeTime
-              placeholder=''
-              label='تاریخ پایان'
-            />
-            <div>
-              <SelectCustom
-                value={isActiveWatch}
-                placeHolder='انتخاب کنید'
-                label='وضعیت تخفیف'
-                setValue={(e) => setValue('isActive', e)}
-                children={[
-                  { name: 'فعال', id: 'true' },
-                  { name: 'غیر فعال', id: 'false' },
-                ]}
-                error={errors.isActive}
+              <InputForm
+                label={type === 'fixed' ? "مقدار تخفیف (تومان)" : 'مقدار تخفیف بر حسب درصد'}
+                placeholder="مثال: 50000"
+                type={type === "fixed" ? "price" : "number"}
+                name="value"
+                onChange={({ target }) => {
+                  let value = target.value.replace(/[^0-9]/g, '');
+                  if (type !== "fixed" && value >= 100) {
+                    return
+                  }
+                  if (value !== '') {
+                    const num = Number(value);
+                    setValue('value', num === 0 ? 0 : num);
+                  } else {
+                    setValue('value', 0);
+                  }
+                }}
+                value={Number(value).toLocaleString('en-US')}
+                error={errors.value}
               />
-            </div>
-          </div>
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleSubmit(handleCreate)}
-              disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition-colors flex items-center gap-2 disabled:opacity-60"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {saving ? 'در حال ذخیره...' : 'ذخیره'}
-            </button>
-            <button
-              onClick={() => setShowForm(false)}
-              className="px-6 py-2.5 rounded-xl bg-red-100 text-red-700 font-bold text-sm hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2"
-            >
-              <X className="w-4 h-4" /> انصراف
-            </button>
-          </div>
-        </motion.div>
-      )}
-      {/* Discounts List */}
-      {discounts?.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-border rounded-2xl">
-          <Tag className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground">کد تخفیفی یافت نشد</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {discounts.map((d, i) => {
-            const active = isActive(d);
-            return (
-              <motion.div
-                key={d.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-card border border-border rounded-2xl p-5 hover:shadow-md transition-shadow"
-              >
-                <div className="flex flex-col sm:flex-row justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', active ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-gray-100 dark:bg-gray-800')}>
-                      <Tag className={cn('w-6 h-6', active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400')} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="font-mono font-black text-lg text-primary">{d.code}</span>
-                        <span className={cn(
-                          'px-2 py-0.5 rounded-full text-xs font-bold',
-                          active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
-                        )}>
-                          {active ? 'قابل استفاده' : 'غیر قابل استفاده'}
-                        </span>
-                        <span className={cn(
-                          'px-2 py-0.5 rounded-full text-xs font-bold',
-                          d.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
-                        )}>
-                          {d.isActive ? 'فعال' : 'غیر فعال'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-sm">
-                        <span className="font-bold">
-                          {d.type === 'percentage'
-                            ? `${d.value}٪ تخفیف`
-                            : `${d.value.toLocaleString()} تومان`}
-                        </span>
-                        {d.maxDiscount && d.maxDiscount > 0 && (
-                          <span className="text-muted-foreground">| سقف: {d.maxDiscount.toLocaleString()} تومان</span>
-                        )}
-                        {d.minOrderAmount && d.minOrderAmount > 0 && (
-                          <span className="text-muted-foreground">| حداقل سفارش: {d.minOrderAmount.toLocaleString()} تومان</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {formatDate(d.startsAt)} تا {formatDate(d.endsAt)}
-                        </span>
-                        <span>{d.usedCount} / {d.usageLimit} استفاده</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-24 bg-accent rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${d.usageLimit > 0 ? (d.usedCount / d.usageLimit) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <CustomButton
-                      tooltip={d.isActive ? "غیر فعال کردن" : "فعال کردن"}
-                      onClick={() => changeDiscount(d.id)}
-                      iconStart={<CirclePower className="w-4 h-4" />}
-                      color='icon'
-                      className={d.isActive ? 'text-blue-500' : 'text-red-500'}
-                    />
-                    <CustomButton
-                      tooltip={"حذف کد تخفیف"}
-                      onClick={() => handleDelete(d.id)}
-                      iconStart={<Trash2 className="w-4 h-4" />}
-                      color='iconDelete'
-                      className={d.isActive ? 'text-blue-500' : 'text-red-500'}
-                    />
-                  </div>
+              <InputForm
+                onChange={({ target }) => {
+                  let value = target.value.replace(/[^0-9]/g, '');
+                  if (value !== '') {
+                    const num = Number(value);
+                    setValue('minOrderAmount', num === 0 ? 0 : num);
+                  } else {
+                    setValue('minOrderAmount', 0);
+                  }
+                }}
+                value={Number(minOrderAmount).toLocaleString('en-US')}
+                label="حداقل مبلغ سفارش (تومان)"
+                placeholder="مثال: 200000"
+                type="price"
+                name="minOrderAmount"
+                error={errors.minOrderAmount}
+              />
+              <InputForm
+                onChange={({ target }) => {
+                  let value = target.value.replace(/[^0-9]/g, '');
+                  if (value !== '') {
+                    const num = Number(value);
+                    setValue('maxDiscount', num === 0 ? 0 : num);
+                  } else {
+                    setValue('maxDiscount', 0);
+                  }
+                }}
+                value={Number(maxDiscount).toLocaleString('en-US')}
+                label="حداکثر تخفیف (تومان) - اختیاری"
+                placeholder="مثال: 500000"
+                type="price"
+                name="maxDiscount"
+                error={errors.maxDiscount}
+              />
+              <InputForm
+                label="تعداد دفعات قابل استفاده کاربران"
+                placeholder="مثال: 100"
+                type="number"
+                register={register}
+                name="usageLimit"
+                error={errors.usageLimit}
+              />
+              <FormDatePicker
+                name="startsAt"
+                control={control}
+                includeTime
+                placeholder="تاریخ و زمان شروع"
+                label="تاریخ شروع"
+              />
+              <FormDatePicker
+                name="endsAt"
+                control={control}
+                includeTime
+                placeholder="تاریخ و زمان پایان"
+                label="تاریخ پایان"
+              />
+              <InputForm
+                label="تعداد دفعات مجاز استفاده یک کاربر"
+                placeholder="مثال: 1"
+                type="number"
+                register={register}
+                name="perUserLimit"
+                error={errors.perUserLimit}
+              />
+              <SelectCustom
+                value={status}
+                placeHolder='انتخاب کنید'
+                label='نوع'
+                setValue={(e) => setValue('status', e)}
+                children={[
+                  { name: 'تمام فروشگاه ها', id: 'PLATFORM' },
+                  { name: 'فروشگاه', id: 'STORE' },
+                  { name: 'کمیسیون', id: 'COMMISSION' },
+                  { name: 'محصول', id: 'PRODUCT' },
+                ]}
+                disable={!!editId}
+                error={errors.status}
+              />
+              {status === 'STORE' && (
+                <div className="col-span-2">
+                  <AutocompleteCustom
+                    multiple
+                    onChange={(value) => setValue('storeId', value)}
+                    value={storeId || []}
+                    label="فروشگاه (اختیاری)"
+                    options={storeData || [] as any}
+                    placeholder={loadingStore ? 'صبر کنید ...' : 'انتخاب فروشگاه (اختیاری)'}
+                    emptyText="فروشگاهی یافت نشد!"
+                  />
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+              )}
+            </div>
 
-      <PaginationBar pagination={pagination} />
+            {/* توضیحات */}
+            <InputForm
+              label="توضیحات (اختیاری)"
+              placeholder="توضیحات مربوط به کد تخفیف..."
+              type="textarea"
+              rows={3}
+              register={register}
+              name="description"
+              error={errors.description}
+            />
+
+            {/* دکمه‌ها */}
+            <DialogFooter className="flex justify-between! items-center w-full pt-4 border-t border-border/30">
+              <CustomButton
+                type="submit"
+                isPending={isCreating || isUpdating}
+                name={modalMode === 'create' ? 'ایجاد تخفیف' : 'ذخیره تغییرات'}
+                color="white"
+                iconStart={modalMode === 'create' ? <Plus className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+              />
+              <CustomButton
+                onClick={() => { setModalMode(null), setEditId(null) }}
+                isPending={false}
+                name="انصراف"
+                color="gray"
+                iconStart={<X className="w-4 h-4" />}
+              />
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      {/* Dialog Delete */}
+
+      {/* Dialog View */}
+      <DialogView
+        open={modalMode === 'view'}
+        title="جزئیات کد تخفیف"
+        setOpen={() => setModalMode(null)}
+        options={[
+          {
+            head: 'اطلاعات اصلی',
+            detail: [
+              { name: 'شناسه', value: selectedDiscount?.id || '-' },
+              { name: 'کد تخفیف', value: selectedDiscount?.code || '-' },
+              { name: 'مقدار تخفیف', value: selectedDiscount?.value ? `${selectedDiscount.value.toLocaleString()} تومان` : '-' },
+              { name: 'حداقل مبلغ سفارش', value: selectedDiscount?.minOrderAmount ? `${selectedDiscount.minOrderAmount.toLocaleString()} تومان` : '-' },
+              { name: 'حداکثر تخفیف', value: selectedDiscount?.maxDiscount ? `${selectedDiscount.maxDiscount.toLocaleString()} تومان` : 'ندارد' },
+              { name: 'تعداد استفاده', value: `${selectedDiscount?.usedCount || 0} از ${selectedDiscount?.usageLimit || 0}` },
+              { name: 'وضعیت', value: selectedDiscount?.isActive ? 'فعال' : 'غیرفعال' },
+              { name: 'فروشگاه', value: storeData?.stores?.find(s => s.id === selectedDiscount?.storeId)?.name || 'عمومی' },
+              { name: 'نوع تخفیف', value: selectedDiscount?.status === 'COMMISSION' ? 'کمیسیون' : selectedDiscount?.status === 'PLATFORM' ? 'کل فروشگاه' : selectedDiscount?.status === 'PRODUCT' ? 'محصولات' : 'فروشگاه' },
+            ]
+
+          },
+          {
+            head: 'تاریخ‌ها',
+            detail: [
+              { name: 'تاریخ شروع', value: selectedDiscount?.startsAt ? format(new Date(selectedDiscount.startsAt), "yyyy/MM/dd - HH:mm") : '-' },
+              { name: 'تاریخ پایان', value: selectedDiscount?.endsAt ? format(new Date(selectedDiscount.endsAt), "yyyy/MM/dd - HH:mm") : '-' },
+              { name: 'تاریخ ایجاد', value: selectedDiscount?.createdAt ? format(new Date(selectedDiscount.createdAt), "yyyy/MM/dd - HH:mm") : '-' },
+            ]
+          },
+          {
+            head: 'توضیحات',
+            detail: [
+              { name: 'توضیحات', value: selectedDiscount?.description || 'بدون توضیحات' },
+            ]
+          }
+        ]}
+      />
+      <DialogDelete
+        closeModal={() => setModalMode(null)}
+        onDelete={() => {
+          if (selectedDiscount?.id) {
+            deleteMutate(selectedDiscount.id, {
+              onSuccess: () => setModalMode(null)
+            });
+          }
+        }}
+        isPending={isDeleting}
+        open={modalMode === 'delete'}
+        helpText={<p>آیا از حذف کد تخفیف <span className="font-bold">{selectedDiscount?.code}</span> مطمئن هستید؟</p>}
+      />
     </div>
   );
 }

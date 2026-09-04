@@ -1,214 +1,304 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import {
-  DollarSign, TrendingUp, Wallet, CreditCard,
-  Clock, Send, Download, RefreshCw, AlertTriangle,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { History, Search, Eye, ArrowDownLeft, ArrowUpRight, Zap, RefreshCw, Layers, ChevronRight, ChevronLeft, Inbox, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { walletApi } from '@/lib/api';
+import DialogView from '@/components/DialogView';
+import type { WalletTransactionEntity, TransactionSearchDto } from '@/services/wallet.service';
+import { useMyTransactions } from '@/hooks/wallet.hook';
 
-interface Transaction {
-  id: string; type: string; amount: number; status: string;
-  description?: string; createdAt: string;
-}
+const typeDetails: Record<string, { label: string; icon: any; colorClass: string; isPositive: boolean }> = {
+  deposit: { label: 'واریز', icon: ArrowDownLeft, colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', isPositive: true },
+  withdraw: { label: 'برداشت', icon: ArrowUpRight, colorClass: 'text-rose-500 bg-rose-500/10 border-rose-500/20', isPositive: false },
+  commission: { label: 'کمیسیون', icon: Zap, colorClass: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20', isPositive: false },
+  tax: { label: 'مالیات', icon: Layers, colorClass: 'text-orange-500 bg-orange-500/10 border-orange-500/20', isPositive: false },
+  refund: { label: 'بازگشت وجه', icon: RefreshCw, colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20', isPositive: true },
+  purchase: { label: 'خرید', icon: Zap, colorClass: 'text-purple-500 bg-purple-500/10 border-purple-500/20', isPositive: false },
+  sale_settlement: { label: 'تسویه فروش', icon: Layers, colorClass: 'text-blue-500 bg-blue-500/10 border-blue-500/20', isPositive: true },
+  return_deduction: { label: 'کسر مرجوعی', icon: RefreshCw, colorClass: 'text-red-500 bg-red-500/10 border-red-500/20', isPositive: false },
+};
 
-export default function SellerFinancePage() {
-  const [balance, setBalance] = useState<number>(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawCard, setWithdrawCard] = useState('');
-  const [withdrawing, setWithdrawing] = useState(false);
+const statusMap: Record<string, { label: string; className: string }> = {
+  completed: { label: 'تکمیل شده', className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+  pending: { label: 'در انتظار', className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 animate-pulse' },
+  failed: { label: 'ناموفق', className: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30' },
+};
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const data = await walletApi.balance();
-      setBalance(data?.balance ?? data?.wallet ?? 0);
-      const txns = data?.transactions || [];
-      setTransactions(Array.isArray(txns) ? txns : []);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+const formatCurrency = (value: string | number) => {
+  return new Intl.NumberFormat('fa-IR').format(Number(value));
+};
+
+const formatDate = (date: Date | string) => {
+  return new Intl.DateTimeFormat('fa-IR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date));
+};
+
+export default function SellerWalletTransactionsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Read query params
+  const page = Number(searchParams.get('page')) || 1;
+  const limit = Number(searchParams.get('limit')) || 10;
+  const trackingCode = searchParams.get('trackingCode') || undefined;
+  const type = (searchParams.get('type') as TransactionSearchDto['type']) || undefined;
+  const status = (searchParams.get('status') as TransactionSearchDto['status']) || undefined;
+
+  // Local state
+  const [searchQuery, setSearchQuery] = useState(trackingCode || '');
+  const [selectedType, setSelectedType] = useState<string>(type || 'all');
+  const [selectedStatus, setSelectedStatus] = useState<string>(status || 'all');
+  const [selectedTransaction, setSelectedTransaction] = useState<WalletTransactionEntity | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Build query params object
+  const queryParams: TransactionSearchDto = {
+    page,
+    limit,
+    ...(selectedType !== 'all' && { type: selectedType as TransactionSearchDto['type'] }),
+    ...(selectedStatus !== 'all' && { status: selectedStatus as TransactionSearchDto['status'] }),
+    ...(searchQuery && { trackingCode: searchQuery }),
   };
 
-  useEffect(() => { loadData(); }, []);
+  const { data, isLoading, isFetching, isError, refetch } = useMyTransactions(queryParams);
 
-  const handleWithdraw = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!withdrawAmount || Number(withdrawAmount) < 500000) {
-      toast.error('حداقل مبلغ ۵۰۰,۰۰۰ تومان برای برداشت');
-      return;
-    }
-    if (!withdrawCard || withdrawCard.replace(/\s/g, '').length < 16) {
-      toast.error('شماره کارت معتبر نیست');
-      return;
-    }
-    setWithdrawing(true);
-    try {
-      await walletApi.withdraw(Number(withdrawAmount), withdrawCard.replace(/\s/g, ''));
-      toast.success('درخواست برداشت ثبت شد. ظرف ۲۴ ساعت کاری پرداخت می‌شود');
-      setShowWithdrawModal(false);
-      setWithdrawAmount('');
-      setWithdrawCard('');
-      setBalance(prev => prev - Number(withdrawAmount));
-      loadData();
-    } catch (err: any) {
-      toast.error(err?.message || 'خطا در ثبت درخواست برداشت');
-    } finally {
-      setWithdrawing(false);
-    }
+  const transactions = data?.transaction || [];
+  const pagination = data?.pagination;
+
+  // Update URL query params
+  const updateQueryParams = (newParams: Record<string, string | number | undefined>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === undefined || value === '' || value === 'all') {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+    });
+
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const totalRevenue = transactions
-    .filter(t => t.type === 'commission' && t.status === 'completed')
-    .reduce((s, t) => s + (t.amount || 0), 0);
-
-  const pendingWithdraw = transactions
-    .filter(t => t.type === 'withdraw' && t.status === 'pending')
-    .reduce((s, t) => s + (t.amount || 0), 0);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h2 className="text-xl font-black flex items-center gap-2">
-          <DollarSign className="w-6 h-6 text-primary" /> مالی و تسویه حساب
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Array(4).fill(0).map((_, i) => (
-            <div key={i} className="card p-5 animate-pulse">
-              <div className="h-4 w-16 bg-accent rounded mb-3" />
-              <div className="h-8 w-24 bg-accent rounded" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <h2 className="text-xl font-black flex items-center gap-2">
-          <DollarSign className="w-6 h-6 text-primary" /> مالی و تسویه حساب
-        </h2>
-        <div className="card p-8 text-center">
-          <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground mb-4">خطا در دریافت اطلاعات مالی</p>
-          <button onClick={loadData}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors">
-            <RefreshCw className="w-4 h-4" /> تلاش مجدد
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const typeLabels: Record<string, string> = {
-    commission: 'کمیسیون', deposit: 'واریز', withdraw: 'برداشت', refund: 'بازگشت', settlement: 'تسویه',
+  // Handlers
+  const handleSearch = () => {
+    updateQueryParams({ trackingCode: searchQuery, page: 1 });
   };
-  const statusStyles: Record<string, string> = {
-    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
-    failed: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+
+  const handleTypeChange = (value: string) => {
+    setSelectedType(value);
+    updateQueryParams({ type: value, page: 1 });
   };
-  const statusLabels: Record<string, string> = {
-    completed: 'انجام شده', pending: 'در انتظار', failed: 'ناموفق',
+
+  const handleStatusChange = (value: string) => {
+    setSelectedStatus(value);
+    updateQueryParams({ status: value, page: 1 });
   };
+
+  const handlePageChange = (newPage: number) => {
+    updateQueryParams({ page: newPage });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleViewDetails = (transaction: WalletTransactionEntity) => {
+    setSelectedTransaction(transaction);
+    setDialogOpen(true);
+  };
+
+  // Build dialog options
+  const buildDialogOptions = (tx: WalletTransactionEntity) => {
+    const detail = typeDetails[tx.type] || typeDetails.deposit;
+
+    return [
+      {
+        head: 'اطلاعات تراکنش',
+        detail: [
+          { name: 'نوع تراکنش', value: detail.label },
+          { name: 'وضعیت', value: statusMap[tx.status]?.label || tx.status },
+          { name: 'مبلغ (تومان)', value: `${formatCurrency(tx.amount)} تومان` },
+          { name: 'کد پیگیری', value: tx.trackingCode },
+          { name: 'کد مرجع', value: tx.id },
+          { name: 'تاریخ ایجاد', value: formatDate(tx.createdAt) },
+          { name: 'آخرین بروزرسانی', value: formatDate(tx.updatedAt) },
+          { name: 'توضیحات', value: tx.description || 'بدون توضیحات' },
+        ],
+      },
+      {
+        head: 'جزئیات مرتبط',
+        detail: [
+          { name: 'شناسه سفارش', value: tx.orderId || 'مربوط به سفارش خاصی نیست' },
+          { name: 'شناسه درخواست مرجوعی', value: tx.returnRequestId || 'مرتبط با مرجوعی نیست' },
+          { name: 'تاریخ تسویه', value: tx.SettlementDate ? formatDate(tx.SettlementDate) : 'تعیین نشده' },
+        ],
+      },
+    ];
+  };
+
+  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const startItem = pagination ? ((page - 1) * limit) + 1 : 0;
+  const endItem = pagination ? Math.min(page * limit, pagination.total) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black flex items-center gap-2">
-          <DollarSign className="w-6 h-6 text-primary" /> مالی و تسویه حساب
-        </h2>
-        <button onClick={loadData}
-          className="p-2 rounded-xl hover:bg-accent transition-colors" title="بروزرسانی">
-          <RefreshCw className="w-4 h-4 text-muted-foreground" />
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-slate-700 to-slate-900 dark:from-slate-800 dark:to-slate-950 flex items-center justify-center shadow-lg border border-slate-600/30">
+            <History className="w-5 h-5 text-slate-300" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">تاریخچه تراکنش‌ها</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {pagination ? `${formatCurrency(pagination.total)} تراکنش ثبت شده` : 'مدیریت تراکنش‌های مالی'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+        >
+          <RefreshCw className={cn('w-3.5 h-3.5', isFetching && 'animate-spin')} />
+          بروزرسانی
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { label: 'موجودی فعلی', value: balance.toLocaleString(), color: 'from-emerald-500 to-teal-500', icon: Wallet },
-          { label: 'کل درآمد', value: totalRevenue.toLocaleString(), color: 'from-blue-500 to-indigo-500', icon: TrendingUp },
-          { label: 'در انتظار تسویه', value: pendingWithdraw.toLocaleString(), color: 'from-amber-500 to-orange-500', icon: Clock },
-          { label: 'تعداد تراکنش', value: `${transactions.length} مورد`, color: 'from-violet-500 to-purple-500', icon: CreditCard },
-        ].map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-muted-foreground font-medium">{stat.label}</span>
-              <div className={cn('w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center', stat.color)}>
-                <stat.icon className="w-4 h-4 text-white" />
-              </div>
-            </div>
-            <div className="text-2xl font-black">
-              {stat.value}
-              {(stat.label !== 'تعداد تراکنش') && <span className="text-sm font-normal text-muted-foreground mr-1">تومان</span>}
-            </div>
-          </motion.div>
-        ))}
+      {/* Filters */}
+      <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="جستجو با کد پیگیری..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="w-full pr-9 pl-24 py-2.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-slate-500 dark:focus:border-slate-600 transition-all shadow-sm"
+          />
+          <button
+            onClick={handleSearch}
+            className="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded-lg bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-bold hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
+          >
+            جستجو
+          </button>
+        </div>
+
+        <div className="flex gap-2 w-full lg:w-auto">
+          <select
+            value={selectedType}
+            onChange={(e) => handleTypeChange(e.target.value)}
+            className="flex-1 lg:flex-none px-3 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-slate-500 dark:focus:border-slate-600 cursor-pointer shadow-sm"
+          >
+            <option value="all">همه انواع</option>
+            <option value="deposit">واریز</option>
+            <option value="withdraw">برداشت</option>
+            <option value="commission">کمیسیون</option>
+            <option value="tax">مالیات</option>
+            <option value="refund">بازگشت وجه</option>
+            <option value="purchase">خرید</option>
+            <option value="sale_settlement">تسویه فروش</option>
+            <option value="return_deduction">کسر مرجوعی</option>
+          </select>
+
+          <select
+            value={selectedStatus}
+            onChange={(e) => handleStatusChange(e.target.value)}
+            className="flex-1 lg:flex-none px-3 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-slate-500 dark:focus:border-slate-600 cursor-pointer shadow-sm"
+          >
+            <option value="all">همه وضعیت‌ها</option>
+            <option value="completed">تکمیل شده</option>
+            <option value="pending">در انتظار</option>
+            <option value="failed">ناموفق</option>
+          </select>
+        </div>
       </div>
 
-      {/* Withdraw Button */}
-      <div className="flex items-center justify-between">
-        <p className="font-bold">تاریخچه تراکنش‌ها</p>
-        <button onClick={() => setShowWithdrawModal(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors">
-          <Send className="w-4 h-4" /> درخواست برداشت
-        </button>
-      </div>
-
-      {/* Transactions Table */}
-      <div className="card overflow-hidden">
-        {transactions.length === 0 ? (
-          <div className="text-center py-16">
-            <DollarSign className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
-            <p className="text-muted-foreground">تراکنشی یافت نشد</p>
+      {/* Table */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Inbox className="w-12 h-12 text-slate-400" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">خطا در دریافت اطلاعات</p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-xs font-bold hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
+            >
+              تلاش مجدد
+            </button>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Inbox className="w-12 h-12 text-slate-400" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">تراکنشی یافت نشد</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-accent/50">
-                <tr>
-                  <th className="text-right py-3 px-4 font-bold">نوع</th>
-                  <th className="text-right py-3 px-4 font-bold">توضیحات</th>
-                  <th className="text-right py-3 px-4 font-bold">مبلغ</th>
-                  <th className="text-right py-3 px-4 font-bold">وضعیت</th>
-                  <th className="text-right py-3 px-4 font-bold hidden sm:table-cell">تاریخ</th>
+            <table className="w-full text-right text-xs">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold">
+                  <th className="py-4 px-4">نوع تراکنش</th>
+                  <th className="py-4 px-4">کد پیگیری</th>
+                  <th className="py-4 px-4">توضیحات</th>
+                  <th className="py-4 px-4">مبلغ (تومان)</th>
+                  <th className="py-4 px-4">وضعیت</th>
+                  <th className="py-4 px-4 hidden lg:table-cell">تاریخ</th>
+                  <th className="py-4 px-4 text-center">جزئیات</th>
                 </tr>
               </thead>
-              <tbody>
-                {transactions.map(t => {
-                  const isPositive = ['deposit', 'commission', 'settlement'].includes(t.type);
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {transactions.map((tx: any) => {
+                  const detail = typeDetails[tx.type] || typeDetails.deposit;
+                  const status = statusMap[tx.status] || statusMap.completed;
+                  const Icon = detail.icon;
+
                   return (
-                    <tr key={t.id} className="border-t border-border hover:bg-accent/30 transition-colors">
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-lg bg-muted text-xs font-bold">{typeLabels[t.type] || t.type}</span>
+                    <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center border', detail.colorClass)}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{detail.label}</span>
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground text-xs max-w-[150px] truncate">{t.description || '---'}</td>
-                      <td className="py-3 px-4">
-                        <span className={cn('font-bold', isPositive ? 'text-emerald-600' : 'text-red-600')}>
-                          {isPositive ? '+' : '-'}{(t.amount || 0).toLocaleString()} تومان
+                      <td className="py-4 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400" dir="ltr">
+                        {tx.trackingCode}
+                      </td>
+                      <td className="py-4 px-4 max-w-50">
+                        <p className="text-slate-700 dark:text-slate-300 truncate">{tx.description || 'بدون توضیحات'}</p>
+                      </td>
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <span className={cn('font-black text-sm', detail.isPositive ? 'text-emerald-500' : 'text-rose-500')}>
+                          {detail.isPositive ? '+' : '-'}{formatCurrency(tx.amount)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-bold', statusStyles[t.status] || statusStyles.pending)}>
-                          {statusLabels[t.status] || t.status}
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <span className={cn('px-2.5 py-1 rounded-full text-[10px] font-bold border', status.className)}>
+                          {status.label}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground text-xs hidden sm:table-cell">
-                        {t.createdAt ? new Date(t.createdAt).toLocaleDateString('fa-IR') : '---'}
+                      <td className="py-4 px-4 whitespace-nowrap text-slate-400 text-[11px] hidden lg:table-cell">
+                        {formatDate(tx.createdAt)}
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <button
+                          onClick={() => handleViewDetails(tx)}
+                          className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                          title="مشاهده جزئیات"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -217,55 +307,71 @@ export default function SellerFinancePage() {
             </table>
           </div>
         )}
+
+        {/* Pagination */}
+        {pagination && pagination.total > 0 && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 dark:bg-slate-950/30">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              نمایش {startItem} تا {endItem} از {formatCurrency(pagination.total)} تراکنش
+            </span>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handlePageChange(page - 1)}
+                disabled={!pagination.prevPage || page === 1}
+                className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              {Array.from({ length: totalPages }).map((_, idx) => {
+                const pageNum = idx + 1;
+                if (
+                  pageNum === 1 ||
+                  pageNum === totalPages ||
+                  (pageNum >= page - 1 && pageNum <= page + 1)
+                ) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={cn(
+                        'w-8 h-8 rounded-xl text-xs font-bold transition-all',
+                        page === pageNum
+                          ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 shadow-md'
+                          : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                }
+                if (pageNum === page - 2 || pageNum === page + 2) {
+                  return <span key={pageNum} className="text-slate-400 text-xs">...</span>;
+                }
+                return null;
+              })}
+
+              <button
+                onClick={() => handlePageChange(page + 1)}
+                disabled={!pagination.nextPage || page === totalPages}
+                className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Export */}
-      <button
-        onClick={() => toast.success('فایل Excel آماده دانلود شد')}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border font-medium hover:bg-accent transition-colors"
-      >
-        <Download className="w-4 h-4" /> خروجی Excel
-      </button>
-
-      {/* Withdraw Modal */}
-      {showWithdrawModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowWithdrawModal(false)} />
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="relative card p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-primary" /> درخواست برداشت
-            </h3>
-            <form onSubmit={handleWithdraw} className="space-y-4">
-              <div className="card bg-amber-50 dark:bg-amber-500/5 p-3 rounded-xl text-xs text-amber-800 dark:text-amber-400">
-                • موجودی قابل برداشت: <span className="font-black">{balance.toLocaleString()} تومان</span>
-              </div>
-              <div>
-                <label className="text-sm font-bold mb-1 block">مبلغ برداشت (تومان)</label>
-                <input type="number" min="500000" step="10000" value={withdrawAmount}
-                  onChange={e => setWithdrawAmount(e.target.value)}
-                  placeholder="مثلاً: ۱,۰۰۰,۰۰۰"
-                  className="w-full h-11 px-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-left dir-ltr" />
-                <p className="text-[11px] text-muted-foreground mt-1">• حداقل ۵۰۰,۰۰۰ تومان</p>
-              </div>
-              <div>
-                <label className="text-sm font-bold mb-1 block">شماره کارت بانکی</label>
-                <input type="text" value={withdrawCard} onChange={e => setWithdrawCard(e.target.value)}
-                  placeholder="۶۲۲۲-xxxx-xxxx-xxxx"
-                  className="w-full h-11 px-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-left dir-ltr" maxLength={19} />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={withdrawing}
-                  className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-                  {withdrawing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} ثبت درخواست
-                </button>
-                <button type="button" onClick={() => setShowWithdrawModal(false)}
-                  className="py-3 px-6 rounded-xl bg-muted font-bold hover:bg-accent transition-colors">انصراف</button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+      {/* Details Dialog */}
+      <DialogView
+        open={dialogOpen}
+        setOpen={setDialogOpen}
+        title="جزئیات تراکنش"
+        desc={selectedTransaction ? `کد پیگیری: ${selectedTransaction.trackingCode}` : ''}
+        options={selectedTransaction ? buildDialogOptions(selectedTransaction) : []}
+      />
     </div>
   );
 }

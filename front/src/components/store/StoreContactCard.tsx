@@ -15,12 +15,12 @@ import { Store } from '@/services/store.service';
 import { Link } from '@/i18n/navigation';
 
 interface StoreContactCardProps {
-  store: Store & { website?: string; whatsapp?: string }; // پشتیبانی پیشگیرانه از فیلدهای اضافه
+  store: Store & { website?: string; whatsapp?: string };
   className?: string;
 }
 
 export default function StoreContactCard({ store, className }: StoreContactCardProps) {
-  const addressParts = [store.province, store.city, store.address].filter(Boolean);
+  const addressParts = [store.province?.name, store.city?.name, store.address].filter(Boolean);
 
   const rows = [
     addressParts.length > 0
@@ -125,19 +125,19 @@ export default function StoreContactCard({ store, className }: StoreContactCardP
           </div>
           <div className="flex flex-wrap gap-2">
             {store.instagram && <Link href={`https://instagram.com/${store.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold transition-all hover:border-pink-500/40 hover:bg-pink-500/5">
-              <Instagram className="size-3.5 text-pink-500" /><span>اینستاگرام</span><ExternalLink className="size-3 opacity-40" />
+              <Instagram className="size-3.5 text-pink-500" /><span>اینستاگرام</span>
             </Link>}
             {store.telegram && <Link href={`https://t.me/${store.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold transition-all hover:border-sky-500/40 hover:bg-sky-500/5">
-              <Send className="size-3.5 text-sky-500" /><span>تلگرام</span><ExternalLink className="size-3 opacity-40" />
+              <Send className="size-3.5 text-sky-500" /><span>تلگرام</span>
             </Link>}
-            {store.whatsapp && <Link href={`https://wa.me/${store.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold transition-all hover:border-emerald-500/40 hover:bg-emerald-500/5">
-              <MessageCircle className="size-3.5 text-emerald-500" /><span>واتساپ</span><ExternalLink className="size-3 opacity-40" />
+            {store.whatsApp && <Link href={`https://wa.me/${store.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold transition-all hover:border-emerald-500/40 hover:bg-emerald-500/5">
+              <MessageCircle className="size-3.5 text-emerald-500" /><span>واتساپ</span>
             </Link>}
             {store.bale && <Link href={`https://bale.ai/${store.bale.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold transition-all hover:border-blue-500/40 hover:bg-blue-500/5">
-              <MessageCircle className="size-3.5 text-blue-500" /><span>بله</span><ExternalLink className="size-3 opacity-40" />
+              <MessageCircle className="size-3.5 text-blue-500" /><span>بله</span>
             </Link>}
             {store.robika && <Link href={`https://robika.ir/${store.robika.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold transition-all hover:border-purple-500/40 hover:bg-purple-500/5">
-              <MessageCircle className="size-3.5 text-purple-500" /><span>روبیکا</span><ExternalLink className="size-3 opacity-40" />
+              <MessageCircle className="size-3.5 text-purple-500" /><span>روبیکا</span>
             </Link>}
           </div>
         </div>

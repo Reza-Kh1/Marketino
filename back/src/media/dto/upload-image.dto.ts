@@ -18,6 +18,7 @@ export class UploadImageDto {
 
     @IsOptional()
     @IsBoolean()
+    @Type()
     isMain?: boolean;
 
     @IsOptional()

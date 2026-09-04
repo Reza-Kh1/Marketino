@@ -27,7 +27,7 @@ import { ReviewSearchDto } from './dto/review.search.dto';
 @ApiTags('Reviews')
 @Controller('reviews')
 export class ReviewsController {
-  constructor(private readonly reviewsService: ReviewsService) {}
+  constructor(private readonly reviewsService: ReviewsService) { }
 
   @Public()
   @Get('product/:productId')
@@ -48,7 +48,7 @@ export class ReviewsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superadmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Patch(':id/moderate')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'تایید یا رد نظر (مخصوص ادمین)' })
@@ -57,7 +57,7 @@ export class ReviewsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superadmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Post(':id/answer')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'پاسخ به نظر (مخصوص ادمین/فروشنده)' })
@@ -69,7 +69,8 @@ export class ReviewsController {
     return this.reviewsService.answerReview(id, adminId, dto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'superAdmin')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف نظر' })
@@ -78,12 +79,12 @@ export class ReviewsController {
     @CurrentUser('id') userId: string,
     @CurrentUser('role') role: string,
   ) {
-    const isAdmin = role === 'admin' || role === 'superadmin';
+    const isAdmin = role === 'admin' || role === 'superAdmin';
     return this.reviewsService.delete(id, userId, isAdmin);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superadmin')
+  @Roles('admin', 'superAdmin')
   @Get('admin/all')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'دریافت تمام نظرات برای پنل ادمین' })

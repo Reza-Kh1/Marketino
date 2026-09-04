@@ -23,8 +23,10 @@ export interface Store {
   statusReason: string | null;
   isActive: boolean;
   isVerified: boolean;
-  province: string | null;
-  city: string | null;
+  provinceId: string | null
+  cityId: string | null
+  province: { name: string, nameEn: string } | null
+  city: { name: string, nameEn: string } | null
   address: string | null;
   phone: string | null;
   email: string | null;
@@ -32,11 +34,13 @@ export interface Store {
   instagram: string | null;
   telegram: string | null;
   workingHours: string | null;
+  whatsApp: string | null;
   shippingTime: null | string
   bale: null | string
   robika: null | string
   createdAt: Date;
   updatedAt: Date;
+  _count: { storeReview: number }
   rating?: StoreRating;
   products?: ProductEntity[]
   storeReview: StoreReview[]
@@ -130,8 +134,8 @@ export interface StoreResponseEntity {
   isVerified: boolean;
   businessType: string | null;
   commissionRate: number;
-  province: string | null;
-  city: string | null;
+  province?: { name: true, nameEn: true }
+  city?: { name: true, nameEn: true }
   createdAt: Date;
   updatedAt: Date;
   owner: {
@@ -181,6 +185,7 @@ export const storeService = {
   create: (data: FormStoreDTO) => apiClient.post<Store>(BASE_URL, data),
   update: (id: string, data: FormStoreDTO) => { return apiClient.put<Store>(`${BASE_URL}/${id}`, data) },
   updateStatus: (id: string, status: string) => apiClient.put<Store>(`${BASE_URL}/${id}/status`, { status }),
+  RebuildStore: (id: string) => apiClient.patch<Store>(`${BASE_URL}/${id}`),
   delete: (id: string) => apiClient.delete<{ message: string }>(`${BASE_URL}/${id}`),
   // review
   listReview: (storeId: string, page: string | unknown) => apiClient.get<AllStoreReviewEntity>(`${BASE_URL}/reviews/${storeId}?page=${page || 1}`),
@@ -194,7 +199,12 @@ export const storeService = {
     return apiClient.get<AllStoreReviewEntity>(`${BASE_URL}/reviews-admin?${queryString}`)
   },
   createReview: (storeId: string, data: FormStoreReviewDTO) => apiClient.post<StoreReview>(`${BASE_URL}/${storeId}/reviews`, data),
-  approveReview: (reviewId: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/approve`, {}),
-  rejectReview: (reviewId: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/reject`, {}),
-  answerReview: (reviewId: string, answer: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/answer`, { answer }),
+  approveReview: (reviewId: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/approve`),
+  rejectReview: (reviewId: string) => apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/reject`),
+  answerReview: (reviewId: string, answer: string) => {
+    console.log(answer, reviewId);
+
+    return apiClient.put<StoreReview>(`${BASE_URL}/reviews/${reviewId}/answer`, answer)
+  },
+  deleteReview: (reviewId: string) => apiClient.delete<StoreReview>(`${BASE_URL}/reviews/${reviewId}`),
 };

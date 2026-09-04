@@ -48,7 +48,7 @@ export class SearchAdminStoreReview extends DefaultQueryDto {
   @ApiPropertyOptional({ description: 'آیدی فروشگاه', required: false })
   @IsOptional()
   @IsString()
-  storId?: string
+  storeId?: string
 
   @ApiProperty({ description: 'نمایش فقط خریداران', required: false })
   @IsOptional()
@@ -119,7 +119,12 @@ export class CreateStoreDto {
   @ApiPropertyOptional({ description: 'فروشگاه حضوری دارد', type: Boolean, example: false })
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (typeof value === 'boolean') return value;
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return false;
+  })
   hasPhysicalStore?: boolean
 
   @ApiProperty({
@@ -206,7 +211,7 @@ export class CreateStoreDto {
   })
   @IsOptional()
   @IsString()
-  province?: string;
+  provinceId?: string;
 
   @ApiPropertyOptional({
     description: 'شهر',
@@ -214,7 +219,7 @@ export class CreateStoreDto {
   })
   @IsOptional()
   @IsString()
-  city?: string;
+  cityId?: string;
 
   @ApiPropertyOptional({
     description: 'آدرس کامل',
@@ -247,6 +252,38 @@ export class CreateStoreDto {
   @IsOptional()
   @IsString()
   instagram?: string;
+
+  @ApiPropertyOptional({
+    description: 'آیا واتس اپ',
+    example: 'https://whatsApp.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  whatsApp?: string;
+
+  @ApiPropertyOptional({
+    description: 'آیا بله',
+    example: 'https://bale.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  bale?: string;
+
+  @ApiPropertyOptional({
+    description: 'آیا روبیکا',
+    example: 'https://robika.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  robika?: string;
+
+  @ApiPropertyOptional({
+    description: 'زمان ارسال کالا',
+    example: 'https://instagram.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  shippingTime?: string;
 
   @ApiPropertyOptional({
     description: 'آیا تلگرام',
@@ -352,7 +389,7 @@ export class UpdateStoreDto {
   })
   @IsOptional()
   @IsString()
-  province?: string;
+  provinceId?: string;
 
   @ApiPropertyOptional({
     description: 'شهر',
@@ -360,7 +397,7 @@ export class UpdateStoreDto {
   })
   @IsOptional()
   @IsString()
-  city?: string;
+  cityId?: string;
 
   @ApiPropertyOptional({
     description: 'آدرس کامل',
@@ -430,6 +467,38 @@ export class UpdateStoreDto {
   @IsOptional()
   @IsInt()
   commissionRate?: number
+
+  @ApiPropertyOptional({
+    description: 'آیا واتس اپ',
+    example: 'https://whatsApp.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  whatsApp?: string;
+
+  @ApiPropertyOptional({
+    description: 'آیا بله',
+    example: 'https://bale.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  bale?: string;
+
+  @ApiPropertyOptional({
+    description: 'آیا روبیکا',
+    example: 'https://robika.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  robika?: string;
+
+  @ApiPropertyOptional({
+    description: 'زمان ارسال کالا',
+    example: 'https://instagram.com/marketino',
+  })
+  @IsOptional()
+  @IsString()
+  shippingTime?: string;
 
   @ApiPropertyOptional({ description: 'فروشگاه تاییدیه دارد', type: Boolean, example: false })
   @IsOptional()

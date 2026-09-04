@@ -1,16 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { Save, ArrowRight, Loader2, Trash2, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { productsApi, uploadApi, type Product, type Category } from '@/lib/api';
-import { cn } from '@/lib/utils';
-import { useCategories } from '@/lib/react-query-hooks';
+import { Save, Loader2, Trash2, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import InputForm from '../inputs/InputForm';
 import CustomButton from '../CustomButton';
 import SelectCustom from '../inputs/SelectCustom';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../ui/select';
 import MotionWrapper from '../motion/MotionWrapper';
 import AdminRichEditor from '../inputs/AdminRichEditor';
 import UploadMedia from '../upload/UploadMedia';
@@ -19,22 +14,24 @@ import { ProductFormData, productSchema } from '@/schemas/product.schema';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/product.hook';
-import FormDatePicker from '../inputs/FormDatePicker';
 import ProductTable, { TableData } from '../inputs/ProductTable';
 import { useBrands } from '@/hooks/brand.hook';
 import ProductVariantsManager from '../product/ProductVariantsManager';
 import { useCategoriesProducts } from '@/hooks/category.hook';
+import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
 interface ProductFormProps {
   product?: ProductEntity | null;
-  returnUrl?: string;
+  isStore?: boolean
 }
 
-export function ProductForm({ product, returnUrl = '/admin/products' }: ProductFormProps) {
+export function ProductForm({ product, isStore = false }: ProductFormProps) {
+  const { storeId } = useAuth()
   const [openEn, setOpenEn] = useState(false)
   const [tableValue, setTableValue] = useState<TableData | null>()
   const [tableValueEn, setTableValueEn] = useState<TableData | null>()
   const { register, reset, setValue, watch, getValues, handleSubmit } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema)
+    resolver: zodResolver(productSchema), defaultValues: { status: 'pending' }
   });
   const categoryId = watch('categoryId')
   const isDigital = watch('isDigital')
@@ -77,6 +74,7 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
   const onSubmit = async (data: ProductFormData) => {
     try {
       const body = {
+        ...(!product?.id && { storeId: storeId || null, }),
         isDigital: data.isDigital === 'false' ? false : true,
         isFeatured: data.isFeatured === 'false' ? false : true,
         status: data.status,
@@ -98,10 +96,10 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
       if (isEdit && product?.id) {
         updateProduct({ id: product?.id, data: body })
       } else {
+        if (!storeId) return
         createProduct(body, {
           onSuccess: () => {
             router.refresh()
-            console.log('ok');
           }
         })
       }
@@ -131,11 +129,8 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
           iconStart={saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
         />
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Title */}
           <div className="card p-4 space-y-4">
             <InputForm
               label='نام محصول'
@@ -159,8 +154,6 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
               register={register}
             />
           </div>
-
-          {/* Rich Editor */}
           <div className="card p-4 space-y-4">
             <label className="block text-sm font-medium">توضیحات محصول</label>
             <AdminRichEditor
@@ -169,9 +162,6 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
               placeholder="توضیحات کامل محصول را اینجا بنویسید..."
             />
           </div>
-
-          {/* Images */}
-
           <div className="card p-4">
             <UploadMedia
               boxUploader
@@ -182,7 +172,7 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
                 const newUrl = url?.map((item: any) => item.key)
                 setValue('images', newUrl)
               }}
-              helperText="تصاویر و ویدیوهای محصول"
+              helperText="تصویر محصول با اندازه 600*800 باید باشد و حجم آن بیش از 200kb نباشد."
             />
           </div>
           <ProductVariantsManager categoryId={categoryId} productId={product?.id} />
@@ -192,12 +182,22 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
         <div className="space-y-6">
           <SelectCustom
             children={[
-              { id: 'pending', name: 'در انتظار تایید' },
-              { id: 'approved', name: 'تایید شده' },
+              { id: 'pending', name: 'در انتظار' },
               { id: 'inactive', name: 'غیرفعال' },
+              { id: 'approved', name: 'تایید شده' }
             ]}
             placeHolder='انتخاب کنید'
-            setValue={e => setValue('status', e)}
+            setValue={e => {
+              if (isStore) {
+                if ((product?.status !== 'approved' && e !== 'approved') || product?.status === 'approved') {
+                  setValue('status', e)
+                } else {
+                  toast.error('شما مجاز به تایید محصولات نیستید')
+                }
+              } else {
+                setValue('status', e)
+              }
+            }}
             value={status}
             label='وضعیت'
           />
@@ -247,19 +247,19 @@ export function ProductForm({ product, returnUrl = '/admin/products' }: ProductF
               )
             }
           </div>
-
-          {/* Tags & Featured */}
           <div className="card p-4 space-y-4">
-            <SelectCustom
-              children={[
-                { id: 'true', name: 'بله' },
-                { id: 'false', name: 'خیر' },
-              ]}
-              placeHolder='انتخاب کنید'
-              setValue={e => setValue('isFeatured', e)}
-              value={isFeatured}
-              label='آیا محصول ویژه است'
-            />
+            {!isStore && (
+              <SelectCustom
+                children={[
+                  { id: 'true', name: 'بله' },
+                  { id: 'false', name: 'خیر' },
+                ]}
+                placeHolder='انتخاب کنید'
+                setValue={e => setValue('isFeatured', e)}
+                value={isFeatured}
+                label='آیا محصول ویژه است'
+              />
+            )}
             <SelectCustom
               children={[
                 { id: 'true', name: 'بله' },

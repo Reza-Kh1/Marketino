@@ -21,6 +21,10 @@ export class CreateProductDto {
   @MaxLength(300)
   title!: string;
 
+  @ApiProperty({ description: 'آیدی فروشگاه' })
+  @IsString()
+  storeId!: string;
+
   @ApiProperty({
     description: 'مشخصات محصول',
     example: { headers: ['ویژگی', 'مقدار'], rows: [['رنگ', 'مشکی']] },

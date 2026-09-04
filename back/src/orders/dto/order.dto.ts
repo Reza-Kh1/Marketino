@@ -2,7 +2,46 @@
  * Order DTOs - اشیاء انتقال داده سفارشات
  */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsIn, IsUUID, ValidateIf, IsNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsIn, IsUUID, ValidateIf, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsNumber } from 'class-validator';
+
+export class OrderItemDto {
+  @ApiProperty({
+    description: 'شناسه فروشگاه',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  storeId!: string;
+
+  @ApiProperty({
+    description: 'شناسه روش ارسال',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  shippingId!: string;
+
+  @ApiProperty({ description: 'نام روش ارسال', })
+  @IsOptional()
+  @IsString()
+  shippingName!: string;
+
+  @ApiProperty({ description: 'هزینه روش ارسال', })
+  @IsOptional()
+  @IsString()
+  shippingCost!: string;
+
+  @ApiProperty({ description: 'زمان ارسال (تعداد روز)' })
+  @IsOptional()
+  @IsNumber()
+  shippingTime!: number;
+
+  @ApiProperty({ description: 'توضیحات سفارش', })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
 
 export class CreateOrderDto {
   @ApiPropertyOptional({
@@ -13,82 +52,34 @@ export class CreateOrderDto {
   @IsUUID()
   addressId?: string;
 
-  @ApiPropertyOptional({
-    description: 'نام گیرنده (در صورت عدم انتخاب آدرس قبلی الزامی است)',
-    example: 'علی محمدی',
+  @ApiProperty({
+    description: 'لیست سفارشات',
+    type: [OrderItemDto],
+    example: [
+      {
+        storeId: '123e4567-e89b-12d3-a456-426614174000',
+        shippingId: '123e4567-e89b-12d3-a456-426614174001',
+      },
+      {
+        storeId: '123e4567-e89b-12d3-a456-426614174002',
+        shippingId: '123e4567-e89b-12d3-a456-426614174003',
+      },
+    ],
+    required: true,
   })
-  @ValidateIf((o) => !o.addressId)
-  @IsNotEmpty({ message: 'نام گیرنده الزامی است' })
-  @IsString()
-  shippingName?: string;
-
-  @ApiPropertyOptional({
-    description: 'شماره تلفن گیرنده (در صورت عدم انتخاب آدرس قبلی الزامی است)',
-    example: '09123456789',
-  })
-  @ValidateIf((o) => !o.addressId)
-  @IsNotEmpty({ message: 'شماره تلفن الزامی است' })
-  @IsString()
-  shippingPhone?: string;
-
-  @ApiPropertyOptional({
-    description: 'شهر (در صورت عدم انتخاب آدرس قبلی الزامی است)',
-    example: 'تهران',
-  })
-  @ValidateIf((o) => !o.addressId)
-  @IsNotEmpty({ message: 'شهر الزامی است' })
-  @IsString()
-  shippingCity?: string;
-
-  @ApiPropertyOptional({
-    description: 'استان (در صورت عدم انتخاب آدرس قبلی الزامی است)',
-    example: 'تهران',
-  })
-  @ValidateIf((o) => !o.addressId)
-  @IsNotEmpty({ message: 'استان الزامی است' })
-  @IsString()
-  shippingProvince?: string;
-
-  @ApiPropertyOptional({
-    description: 'آدرس دقیق (در صورت عدم انتخاب آدرس قبلی الزامی است)',
-    example: 'خیابان ولیعصر، پلاک ۱۲۳، واحد ۵',
-  })
-  @ValidateIf((o) => !o.addressId)
-  @IsNotEmpty({ message: 'آدرس الزامی است' })
-  @IsString()
-  shippingAddress?: string;
-
-  @ApiPropertyOptional({
-    description: 'کد پستی (اختیاری)',
-    example: '1234567890',
-  })
-  @IsOptional()
-  @IsString()
-  shippingPostal?: string;
-
-  @ApiPropertyOptional({
-    description: 'یادداشت سفارش (اختیاری)',
-    example: 'لطفاً قبل از تحویل تماس بگیرید',
-  })
-  @IsOptional()
-  @IsString()
-  notes?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  @ArrayMinSize(1)
+  orders!: OrderItemDto[];
 
   @ApiPropertyOptional({
     description: 'کد تخفیف (اختیاری)',
-    example: 'SUMMER1405',
+    nullable: true
   })
   @IsOptional()
   @IsString()
-  discountCode?: string;
-
-  @ApiProperty({
-    description: 'روش ارسال',
-    example: 'standard',
-    required: true,
-  })
-  @IsString()
-  shippingMethod!: string;
+  discountId?: string | null;
 
   @ApiProperty({
     description: 'روش پرداخت',

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { Check, ChevronsUpDown, CircleAlert, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Command,
@@ -17,6 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import MotionWrapper from '@/components/motion/MotionWrapper';
+import { FieldError } from 'react-hook-form';
 
 interface OptionItem {
   id: string;
@@ -34,6 +35,7 @@ interface AutocompleteCustomProps {
   label: string;
   multiple?: boolean;
   disabled?: boolean
+  error?: FieldError;
 }
 
 export default function AutocompleteCustom({
@@ -46,6 +48,7 @@ export default function AutocompleteCustom({
   label,
   disabled = false,
   multiple = false,
+  error
 }: AutocompleteCustomProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -76,7 +79,7 @@ export default function AutocompleteCustom({
     <Popover open={disabled ? false : open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="flex flex-col gap-2 w-full text-right dir-rtl">
-          <label className="text-sm font-medium text-white/70">{label}</label>
+          <label className="text-sm font-medium dark:text-white/70">{label}</label>
           <div
             aria-expanded={open}
             className={cn(
@@ -110,6 +113,12 @@ export default function AutocompleteCustom({
             </div>
             <ChevronsUpDown className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           </div>
+          {error?.message && (
+            <div className="flex items-center gap-1.5 mt-1 text-red-500">
+              <CircleAlert className="w-4 h-4 shrink-0" />
+              <p className="text-xs font-medium">{error?.message}</p>
+            </div>
+          )}
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">

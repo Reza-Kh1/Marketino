@@ -10,12 +10,14 @@ import { useRouter } from '@/i18n/navigation';
 import { userService } from '@/services/user.service';
 import { useProfileUser } from '@/hooks/user.hook';
 import PendingApi from '@/components/PendingApi';
-import LoadingPage from '../shops/[id]/loading';
+import LoadingPage from '@/components/LoadingPage';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isSeller, isAdmin, logout } = useAuth();
   const router = useRouter();
   const { data, isFetching } = useProfileUser()
+  console.log(data);
+  
   if (isFetching) {
     return <LoadingPage />
   }
@@ -80,8 +82,8 @@ export default function ProfilePage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'سفارشات', value: data?._count.orders, icon: ShoppingBag, color: 'from-blue-500 to-cyan-500' },
-          { label: 'علاقه‌مندی‌ها', value: data?._count.wishlistItems, icon: Heart, color: 'from-red-500 to-pink-500' },
+          { label: 'سفارشات', value: 10, icon: ShoppingBag, color: 'from-blue-500 to-cyan-500' },
+          { label: 'علاقه‌مندی‌ها', value: 10, icon: Heart, color: 'from-red-500 to-pink-500' },
           // { label: 'امتیاز', value: '۴۸۰', icon: TrendingUp, color: 'from-amber-500 to-orange-500' },
           // { label: 'کیف پول', value: '۲,۵۰۰,۰۰۰ ت', icon: Wallet, color: 'from-green-500 to-emerald-500' },
         ].map((card, i) => (

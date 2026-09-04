@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { StoreService } from './store.service';
 import { AnswerStoreReviewDto, CreateStoreDto, CreateStoreReviewDto, SearchAdminStore, SearchAdminStoreReview, SearchUserStore, UpdateStoreDto, UpdateStoreStatusDto } from './dto/store.dto';
@@ -39,9 +39,9 @@ export class StoreController {
     return this.storeService.getStoreAdmin(query);
   }
 
-  @Get('reviews/:id')
+  @Get('reviews/:storeId')
   @ApiOperation({ summary: 'Get store review' })
-  @ApiParam({ name: 'id', description: 'Store ID' })
+  @ApiParam({ name: 'storeId', description: 'Store ID' })
   async getStoreReview(@Param('storeId') storeId: string, @Query('page') page: string) {
     return this.storeService.getStoreReview(storeId, page);
   }
@@ -124,5 +124,25 @@ export class StoreController {
   @ApiBody({ type: AnswerStoreReviewDto })
   async answerStoreReview(@Param('reviewId') reviewId: string, @Body() dto: AnswerStoreReviewDto) {
     return this.storeService.answerStoreReview(reviewId, dto.answerReview);
+  }
+
+  @Delete('reviews/:reviewId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Roles('admin', 'superAdmin')
+  @ApiOperation({ summary: 'Delete store review' })
+  @ApiParam({ name: 'reviewId', description: 'Store review ID' })
+  async deleteStoreReview(@Param('reviewId') reviewId: string) {
+    return this.storeService.deleteStoreReview(reviewId);
+  }
+
+  @Patch('/:storeId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Roles('superAdmin')
+  @ApiOperation({ summary: 'Rebuild store review' })
+  @ApiParam({ name: 'storeId', description: 'Store review ID' })
+  async RebuildStoreRating(@Param('storeId') storeId: string) {
+    return this.storeService.rebuildStoreRating(storeId);
   }
 }

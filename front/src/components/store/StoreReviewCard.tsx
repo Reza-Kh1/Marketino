@@ -103,14 +103,13 @@ export default function StoreReviewCard({ reviews, className }: { reviews: Store
                                             <time dateTime={r.answerAt} className="tabular-nums">
                                                 {new Date(r.answerAt).toLocaleDateString('fa-IR', {
                                                     year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
                                                 })}
                                             </time>
                                         </div>
                                     )}
                                 </div>
-
                                 <p className="text-xs leading-relaxed text-muted-foreground wrap-break-word whitespace-pre-line">
                                     {r.answerReview}
                                 </p>

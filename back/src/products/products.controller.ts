@@ -2,7 +2,7 @@
  * ProductsController - کنترلر محصولات
  * مدیریت محصولات شامل لیست، جزئیات، ایجاد، ویرایش و مدیریت وضعیت
  */
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto, UpdateProductDto, ProductFilterDto } from './dto/product.dto';
@@ -10,7 +10,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ProductSearchDto } from '@/admin/dto/product.search.dto';
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
@@ -26,6 +26,27 @@ export class ProductsController {
     return this.productsService.findAll(filters);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('seller', 'admin', 'superAdmin')
+  @Get('admin')
+  @ApiOperation({ summary: 'لیست تمام محصولات' })
+  async getProducts(@Query() query: ProductSearchDto) {
+    return this.productsService.getProducts(query);
+  }
+
+
+  @Patch('admin/:id/approve')
+  @ApiOperation({ summary: 'تأیید محصول' })
+  async approveProduct(@Param('id') id: string) {
+    return this.productsService.approveProduct(id);
+  }
+
+  @Patch('admin/:id/feature')
+  @ApiOperation({ summary: 'ویژه کردن / خارج کردن محصول' })
+  async featureProduct(@Param('id') id: any) {
+    return this.productsService.featureProduct(id);
+  }
+
   /**
    * دریافت جزئیات یک محصول با slug یا id - عمومی
    */
@@ -38,7 +59,7 @@ export class ProductsController {
       ? await this.productsService.findOne(idOrSlug)
       : await this.productsService.findBySlug(idOrSlug);
     // افزایش تعداد بازدید
-    await this.productsService.incrementViewCount(product.id);
+    this.productsService.incrementViewCount(product.id);
     return product;
   }
 
@@ -61,11 +82,11 @@ export class ProductsController {
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('seller', 'admin', 'superAdmin')
-  @Post()
+  @Post('/')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد محصول جدید' })
-  async create(@CurrentUser() user: any, @Body() dto: CreateProductDto) {
-    return this.productsService.create(user.id, dto);
+  async create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
   }
 
   /**
@@ -90,29 +111,5 @@ export class ProductsController {
   @ApiOperation({ summary: 'حذف محصول' })
   async delete(@Param('id') id: string) {
     return this.productsService.delete(id);
-  }
-
-  /**
-   * تأیید محصول - فقط ادمین
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
-  @Put(':id/approve')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'تأیید محصول توسط ادمین' })
-  async approve(@Param('id') id: string) {
-    return this.productsService.approve(id);
-  }
-
-  /**
-   * ویژه کردن محصول - فقط ادمین
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
-  @Put(':id/feature')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'تغییر وضعیت ویژه محصول' })
-  async toggleFeature(@Param('id') id: string) {
-    return this.productsService.toggleFeature(id);
   }
 }

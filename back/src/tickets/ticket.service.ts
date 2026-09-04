@@ -91,7 +91,7 @@ export class TicketService {
       this.prisma.ticket.findMany({
         where,
         include: {
-          order: { select: { id: true, orderNumber: true, total: true } },
+          order: { select: { id: true, orderNumber: true, totalPrice: true } },
         },
         skip, take: limit, orderBy: { createdAt: 'desc' },
       }),
@@ -120,7 +120,7 @@ export class TicketService {
         where,
         include: {
           user: { select: { id: true, username: true, firstName: true, lastName: true, store: { select: { name: true } } } },
-          order: { select: { id: true, orderNumber: true, total: true, status: true } },
+          order: { select: { id: true, orderNumber: true, totalPrice: true, status: true } },
         },
         skip, take: limitPage, orderBy: { createdAt: order },
 
@@ -142,7 +142,7 @@ export class TicketService {
       where: { id },
       include: {
         user: { select: { id: true, username: true, role: true, firstName: true, lastName: true, phone: true } },
-        order: { select: { id: true, orderNumber: true, total: true } },
+        order: { select: { id: true, orderNumber: true, totalPrice: true } },
         ticketMessages: {
           include: {
             images: { select: { url: true, id: true } },
