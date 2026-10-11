@@ -2,22 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    CreditCard,
-    Truck,
-    MapPin,
-    Check,
-    Plus,
-    Pencil,
-    ShieldCheck,
-    Wallet,
-    ArrowRightLeft,
-    Banknote,
-    Clock,
-    ShoppingBag,
-    Store,
-    Package,
-} from 'lucide-react';
+import { CreditCard, Truck, MapPin, Check, Plus, Pencil, ShieldCheck, Wallet, ArrowRightLeft, Banknote, Clock, ShoppingBag, Store, Package } from 'lucide-react';
 import { useDefaultAddress } from '@/hooks/address.hook';
 import CustomButton from '@/components/CustomButton';
 import { useCart } from '@/hooks/cart.hook';
@@ -27,21 +12,6 @@ import { toast } from 'sonner';
 import { useShippingOrder } from '@/hooks/shipping.hook';
 import AddressModal from './AddressModal';
 import { StoreShippingSelection, SummarySection } from './SummarySection';
-
-/**
- * ============================================================================
- * نکات و فرض‌های مهم (لطفاً قبل از استفاده بررسی کنید)
- * ============================================================================
- * 1) useCart از قبل خروجی را بر اساس فروشگاه گروه‌بندی می‌کند:
- *    data: { stores: { storeId, storeName, storeNameEn, storeSlug, carts: [...] }[], totalItems, totalPrice }
- *    پس دیگر نیازی به حدس زدن storeId از روی هر آیتم نبود؛ مستقیم از data.stores استفاده شده.
- * 2) useShippingOrder فرض شده آرایه‌ای از { id: storeId, storeShippingMethods }
- *    برمی‌گرداند (دقیقا همان چیزی که فرستادید). چون storeId اینجا و storeId
- *    داخل data.stores باید یکی باشند تا اتصال شیوه ارسال به فروشگاه درست کار کند.
- * 3) محاسبه قیمت/زمان هر شیوه ارسال طبق توضیح شما: اول rates[0] چک می‌شود،
- *    اگر نبود از defaultPrice/maxDays استفاده می‌شود (تابع getEffectiveShipping).
- * ============================================================================
- */
 
 const PAYMENT_METHODS = [
     {
@@ -73,8 +43,6 @@ const PAYMENT_METHODS = [
         badge: 'ویژه تهران',
     },
 ];
-
-// گرادیان‌های رنگی برای هدر هر فروشگاه (به ترتیب چرخشی استفاده می‌شوند)
 const storeGradients = [
     'from-cyan-500/15 via-blue-500/10 to-transparent border-cyan-500/30 text-cyan-600 dark:text-cyan-400',
     'from-violet-500/15 via-purple-500/10 to-transparent border-violet-500/30 text-violet-600 dark:text-violet-400',
@@ -83,9 +51,6 @@ const storeGradients = [
     'from-rose-500/15 via-pink-500/10 to-transparent border-rose-500/30 text-rose-600 dark:text-rose-400',
 ];
 
-// ---------------------------------------------------------------------------
-// تایپ‌های مربوط به شیوه ارسال (طبق دیتایی که فرستادید)
-// ---------------------------------------------------------------------------
 type ShippingRate = {
     deliveryMaxDays?: number;
     price?: string | number;
@@ -209,12 +174,12 @@ export default function CheckoutPage() {
             orders,
             discountId: discountId || null,
             paymentMethod,
-
-        };        
+        };
+        console.log(orderPayload);
         orderCreate(orderPayload, {
             onSuccess: ({ data }: any) => {
                 console.log(data);
-                
+
                 // setOrderNumber(data?.orderNumber || 'ORD-' + Math.floor(100000 + Math.random() * 900000));
                 // setStep('success');
                 // refetchCart();
@@ -399,11 +364,13 @@ export default function CheckoutPage() {
                                                             );
                                                         })}
                                                     </div>
-                                                ) : (
-                                                    <p className="text-[11px] text-rose-500">شیوه ارسالی برای این فروشگاه یافت نشد.</p>
-                                                )}
+                                                ) :
+                                                    defaultAddress ?
+                                                        <p className="text-[11px] text-rose-500">امکان ارسال این محصول به شهر شما وجود ندارد.</p>
+                                                        :
+                                                        <p className="text-[11px] text-rose-500"> لطفاً یک آدرس برای ارسال سفارش ثبت کنید.</p>
+                                                }
                                             </div>
-
                                             {/* یادداشت مخصوص این فروشگاه */}
                                             <div>
                                                 <textarea

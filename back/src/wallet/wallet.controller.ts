@@ -42,9 +42,9 @@ export class WalletController {
     return this.walletService.requestWithdrawal(userId, amount);
   }
 
-  @Get('my/transactions')
+  @Get('my/transactions/:id')
   @ApiOperation({ summary: 'لیست تراکنش‌های کاربر' })
-  async getMyTransactions(@CurrentUser('id') userId: string, @Query() query: WalletTransactionSearchDto) {
+  async getMyTransactions(@Param('id') userId: string, @Query() query: WalletTransactionSearchDto) {
     return this.walletService.getMyTransaction(userId, query);
   }
 

@@ -11,7 +11,7 @@ import { useStores } from '@/hooks/store.hook';
 import PendingApi from '@/components/PendingApi';
 import DynamicTable from '@/components/DynamicTable';
 import { Button } from '@/components/ui/button';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import DialogView from '@/components/DialogView';
@@ -22,13 +22,11 @@ import DialogDelete from '@/components/DialogDelete';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CustomButton from '@/components/CustomButton';
 import InputForm from '@/components/inputs/InputForm';
-import { Label } from '@/components/ui/label';
 import { DiscountType } from '@/services/discount.service';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import AutocompleteCustom from '@/components/inputs/AutoCompleteCustom';
-import { Switch } from '@/components/ui/switch';
 import FormDatePicker from '@/components/inputs/FormDatePicker';
 import { format } from 'date-fns-jalali';
 import { discountSchema } from '@/schemas/discount.schema';
@@ -36,7 +34,7 @@ import SelectCustom from '@/components/inputs/SelectCustom';
 
 type DiscountFormData = z.infer<typeof discountSchema>;
 
-export default function AdminDiscountsPage() {
+export default function AdminDiscountsPage({ isStore = false, storeIdMe, userIdMe }: { isStore?: boolean, storeIdMe?: string | null, userIdMe?: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [modalMode, setModalMode] = useState<'view' | 'delete' | 'create' | 'edit' | null>(null);
@@ -48,7 +46,7 @@ export default function AdminDiscountsPage() {
     const page = searchParams.get('page') || undefined;
     const search = searchParams.get('search') || undefined;
     const isActive = searchParams.get('isActive') || undefined;
-    const storeId = searchParams.get('storeId') || undefined;
+    const userId = userIdMe || searchParams.get('userId') || undefined;
     const dateFrom = searchParams.get('dateFrom') || undefined;
     const dateTo = searchParams.get('dateTo') || undefined;
 
@@ -57,7 +55,7 @@ export default function AdminDiscountsPage() {
       page: page && !isNaN(Number(page)) ? Number(page) : undefined,
       ...(search && { search }),
       ...(isActive && isActive !== 'ALL' && { isActive: isActive === 'true' }),
-      ...(storeId && { storeId }),
+      ...(userId && { userId }),
       ...(dateFrom && { dateFrom }),
       ...(dateTo && { dateTo }),
     };
@@ -91,7 +89,7 @@ export default function AdminDiscountsPage() {
   const value = watch('value')
   const type = watch('type')
   const minOrderAmount = watch('minOrderAmount')
-  const maxDiscount = watch('maxDiscount')  
+  const maxDiscount = watch('maxDiscount')
   // برای ویرایش، مقداردهی اولیه فرم
   useEffect(() => {
     if (modalMode === 'edit' && selectedDiscount) {
@@ -100,9 +98,9 @@ export default function AdminDiscountsPage() {
         perUserLimit: selectedDiscount.perUserLimit,
         type: selectedDiscount.type,
         code: selectedDiscount.code,
-        value: selectedDiscount.value,
-        minOrderAmount: selectedDiscount.minOrderAmount,
-        maxDiscount: selectedDiscount.maxDiscount || 0,
+        value: Number(selectedDiscount.value),
+        minOrderAmount: Number(selectedDiscount.minOrderAmount),
+        maxDiscount: Number(selectedDiscount.maxDiscount) || 0,
         usageLimit: selectedDiscount.usageLimit,
         startsAt: selectedDiscount.startsAt ? new Date(selectedDiscount.startsAt) : undefined,
         endsAt: selectedDiscount.endsAt ? new Date(selectedDiscount.endsAt) : undefined,
@@ -196,7 +194,7 @@ export default function AdminDiscountsPage() {
       header: 'مقدار تخفیف',
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
-          <span className="text-sm">{row.original.value.toLocaleString()}</span>
+          <span className="text-sm">{Number(row.original.value).toLocaleString()}</span>
           <span className="text-xs text-muted-foreground">{row.original.type === 'fixed' ? 'تومان' : '%'}</span>
         </div>
       )
@@ -324,6 +322,17 @@ export default function AdminDiscountsPage() {
 
   if (isLoading) return <PendingApi />;
 
+  const formStores = () => {
+    if (isStore) {
+      const newItem = storeData as any
+      const filterStore = newItem?.filter((item: any) => {
+        if (item.id === storeIdMe) return item
+      })
+      return filterStore
+    } else {
+      return storeData
+    }
+  }
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
@@ -359,7 +368,7 @@ export default function AdminDiscountsPage() {
         ]}
         inputs={[
           { label: 'کد تخفیف', name: 'search', placeholder: 'جستجو بر اساس کد...' },
-          { label: 'آیدی فروشگاه', name: 'storeId', placeholder: 'فیلتر بر اساس فروشگاه' },
+          ...(isStore ? [{ label: 'آیدی فروشنده', name: 'userId', placeholder: 'فیلتر بر اساس فروشگاه' }] : [])
         ]}
       />
 
@@ -494,10 +503,9 @@ export default function AdminDiscountsPage() {
                 label='نوع'
                 setValue={(e) => setValue('status', e)}
                 children={[
-                  { name: 'تمام فروشگاه ها', id: 'PLATFORM' },
+                  ...(!isStore ? [{ name: 'تمام فروشگاه ها', id: 'PLATFORM' }, { name: 'کمیسیون', id: 'COMMISSION' }] : []),
                   { name: 'فروشگاه', id: 'STORE' },
-                  { name: 'کمیسیون', id: 'COMMISSION' },
-                  { name: 'محصول', id: 'PRODUCT' },
+                  { name: 'محصول', id: 'PRODUCT' }
                 ]}
                 disable={!!editId}
                 error={errors.status}
@@ -509,7 +517,7 @@ export default function AdminDiscountsPage() {
                     onChange={(value) => setValue('storeId', value)}
                     value={storeId || []}
                     label="فروشگاه (اختیاری)"
-                    options={storeData || [] as any}
+                    options={formStores() || [] as any}
                     placeholder={loadingStore ? 'صبر کنید ...' : 'انتخاب فروشگاه (اختیاری)'}
                     emptyText="فروشگاهی یافت نشد!"
                   />
@@ -569,7 +577,23 @@ export default function AdminDiscountsPage() {
               { name: 'فروشگاه', value: storeData?.stores?.find(s => s.id === selectedDiscount?.storeId)?.name || 'عمومی' },
               { name: 'نوع تخفیف', value: selectedDiscount?.status === 'COMMISSION' ? 'کمیسیون' : selectedDiscount?.status === 'PLATFORM' ? 'کل فروشگاه' : selectedDiscount?.status === 'PRODUCT' ? 'محصولات' : 'فروشگاه' },
             ]
-
+          },
+          {
+            head: 'اطلاعات فردی',
+            detail: [
+              { name: 'شناسه سازنده', value: selectedDiscount?.user?.id || '-' },
+              { name: 'نام', value: selectedDiscount?.user?.firstName || '-' },
+              { name: 'نام خانوادگی', value: selectedDiscount?.user?.lastName || '-' },
+              { name: 'نام کاربری', value: selectedDiscount?.user?.username || '-' },
+            ]
+          },
+          {
+            head: 'اطلاعات فروشگاه',
+            detail: [
+              { name: 'اسلاگ فروشگاه', value: <Link href={`${isStore ? '/seller/settings' : '/admin/store/' + selectedDiscount?.user?.store?.slug}`}>{selectedDiscount?.user?.store?.slug}</Link> },
+              { name: 'نام فارسی فروشگاه', value: selectedDiscount?.user?.store?.name || '-' },
+              { name: 'نام انگلیسی فروشگاه', value: selectedDiscount?.user?.store?.nameEn || '-' },
+            ]
           },
           {
             head: 'تاریخ‌ها',
@@ -587,6 +611,7 @@ export default function AdminDiscountsPage() {
           }
         ]}
       />
+
       <DialogDelete
         closeModal={() => setModalMode(null)}
         onDelete={() => {

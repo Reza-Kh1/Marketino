@@ -6,7 +6,6 @@ import { useState, useRef, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuth } from '@/lib/auth-context';
-import { useChat } from '@/lib/chat-context';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useCart } from '@/hooks/cart.hook';
@@ -20,12 +19,10 @@ export default function Navbar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isSeller, isAdmin, logout } = useAuth();  
+  const { user, isAuthenticated, isSeller, isAdmin, logout } = useAuth();
   const { data: cartData } = useCart();
-  const { unreadCount } = useChat();
   const tNav = useTranslations('nav');
   const tCommon = useTranslations('common');
-  const tChat = useTranslations('chat');
   const tSeller = useTranslations('seller');
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -128,16 +125,6 @@ export default function Navbar() {
                 <Heart className={cn("w-5 h-5 text-muted-foreground hover:text-red-500 transition-colors")} />
               </Link>
             )}
-            {isAuthenticated && (
-              <Link href="/profile/chat" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 relative" aria-label={tChat('title')}>
-                <MessageSquare className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-scale-in shadow-sm">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Link>
-            )}
             {user && <Link href="/profile/cart" className="p-2 rounded-xl hover:bg-muted/80 transition-all duration-200 relative" aria-label={tCommon('cart')}>
               <ShoppingCart className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
               {Number(cartData?.totalItems) > 0 && (
@@ -173,8 +160,6 @@ export default function Navbar() {
                       {[
                         { href: '/profile', icon: User, label: tCommon('profile') },
                         { href: '/profile/orders', icon: Package, label: tCommon('orders') },
-                        { href: '/profile/saved-searches', icon: BellRing, label: 'جستجوهای من' },
-                        { href: '/profile/chat', icon: MessageSquare, label: tChat('title') },
                         { href: '/profile/wishlist', icon: Heart, label: tCommon('wishlist'), mobile: true },
                       ].map(item => (
                         <Link key={item.href} href={item.href} onClick={() => setUserMenuOpen(false)}
@@ -190,7 +175,6 @@ export default function Navbar() {
                           { href: '/seller', icon: Store, label: tSeller('dashboard'), primary: true },
                           { href: '/seller/products', icon: PlusCircle, label: tSeller('products') },
                           { href: '/seller/orders', icon: ClipboardList, label: tSeller('orders') },
-                          { href: '/seller/analytics', icon: BarChart3, label: tSeller('analytics') },
                           { href: '/seller/settings', icon: Settings, label: tCommon('settings') },
                         ].map(item => (
                           <Link key={item.href} href={item.href} onClick={() => setUserMenuOpen(false)}
@@ -284,16 +268,6 @@ export default function Navbar() {
             <Link href="/orders" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/80 transition-colors">
               <Package className="w-5 h-5 text-muted-foreground" /> {tCommon('orders')}
             </Link>
-            {isAuthenticated && (
-              <Link href="/profile/saved-searches" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/80 transition-colors">
-                <BellRing className="w-5 h-5 text-muted-foreground" /> جستجوهای ذخیره شده
-              </Link>
-            )}
-            {isAuthenticated && (
-              <Link href="/chat" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/80 transition-colors">
-                <MessageSquare className="w-5 h-5 text-muted-foreground" /> {tChat('title')}
-              </Link>
-            )}
             {isSeller && (
               <Link href="/seller" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/80 text-primary font-medium transition-colors">
                 <Store className="w-5 h-5" /> {tCommon('seller_panel')}

@@ -83,20 +83,37 @@ export const walletService = {
     createMyWallet: () => {
         return apiClient.post(`${BASE_URL_WALLET}/my`);
     },
-    getMyTransactions: (params?: TransactionSearchDto) => {
-        return apiClient.get<AllTransaction>(`${BASE_URL_WALLET}/my/transactions`);
+    getMyTransactions: (userId?: string | null, filter?: TransactionSearchDto) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filter || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<AllTransaction>(`${BASE_URL_WALLET}/my/transactions/${userId}?${queryString}`);
     },
-
     requestWithdrawal: (amount: string) => {
         return apiClient.post<WalletTransactionEntity>(`${BASE_URL_WITHDRAW}`, { amount });
     },
 
-    getAllWallets: (params?: WalletSearchDto) => {
-        return apiClient.get<WalletAllEntity>(`${BASE_URL_ADMIN}/all?${params}`);
+    getAllWallets: (filter?: WalletSearchDto) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filter || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<WalletAllEntity>(`${BASE_URL_ADMIN}/all?${queryString}`);
     },
 
-    getAllTransactions: (params?: TransactionSearchDto) => {
-        return apiClient.get<AllTransaction>(`${BASE_URL_ADMIN}/transactions?${params}`);
+    getAllTransactions: (filter?: TransactionSearchDto) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filter || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<AllTransaction>(`${BASE_URL_ADMIN}/transactions?${queryString}`);
     },
     approveWithdrawal: (id: string, data?: CompleteOrFailTransactionDto) => {
         return apiClient.patch<WalletTransactionEntity>(`${BASE_URL_ADMIN}/withdraw/${id}/approve`, data);

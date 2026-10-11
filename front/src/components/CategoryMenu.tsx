@@ -84,7 +84,6 @@ export default function CategoryMenu({ className }: { className?: string }) {
   }, [mobileOpen]);
   const hasChildren = (cat: CategorysTypes) => !!(cat.children && cat.children.length > 0);
 
-  // if (!categoriesData?.length) return
   const [hoveredMain, setHoveredMain] = useState<CategorysTypes | null>(categoriesData?.length ? categoriesData[0] : null);
   const [activeMainId, setActiveMainId] = useState<string>(categoriesData?.length ? categoriesData[0]?.id : '');
   const activeMain = categoriesData?.find((c: CategorysTypes) => c.id === activeMainId) || categoriesData?.length ? categoriesData[0] : null;

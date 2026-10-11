@@ -14,7 +14,6 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { PhoneService } from '../phone/phone.service';
 import {
   RegisterDto, LoginDto, ChangePasswordDto,
   SendEmailOtpDto, SendPhoneOtpDto,
@@ -29,7 +28,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-    private readonly phoneService: PhoneService,
   ) {}
 
   /**
@@ -178,7 +176,7 @@ export class AuthService {
     });
 
     // Send SMS
-    await this.phoneService.sendOTP(cleanPhone, code, lang);
+    // await this.phoneService.sendOTP(cleanPhone, code, lang);
 
     return { message: 'کد تأیید به شماره شما ارسال شد', expiresIn: 300 };
   }

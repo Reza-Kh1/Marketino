@@ -52,7 +52,7 @@ const statusConfig = {
   }
 };
 
-export default function AdminStoreReviewsPage({ storeId, isStore }: { storeId?: string | null, isStore?: boolean }) {
+export default function AdminStoreReviewsPage({ storeId, isStore=false }: { storeId?: string | null, isStore?: boolean }) {
   const [modalMode, setModalMode] = useState<'view' | 'delete' | 'answer' | null>(null);
   const [selectReview, setSelectReview] = useState<StoreReview | null>(null);
   const [answerText, setAnswerText] = useState('');
@@ -77,10 +77,7 @@ export default function AdminStoreReviewsPage({ storeId, isStore }: { storeId?: 
       ...(storeIdFilter && { storeId: storeIdFilter }),
     } as any;
   }, [searchParams]);
-    const { data: reviewsData, isError, isFetching, isLoading } = useStoreReviewAdmin(filters);
-  
-
-
+  const { data: reviewsData, isError, isFetching, isLoading } = useStoreReviewAdmin(filters);
 
   const moderateReview = (id: string, action: 'approve' | 'reject') => {
     if (action === 'approve') {
@@ -252,21 +249,22 @@ export default function AdminStoreReviewsPage({ storeId, isStore }: { storeId?: 
                     <Check className="w-4 h-4 text-green-500" />
                   </Button>
                 </TooltipCustom>
-                <TooltipCustom placeHolder="رد">
-                  <Button
-                    onClick={() => moderateReview(row.original.id, 'reject')}
-                    disabled={pendingReject}
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 cursor-pointer hover:bg-red-500/20"
-                  >
-                    <X className="w-4 h-4 text-red-500" />
-                  </Button>
-                </TooltipCustom>
+                {!isStore && (
+                  <TooltipCustom placeHolder="رد">
+                    <Button
+                      onClick={() => moderateReview(row.original.id, 'reject')}
+                      disabled={pendingReject}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 cursor-pointer hover:bg-red-500/20"
+                    >
+                      <X className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </TooltipCustom>
+                )}
               </>
             )}
-
-            {isApproved && (
+            {isApproved && !isStore && (
               <TooltipCustom placeHolder="رد">
                 <Button
                   onClick={() => moderateReview(row.original.id, 'reject')}

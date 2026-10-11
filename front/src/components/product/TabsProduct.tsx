@@ -40,7 +40,7 @@ export default function TabsProduct(product: ProductDetail) {
                         className="whitespace-nowrap text-xs sm:text-sm py-2 px-1 cursor-pointer"
                     >
                         <MessageSquare className="w-4 h-4" />
-                        <span>نظرات کاربران ({_count?.reviews || 0})</span>
+                        <span>نظرات کاربران ({Number(_count?.reviews).toLocaleString('fa') || 0})</span>
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500 shadow-[0_0_12px_#06b6d4] group-data-[state=active]:block hidden" />
                     </TabsTrigger>
 
@@ -50,7 +50,7 @@ export default function TabsProduct(product: ProductDetail) {
                         className="whitespace-nowrap text-xs sm:text-sm py-2 px-1 cursor-pointer"
                     >
                         <HelpCircle className="w-4 h-4" />
-                        <span>پرسش و پاسخ ({_count?.qnas || 0})</span>
+                        <span>پرسش و پاسخ ({Number(_count?.qnas).toLocaleString('fa') || 0})</span>
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500 shadow-[0_0_12px_#06b6d4] group-data-[state=active]:block hidden" />
                     </TabsTrigger>
                 </TabsList>
@@ -135,14 +135,14 @@ export default function TabsProduct(product: ProductDetail) {
                         <div className="lg:col-span-4 space-y-4 sm:space-y-6">
                             <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-center space-y-2.5">
                                 <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-cyan-400">
-                                    {product?.rating || 0}
+                                    {Number(String(product?.rating ?? 0).replace(/(\.\d)\d+/, '$1')).toLocaleString('fa') || 0}
                                 </div>
                                 <div className="flex justify-center gap-1 text-amber-400">
                                     {[...Array(5)].map((_, i) => (
                                         <Star key={i} className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400" />
                                     ))}
                                 </div>
-                                <p className="text-[11px] sm:text-xs text-slate-400">بر اساس {product.reviewCount || 0} نظر ثبت‌شده</p>
+                                <p className="text-[11px] sm:text-xs text-slate-400">بر اساس {Number(product.reviewCount).toLocaleString('fa') || 0} نظر ثبت‌شده</p>
                             </div>
                             <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-4">
                                 <div className="flex items-center gap-3 pb-3 sm:pb-4 border-b border-slate-100 dark:border-slate-800">

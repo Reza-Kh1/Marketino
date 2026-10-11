@@ -1,15 +1,11 @@
 'use client';
-import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { motion } from 'framer-motion';
 import { User, ShoppingBag, Heart, Wallet, ClipboardList, Settings, LogOut, Store, TrendingUp, Package, ArrowRight, Edit, BellRing, MapPinHouse, ShoppingCart, MessageSquare, Headset, MessagesSquare } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
 import { useRouter } from '@/i18n/navigation';
-import { userService } from '@/services/user.service';
 import { useProfileUser } from '@/hooks/user.hook';
-import PendingApi from '@/components/PendingApi';
 import LoadingPage from '@/components/LoadingPage';
 
 export default function ProfilePage() {
@@ -17,7 +13,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { data, isFetching } = useProfileUser()
   console.log(data);
-  
+
   if (isFetching) {
     return <LoadingPage />
   }
@@ -32,20 +28,16 @@ export default function ProfilePage() {
     );
   }
   const menuItems = [
+    { href: '/profile/cart', icon: ShoppingCart, label: 'سبد خرید', desc: 'مشاهده تمام محصولات در سبد خرید' },
     { href: '/profile/orders', icon: ShoppingBag, label: 'سفارشات من', desc: 'مشاهده و پیگیری سفارشات' },
     { href: '/profile/wishlist', icon: Heart, label: 'علاقه‌مندی‌ها', desc: 'محصولات ذخیره شده' },
-    { href: '/profile/addresses', icon: MapPinHouse, label: 'آدرس های من', desc: 'مشاهده تمام آدرس های ثبت شده' },
+    { href: '/profile/addresses', icon: MapPinHouse, label: 'آدرس ها', desc: 'مشاهده تمام آدرس های ثبت شده' },
     { href: '/profile/tickets', icon: Headset, label: 'تیکت پشتیبانی', desc: 'برای ارتباط با پشتیبانی تیکت خود را ثبت کنید' },
-    { href: '/profile/cart', icon: ShoppingCart, label: 'سبد خرید', desc: 'مشاهده تمام محصولات در سبد خرید' },
-    { href: '/profile/chat', icon: MessagesSquare, label: 'پیام ها', desc: 'مشاهده تمام فروشندگانی که به آن ها پیام داده اید' },
-    { href: '/profile/saved-searches', icon: BellRing, label: 'محصولات ذخیره شده', desc: 'هشدار کاهش قیمت' },
     { href: '/profile/setting', icon: Settings, label: 'تنظیمات حساب', desc: 'ویرایش اطلاعات شخصی' },
   ];
 
   const sellerItems = [
     { href: '/seller', icon: Store, label: 'داشبورد فروشنده', desc: 'مدیریت فروشگاه' },
-    { href: '/seller/products', icon: Package, label: 'محصولات من', desc: 'مدیریت محصولات' },
-    { href: '/seller/analytics', icon: TrendingUp, label: 'آمار فروش', desc: 'گزارش سود و زیان' },
   ];
 
   return (
@@ -54,7 +46,7 @@ export default function ProfilePage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-card border border-border rounded-3xl p-6 md:p-10 mb-8">
         <div className="flex flex-col sm:flex-row items-start gap-6">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-3xl font-black shrink-0 shadow-lg">
+          <div className="w-20 h-20 rounded-3xl bg-linear-to-br from-primary to-secondary flex items-center justify-center text-white text-3xl font-black shrink-0 shadow-lg">
             {(user?.firstName || user?.username || 'U')[0].toUpperCase()}
           </div>
           <div className="flex-1">
@@ -68,9 +60,9 @@ export default function ProfilePage() {
               </span>
             </div>
             <p className="text-muted-foreground">@{user?.username} | {user?.email}</p>
-            {isSeller && user?.storeName && (
-              <Link href={`/shops/${user.id}`} className="inline-flex items-center gap-1 mt-2 text-sm text-primary font-bold hover:underline">
-                <Store className="w-4 h-4" /> {user.storeName}
+            {isSeller && user?.store.slug && (
+              <Link href={`/stores/${user?.store.slug}`} className="inline-flex items-center gap-1 mt-2 text-sm text-primary font-bold hover:underline">
+                <Store className="w-4 h-4" /> {user.store.slug}
                 <ArrowRight className="w-3 h-3" />
               </Link>
             )}
@@ -88,7 +80,7 @@ export default function ProfilePage() {
           // { label: 'کیف پول', value: '۲,۵۰۰,۰۰۰ ت', icon: Wallet, color: 'from-green-500 to-emerald-500' },
         ].map((card, i) => (
           <div key={card.label} className="bg-card border border-border rounded-2xl p-4">
-            <div className={cn('w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2', card.color)}>
+            <div className={cn('w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center mb-2', card.color)}>
               <card.icon className="w-5 h-5 text-white" />
             </div>
             <div className="text-lg font-black">{card.value}</div>
@@ -130,14 +122,6 @@ export default function ProfilePage() {
       {/* Action buttons */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
         className="flex gap-4 flex-wrap">
-        {!isSeller && (
-          <Link href="/register/seller" className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm hover:shadow-lg transition-all inline-flex items-center gap-2">
-            <Store className="w-4 h-4" /> فروشنده شوید
-          </Link>
-        )}
-        <button onClick={() => toast.success('در حال ویرایش پروفایل...')} className="px-6 py-3 rounded-xl border border-border font-bold text-sm hover:bg-accent transition-all inline-flex items-center gap-2">
-          <Edit className="w-4 h-4" /> ویرایش پروفایل
-        </button>
         <button onClick={() => { logout(); router.replace('/'); }} className="px-6 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm hover:bg-red-100 transition-all inline-flex items-center gap-2">
           <LogOut className="w-4 h-4" /> خروج
         </button>

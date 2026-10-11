@@ -36,7 +36,7 @@ const statusConfig = {
     }
 };
 
-export default function AdminReviewsPage({ isStore, storeId }: { isStore?: boolean, storeId?: string | null }) {
+export default function AdminReviewsPage({ isStore = false, storeId }: { isStore?: boolean, storeId?: string | null }) {
     const [modalMode, setModalMode] = useState<'view' | 'delete' | 'answer' | null>(null);
     const [selectReview, setSelectReview] = useState<ReviewEntity | null>(null);
     const [answerText, setAnswerText] = useState('');
@@ -62,7 +62,7 @@ export default function AdminReviewsPage({ isStore, storeId }: { isStore?: boole
         } as any
     }, [searchParams]);
     const useReviews = isStore ? useStoreReviews : useAdminReviews;
-    const { data: reviewsData, isError, isFetching } = useReviews(filters);
+    const { data: reviewsData, isError, isFetching } = useReviews(filters, storeId || '');
     const moderateReview = (id: string, status: ReviewModerateStatus) => {
         moderateMutate({ id, data: { isApproved: status } });
     };
@@ -76,7 +76,6 @@ export default function AdminReviewsPage({ isStore, storeId }: { isStore?: boole
             });
         }
     };
-
     const columns: ColumnDef<ReviewEntity>[] = useMemo(() => [
         {
             id: 'select',
@@ -201,19 +200,20 @@ export default function AdminReviewsPage({ isStore, storeId }: { isStore?: boole
                                 <Check className="w-4 h-4 text-green-500" />
                             </Button>
                         </TooltipCustom>
-                    ) : (
-                        <TooltipCustom placeHolder="رد">
-                            <Button
-                                onClick={() => moderateReview(row.original.id, ReviewModerateStatus.reject)}
-                                disabled={pendingModerate}
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 cursor-pointer hover:bg-red-500/20"
-                            >
-                                <X className="w-4 h-4 text-red-500" />
-                            </Button>
-                        </TooltipCustom>
-                    )}
+                    ) :
+                        !isStore && (
+                            <TooltipCustom placeHolder="رد">
+                                <Button
+                                    onClick={() => moderateReview(row.original.id, ReviewModerateStatus.reject)}
+                                    disabled={pendingModerate}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 cursor-pointer hover:bg-red-500/20"
+                                >
+                                    <X className="w-4 h-4 text-red-500" />
+                                </Button>
+                            </TooltipCustom>
+                        )}
                     <TooltipCustom placeHolder="پاسخ">
                         <Button
                             onClick={() => { setSelectReview(row.original); setModalMode("answer"); setAnswerText(row.original.answer || ''); }}
@@ -234,16 +234,18 @@ export default function AdminReviewsPage({ isStore, storeId }: { isStore?: boole
                             <Eye className="w-4 h-4" />
                         </Button>
                     </TooltipCustom>
-                    <TooltipCustom placeHolder="حذف">
-                        <Button
-                            onClick={() => { setSelectReview(row.original); setModalMode("delete"); }}
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-                    </TooltipCustom>
+                    {!isStore && (
+                        <TooltipCustom placeHolder="حذف">
+                            <Button
+                                onClick={() => { setSelectReview(row.original); setModalMode("delete"); }}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </TooltipCustom>
+                    )}
                 </div>
             )
         },

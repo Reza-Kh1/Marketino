@@ -74,7 +74,6 @@ api.interceptors.response.use(
     (err) => {
         const route = useRouter()
         const status = err?.response?.status;
-
         // Network error
         if (!status) {
             console.error("Network error");

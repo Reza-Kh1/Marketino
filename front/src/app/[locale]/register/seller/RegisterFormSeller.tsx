@@ -5,10 +5,11 @@ import { useRouter } from '@/i18n/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Lock, Store, Phone } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { useTranslation } from '@/lib/i18n-context';
+// import { useTranslation } from '@/lib/i18n-context';
 import { BUSINESS_TYPES } from '@/lib/api';
 import OTPInput from '@/components/OTPInput';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { useLocale, useTranslations } from 'next-intl';
 
 type Step = 'form' | 'otp';
 type RegisterMethod = 'password' | 'otp';
@@ -18,8 +19,12 @@ type RegisterFormSellerType = {
 export default function RegisterFormSeller({ isModal = false }: RegisterFormSellerType) {
     const router = useRouter();
     const { register, sendEmailOTP, sendPhoneOTP, verifyEmailOTP, verifyPhoneOTP, registerSellerOTP, isAuthenticated } = useAuth();
-    const { t } = useTranslation();
-    const isRTL = t.direction === 'rtl';
+    // const { t } = useTranslation();
+    // const isRTL = t.direction === 'rtl';
+    const locale = useLocale();
+    const isRTL = locale === 'fa';
+    const t = useTranslations('auth');
+    const tCommon = useTranslations('common');
 
     const [method, setMethod] = useState<RegisterMethod>('password');
     const [otpMethod, setOtpMethod] = useState<'email' | 'phone'>('email');
@@ -143,16 +148,16 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
         <div className="border-t border-border pt-4 mt-4">
             <h3 className="font-bold text-sm mb-3">{isRTL ? 'اطلاعات فروشگاه' : 'Store Information'}</h3>
             <div>
-                <label className="block text-sm font-semibold mb-1.5">{t.auth.store_name_label} *</label>
+                <label className="block text-sm font-semibold mb-1.5">{t('store_name_label')} *</label>
                 <input type="text" required value={form.storeName} onChange={e => setForm({ ...form, storeName: e.target.value })}
                     className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder={isRTL ? 'مثلاً: فروشگاه دیجیتال مرکزی' : 'e.g. Central Digital Store'} />
             </div>
             <div className="mt-4">
-                <label className="block text-sm font-semibold mb-1.5">{t.auth.business_type_label} *</label>
+                <label className="block text-sm font-semibold mb-1.5">{t('business_type_label')} *</label>
                 <select value={form.businessType} onChange={e => setForm({ ...form, businessType: e.target.value })}
                     className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none">
-                    <option value="">{t.auth.select_business}</option>
+                    <option value="">{t('select_business')}</option>
                     {BUSINESS_TYPES.map(bt => (
                         <option key={bt.value} value={bt.value}>{bt.icon} {bt.label}</option>
                     ))}
@@ -191,24 +196,24 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
                             onSubmit={handlePasswordRegister} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.first_name_label} *</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('first_name_label')} *</label>
                                     <input type="text" required value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
                                         className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.last_name_label} *</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('last_name_label')} *</label>
                                     <input type="text" required value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
                                         className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold mb-1.5">{t.auth.username_label} *</label>
+                                <label className="block text-sm font-semibold mb-1.5">{t('username_label')} *</label>
                                 <input type="text" required value={form.username} onChange={e => setForm({ ...form, username: e.target.value })}
                                     className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     placeholder="username" />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold mb-1.5">{t.auth.email_label} *</label>
+                                <label className="block text-sm font-semibold mb-1.5">{t('email_label')} *</label>
                                 <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                                     className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     placeholder="email@example.com" />
@@ -218,13 +223,13 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
 
                             <div className="border-t border-border pt-4">
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.password_label} *</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('password_label')} *</label>
                                     <input type="password" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                                         className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         placeholder={isRTL ? 'حداقل ۶ کاراکتر' : 'Min 6 characters'} />
                                 </div>
                                 <div className="mt-4">
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.confirm_password_label} *</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('confirm_password_label')} *</label>
                                     <input type="password" required value={form.confirmPassword} onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
                                         className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         placeholder={isRTL ? 'تکرار رمز عبور' : 'Confirm password'} />
@@ -232,8 +237,8 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
                             </div>
 
                             <button type="submit" disabled={loading}
-                                className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50 mt-4">
-                                {loading ? (isRTL ? 'در حال ثبت‌نام...' : 'Registering...') : t.auth.register_seller_btn}
+                                className="w-full h-12 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 text-white font-bold text-base hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50 mt-4">
+                                {loading ? (isRTL ? 'در حال ثبت‌نام...' : 'Registering...') : t('register_seller_btn')}
                             </button>
                         </motion.form>
                     )}
@@ -245,29 +250,29 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
                                 <button onClick={() => setOtpMethod('email')}
                                     className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${otpMethod === 'email' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                                         }`}>
-                                    <Mail className="w-3.5 h-3.5" /> {t.auth.login_with_email}
+                                    <Mail className="w-3.5 h-3.5" /> {t('login_with_email')}
                                 </button>
                                 <button onClick={() => setOtpMethod('phone')}
                                     className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${otpMethod === 'phone' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                                         }`}>
-                                    <Phone className="w-3.5 h-3.5" /> {t.auth.login_with_phone}
+                                    <Phone className="w-3.5 h-3.5" /> {t('login_with_phone')}
                                 </button>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.first_name_label}</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('first_name_label')}</label>
                                     <input type="text" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
                                         className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.last_name_label}</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('last_name_label')}</label>
                                     <input type="text" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
                                         className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold mb-1.5">{t.auth.username_label} *</label>
+                                <label className="block text-sm font-semibold mb-1.5">{t('username_label')} *</label>
                                 <input type="text" required value={form.username} onChange={e => setForm({ ...form, username: e.target.value })}
                                     className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     placeholder="username" />
@@ -275,7 +280,7 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
 
                             {otpMethod === 'email' ? (
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.email_label} *</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('email_label')} *</label>
                                     <div className="relative">
                                         <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground`} />
                                         <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
@@ -285,12 +290,12 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="block text-sm font-semibold mb-1.5">{t.auth.phone_label} *</label>
+                                    <label className="block text-sm font-semibold mb-1.5">{t('phone_label')} *</label>
                                     <div className="relative">
                                         <Phone className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground`} />
                                         <input type="tel" required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
                                             className={`w-full h-11 ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500`}
-                                            placeholder={t.auth.phone_placeholder} />
+                                            placeholder={t('phone_placeholder')} />
                                     </div>
                                 </div>
                             )}
@@ -298,14 +303,14 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
                             <StoreFields />
 
                             <div>
-                                <label className="block text-sm font-semibold mb-1.5">{t.auth.password_label} *</label>
+                                <label className="block text-sm font-semibold mb-1.5">{t('password_label')} *</label>
                                 <input type="password" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                                     className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     placeholder={isRTL ? 'حداقل ۶ کاراکتر' : 'Min 6 characters'} />
                             </div>
 
                             <button onClick={handleSendOTP} disabled={loading}
-                                className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50">
+                                className="w-full h-12 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 text-white font-bold text-base hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50">
                                 {loading ? (isRTL ? 'در حال ارسال...' : 'Sending...') : (isRTL ? 'ارسال کد تأیید و ثبت‌نام' : 'Send Verification & Register')}
                             </button>
                         </motion.div>
@@ -313,12 +318,12 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
 
                     {step === 'otp' && (
                         <motion.div key="otp-verify" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="text-center">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-4">
+                            <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-4">
                                 {otpMethod === 'email' ? <Mail className="w-7 h-7 text-white" /> : <Phone className="w-7 h-7 text-white" />}
                             </div>
-                            <h3 className="text-lg font-bold mb-1">{t.auth.enter_otp}</h3>
+                            <h3 className="text-lg font-bold mb-1">{t('enter_otp')}</h3>
                             <p className="text-sm text-muted-foreground mb-1">
-                                {otpMethod === 'email' ? t.auth.otp_sent_email : t.auth.otp_sent_phone}
+                                {otpMethod === 'email' ? t('otp_sent_email') : t('otp_sent_phone')}
                             </p>
                             <p className="text-sm font-bold text-primary mb-6 font-mono" dir="ltr">
                                 {otpMethod === 'email' ? form.email : form.phone}
@@ -328,16 +333,16 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
 
                             <div className="mt-6 text-sm text-muted-foreground">
                                 {countdown > 0 ? (
-                                    <span>{t.auth.resend_in} <span className="font-bold text-primary">{countdown}s</span></span>
+                                    <span>{t('resend_in')} <span className="font-bold text-primary">{countdown}s</span></span>
                                 ) : (
                                     <button onClick={handleSendOTP} disabled={loading} className="text-primary font-bold hover:underline">
-                                        {t.auth.resend_code}
+                                        {t('resend_code')}
                                     </button>
                                 )}
                             </div>
 
                             <button onClick={() => { setStep('form'); setOtpError(''); }} className="mt-4 text-sm text-muted-foreground hover:text-foreground">
-                                ← {t.common.back}
+                                ← {tCommon('back')}
                             </button>
                         </motion.div>
                     )}
@@ -345,12 +350,12 @@ export default function RegisterFormSeller({ isModal = false }: RegisterFormSell
                 {!isModal && (
                     <div className="mt-6 pt-4 border-t border-border text-center space-y-2">
                         <div>
-                            <span className="text-muted-foreground text-sm">{t.auth.have_account}</span>{' '}
-                            <Link href="/login" className="text-primary font-bold hover:underline text-sm">{t.auth.login_link}</Link>
+                            <span className="text-muted-foreground text-sm">{t('have_account')}</span>{' '}
+                            <Link href="/login" className="text-primary font-bold hover:underline text-sm">{t('login_link')}</Link>
                         </div>
                         <div>
                             <Link href="/register/buyer" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-                                <User className="w-4 h-4" /> {t.auth.register_as_buyer}
+                                <User className="w-4 h-4" /> {t('register_as_buyer')}
                             </Link>
                         </div>
                     </div>

@@ -8,10 +8,10 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, use } from 'react';
 import { authApi, setAuthToken } from '@/lib/api';
-import toast from 'react-hot-toast';
 import { useRouter } from '@/i18n/navigation';
 import Cookies from 'js-cookie';
 import { userService, UserType } from '@/services/user.service';
+import { toast } from 'sonner';
 interface AuthState {
   user: UserType | null;
   token: string | null;

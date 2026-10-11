@@ -37,6 +37,14 @@ export class QnaController {
     return this.qnaService.findByAdmin(query);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Roles('admin', 'seller', 'superAdmin')
+  @Get('store/:storeId')
+  @ApiOperation({ summary: 'دریافت پرسش و پاسخ‌های محصول ادمین' })
+  findByStore(@Query() query: SearchQnaDto, @Param('storeId') storeId: string) {
+    return this.qnaService.findByStore(query, storeId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'دریافت یک پرسش یا پاسخ' })
   findOne(@Param('id') id: string) {

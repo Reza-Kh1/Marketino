@@ -21,7 +21,7 @@ export class DiscountProcessor extends WorkerHost {
 
   private async checkDiscount(id: string) {
     const discount = await this.prisma.discountCode.findUnique({ where: { id: id } })
-    return !!discount
+    return discount
   }
 
   async process(job: Job) {
@@ -33,7 +33,9 @@ export class DiscountProcessor extends WorkerHost {
           where: { id: job.data.discountId },
           data: { isActive: false },
         });
-        await this.syncAffectedProducts(job.data.discountId);
+        if (exists.status === 'PRODUCT') {
+          await this.syncAffectedProducts(job.data.discountId);
+        }
         break;
       }
       case 'activate-discount': {
@@ -43,13 +45,17 @@ export class DiscountProcessor extends WorkerHost {
           where: { id: job.data.discountId },
           data: { isActive: true },
         });
-        await this.syncAffectedProducts(job.data.discountId);
+        if (exists.status === 'PRODUCT') {
+          await this.syncAffectedProducts(job.data.discountId);
+        }
         break;
       }
       case 'sync-discount': {
         const exists = await this.checkDiscount(job.data.discountId);
         if (!exists) return;
-        await this.syncAffectedProducts(job.data.discountId);
+        if (exists.status === 'PRODUCT') {
+          await this.syncAffectedProducts(job.data.discountId);
+        }
         break;
       }
       case 'sync-products': {

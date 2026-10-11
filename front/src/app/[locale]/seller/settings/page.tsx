@@ -14,7 +14,7 @@ export default function page() {
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
-  }
+  }  
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">

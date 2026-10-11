@@ -4,7 +4,7 @@
 import { Controller, Get, Post, Delete, Put, Body, Param, Query, UseGuards, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { DiscountsService } from './discounts.service';
-import { CreateDiscountDto } from './dto/discount.dto';
+import { CreateDiscountDto, SearchDiscountDto } from './dto/discount.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -19,7 +19,7 @@ export class DiscountsController {
 
   @Public()
   @Post('validate')
-  async validate(@Body() body: ValidateDiscountDto, @CurrentUser('id') userId: string) {
+  async validate(@Body() body: any, @CurrentUser('id') userId: string) {
     return this.discountsService.validate(body, userId);
   }
 
@@ -33,16 +33,16 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Get()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'لیست کدهای تخفیف (ادمین)' })
-  async findAll(@Query('page') page?: number) {
-    return this.discountsService.findAll(page || 1);
+  async findAll(@Query() query: SearchDiscountDto) {
+    return this.discountsService.findAll(query);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ایجاد کد تخفیف جدید (ادمین)' })
@@ -51,7 +51,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Patch(':discountId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'ویرایش کد تخفیف (ادمین)' })
@@ -60,7 +60,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'حذف کد تخفیف (ادمین)' })
@@ -69,7 +69,7 @@ export class DiscountsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superAdmin', 'seller')
   @Put(':id/toggle')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'فعال/غیرفعال کردن کد تخفیف (ادمین)' })

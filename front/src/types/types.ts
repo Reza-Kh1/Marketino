@@ -29,6 +29,7 @@ export interface ProductStore {
     name: string;
     nameEn: string;
     slug: string
+    storeName:string
 }
 
 export interface ProductImage {

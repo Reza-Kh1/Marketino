@@ -21,12 +21,6 @@ interface AddressModalProps {
     /** بعد از ثبت موفق آدرس صدا زده می‌شود (مثلا برای refetchDefault) */
     onSuccess?: () => void;
 }
-
-/**
- * مودال ثبت آدرس تحویل.
- * وقتی کاربر آدرس پیش‌فرض ندارد، این مودال باز می‌شود تا آدرس را وارد کند؛
- * بعد از ثبت موفق، بسته می‌شود و onSuccess صدا زده می‌شود تا صفحه آدرس تازه را نمایش دهد.
- */
 export default function AddressModal({ open, onClose, onSuccess }: AddressModalProps) {
     const { mutate: createAddress, isPending } = useCreateAddress();
     const form = useForm({

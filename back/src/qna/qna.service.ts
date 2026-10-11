@@ -71,9 +71,10 @@ export class QnaService {
     if (status && status !== "ALL") where.status = status;
     if (parentId) where.parentId = parentId;
     if (productId) where.productId = productId
-    const [items, total] = await this.prisma.$transaction([
+
+    const [qnas, total] = await this.prisma.$transaction([
       this.prisma.qna.findMany({
-        where, skip, take: limit,
+        where, skip, take: Number(limitPage),
         orderBy: { createdAt: order },
         include: {
           sender: { select: { id: true, firstName: true, lastName: true } },
@@ -84,9 +85,9 @@ export class QnaService {
         }
       }),
       this.prisma.qna.count({ where })
-    ]);
+    ]);    
     return {
-      items,
+      qnas,
       pagination: pagination(total, page, limitPage),
     };
   }
@@ -104,13 +105,13 @@ export class QnaService {
     if (parentId) where.parentId = parentId;
     if (productId) where.productId = productId;
 
-    const [items, total] = await this.prisma.$transaction([
+    const [qnas, total] = await this.prisma.$transaction([
       this.prisma.qna.findMany({
         where,
         skip,
         take: limitPage,
         orderBy: {
-          createdAt: order, // یا هر فیلدی که می‌خوای
+          createdAt: order,
         },
         include: {
           sender: {
@@ -139,7 +140,7 @@ export class QnaService {
       this.prisma.qna.count({ where }),
     ]);
     return {
-      items,
+      qnas,
       pagination: pagination(total, page, limitPage),
     };
   }

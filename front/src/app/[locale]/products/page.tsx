@@ -778,11 +778,11 @@ export default async function ProductsPage({ params }: Props) {
                 {isFa ? 'ثبت‌ نام' : 'Sign up'}
               </Link>
               <Link
-                href="/shops"
+                href="/stores"
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/40 bg-white/10 backdrop-blur-sm text-white text-sm font-semibold px-5 py-2.5 hover:bg-white/20 transition-colors"
               >
                 <Store className="w-4 h-4" />
-                {isFa ? 'فروشگاه‌ها' : 'Shops'}
+                {isFa ? 'فروشگاه‌ها' : 'Stores'}
               </Link>
             </MotionWrapper>
           </div>

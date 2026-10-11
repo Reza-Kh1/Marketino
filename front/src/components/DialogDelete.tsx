@@ -8,14 +8,16 @@ interface DialogDeleteType {
     open: boolean
     isPending?: boolean
     helpText?: React.ReactNode
+    btnName?: string
+    title?: string
 }
-export default function DialogDelete({ closeModal, onDelete, open, isPending, helpText }: DialogDeleteType) {
+export default function DialogDelete({ closeModal, onDelete, open, isPending, helpText, btnName, title }: DialogDeleteType) {
     return (
         <Dialog open={open} onOpenChange={closeModal}>
             <DialogContent showCloseButton={false} className="max-w-md bg-(--admin-bg-sidebar) backdrop-blur-xl border-(--admin-destructive)/20">
                 <DialogHeader>
                     <MotionWrapper delay={0.2} preset='fadeUp' className=''>
-                        <DialogTitle className="text-admin-text-primary">تأیید حذف</DialogTitle>
+                        <DialogTitle className="text-admin-text-primary"> {title ?? 'تأیید حذف'}</DialogTitle>
                     </MotionWrapper>
                     <MotionWrapper delay={0.2} preset='fadeUp' className='' staggerChildren={0.2}>
                         {helpText ?
@@ -28,7 +30,7 @@ export default function DialogDelete({ closeModal, onDelete, open, isPending, he
                 </DialogHeader>
                 <DialogFooter className='flex items-center justify-between!'>
                     <MotionWrapper delay={0.3} preset='fadeUp' className=''>
-                        <CustomButton isPending={isPending} iconEnd={<Trash2 className='w-4 h-4' />} size='sm' colorHover='red' name='حذف' onClick={onDelete} />
+                        <CustomButton isPending={isPending} iconEnd={<Trash2 className='w-4 h-4' />} size='sm' colorHover='red' name={btnName ?? 'حذف'} onClick={onDelete} />
                     </MotionWrapper>
                     <MotionWrapper delay={0.3} preset='fadeUp' className=''>
                         <CustomButton name='بستن' size='sm' onClick={closeModal} iconEnd={<X className='w-4 h-4' />} />

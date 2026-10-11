@@ -1,272 +1,412 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Search, ClipboardList, Loader2, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  Eye, Clock, CheckCircle2, Package, Truck, RefreshCw,
+  XCircle, RotateCcw, CircleDot, AlertTriangle, Store,
+  Hash, ShoppingBag,
+  X,
+  Save,
+  Edit,
+} from 'lucide-react';
+import { ColumnDef } from '@tanstack/react-table';
+import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { adminApi, Order } from '@/lib/api';
-import toast from 'react-hot-toast';
+import { format } from 'date-fns-jalali';
+import { faIR } from 'date-fns-jalali/locale';
+import DynamicTable from '@/components/DynamicTable';
+import DialogView from '@/components/DialogView';
+import SearchBox from '@/components/admin/SearchBox';
+import TooltipCustom from '@/components/TooltipCustom';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useAdminOrders, useStoreOrders, useUpdateOrder } from '@/hooks/order.hook';
+import { OrderType } from '@/services/order.service';
+import { useSearchParams } from 'next/navigation';
+import CustomButton from '@/components/CustomButton';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import SelectCustom from '@/components/inputs/SelectCustom';
+import { useForm } from 'react-hook-form';
+import LoadingPage from '@/components/LoadingPage';
 
-const STATUS_NAMES: Record<string, string> = {
-  pending: 'در انتظار',
-  confirmed: 'تأیید شده',
-  processing: 'در حال پردازش',
-  shipped: 'ارسال شده',
-  delivered: 'تحویل شده',
-  cancelled: 'لغو شده',
+type Props = {
+  isAdmin?: boolean;
+  storeId?: string
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  confirmed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  processing: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  shipped: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
-  delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+// ============ Helpers ============
+const formatPrice = (v: string | number) => Number(v || 0).toLocaleString('fa-IR');
+const formatDate = (d?: string | null) =>
+  d ? format(new Date(d), 'yyyy/MM/dd - HH:mm', { locale: faIR }) : '-';
+const formatOrderNumber = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1-');
+
+const STATUS_MAP: Record<string, { label: string; className: string; icon: any }> = {
+  pending: { label: 'در انتظار پردازش', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20', icon: Clock },
+  confirmed: { label: 'تأیید شده', className: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20', icon: CheckCircle2 },
+  processing: { label: 'در حال آماده‌سازی', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: Package },
+  shipped: { label: 'ارسال شده', className: 'bg-violet-500/10 text-violet-600 border-violet-500/20', icon: Truck },
+  delivered: { label: 'تحویل داده شده', className: 'bg-green-500/10 text-green-600 border-green-500/20', icon: CheckCircle2 },
+  cancelled: { label: 'لغو شده', className: 'bg-red-500/10 text-red-600 border-red-500/20', icon: XCircle },
+  returned: { label: 'مرجوع شده', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20', icon: RotateCcw },
 };
 
-export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+const getStatus = (s: string) =>
+  STATUS_MAP[s] ?? { label: 'نامشخص', className: 'bg-muted text-muted-foreground border-border', icon: CircleDot };
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await adminApi.orders({ page, status: statusFilter || undefined });
-      console.log(res);
-      
-      setOrders(res.orders);
-      setTotal(res.total);
-    } catch (err: any) {
-      toast.error('خطا در بارگذاری سفارشات');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter]);
+// ============ Component ============
+export default function AdminOrdersPage({ isAdmin = true, storeId }: Props) {
+  const router = useRouter();
+  const [viewOrder, setViewOrder] = useState<OrderType | null>(null);
+  const [modalMode, setModalMode] = useState<'edit' | 'view' | null>(null)
+  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const filters = useMemo(() => {
+    const limitParam = searchParams.get('limit');
+    const pageParam = searchParams.get('page');
+    return {
+      limit: limitParam && !isNaN(Number(limitParam)) ? Number(limitParam) : undefined,
+      page: pageParam && !isNaN(Number(pageParam)) ? Number(pageParam) : undefined,
+      order: searchParams.get('order') || undefined,
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    setUpdatingIds(prev => new Set(prev).add(orderId));
-    try {
-      await adminApi.updateOrder(orderId, { status: newStatus });
-      setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o)),
-      );
-      toast.success(`وضعیت به "${STATUS_NAMES[newStatus]}" تغییر کرد`);
-    } catch (err: any) {
-      toast.error(err.message || 'خطا در بروزرسانی وضعیت');
-    } finally {
-      setUpdatingIds(prev => {
-        const next = new Set(prev);
-        next.delete(orderId);
-        return next;
-      });
-    }
-  };
+    };
+  }, [searchParams]);
 
-  const filtered = search
-    ? orders.filter(o =>
-        o.orderNumber?.includes(search) ||
-        o.user?.username?.includes(search) ||
-        o.shippingName?.includes(search) ||
-        o.items?.some(item => item.title?.includes(search)),
-      )
-    : orders;
-
-  const stats = {
-    total,
-    revenue: orders
-      .filter(o => o.status !== 'cancelled')
-      .reduce((s, o) => s + (o.total || 0), 0),
-    pendingCount: orders.filter(o => o.status === 'pending' || o.status === 'processing').length,
-  };
-
-  const totalPages = Math.ceil(total / 10);
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-black">مدیریت سفارشات</h2>
-        <p className="text-muted-foreground text-sm">مشاهده و مدیریت تمام سفارشات</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'کل سفارشات', value: stats.total.toLocaleString(), color: 'from-blue-500 to-cyan-500' },
-          { label: 'درآمد کل', value: stats.revenue.toLocaleString() + ' ت', color: 'from-green-500 to-emerald-500' },
-          { label: 'در انتظار', value: stats.pendingCount + ' سفارش', color: 'from-violet-500 to-purple-500' },
-        ].map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className={cn('bg-card border border-border rounded-2xl p-4 text-center')}
-          >
-            <div className="text-xl font-black">{s.value}</div>
-            <div className="text-xs text-muted-foreground">{s.label}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="جستجوی شماره سفارش، مشتری یا نام محصول..."
-            className="w-full h-10 pr-9 pl-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+  // انتخاب هوک بر اساس نقش
+  const adminQuery = useAdminOrders();
+  const sellerQuery = useStoreOrders({ filters, storeId, enabled: !isAdmin });
+  const { data, isError, isFetching, isLoading } = isAdmin ? adminQuery : sellerQuery;
+  const { mutate: updateMutate, isPending: updatePending } = useUpdateOrder();
+  const orders = data?.orders ?? [];
+  const columns: ColumnDef<OrderType>[] = useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+            onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+            className="border-admin-border"
           />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          className="h-10 px-3 rounded-xl border border-border bg-background text-sm"
-        >
-          <option value="">همه وضعیت‌ها</option>
-          {Object.entries(STATUS_NAMES).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
-        <button
-          onClick={fetchOrders}
-          className="h-10 px-3 rounded-xl border border-border bg-background hover:bg-accent transition-colors"
-          title="بروزرسانی"
-        >
-          <RefreshCw className="w-4 h-4" />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(v) => row.toggleSelected(!!v)}
+            className="border-admin-border"
+          />
+        ),
+      },
+      {
+        accessorKey: 'orderNumber',
+        header: 'شماره سفارش',
+        cell: ({ row }) => (
+          <span className="font-mono text-sm font-bold text-primary">
+            {formatOrderNumber(row.original.orderNumber)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'storeName',
+        header: 'فروشگاه',
+        cell: ({ row }) => (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{row.original.storeName}</span>
+            <span className="text-[10px] text-muted-foreground">{row.original.storeNameEn}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'totalPrice',
+        header: 'مبلغ کل',
+        cell: ({ row }) => (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-bold">{formatPrice(row.original.totalPrice)} تومان</span>
+            {Number(row.original.discountAmount) > 0 && (
+              <span className="text-[10px] text-green-500">
+                تخفیف: {formatPrice(row.original.discountAmount)}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'وضعیت',
+        cell: ({ row }) => {
+          const s = getStatus(row.original.status);
+          const Icon = s.icon;
+          return (
+            <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs', s.className)}>
+              <Icon className="w-3 h-3" />
+              {s.label}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'تاریخ ثبت',
+        cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
+      },
+      {
+        id: 'actions',
+        header: 'عملیات',
+        cell: ({ row }) => (
+          <div className='w-full flex items-center gap-1'>
+            {isAdmin ?
+              <TooltipCustom placeHolder="ویرایش وضعیت">
+                <Button
+                  onClick={() => { setViewOrder(row.original), setModalMode('edit'), reset({ status: row.original.status }) }}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-blue-500/20 cursor-pointer"
+                >
+                  <Edit className="w-4 h-4 text-blue-500 " />
+                </Button>
+              </TooltipCustom>
+              :
+              <>
+                {row.original.status !== 'shipped' &&
+                  <TooltipCustom placeHolder="ارسال محصول">
+                    <Button
+                      onClick={() => onChangeState('shipped', row.original.storeId, row.original.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-blue-500/20 cursor-pointer"
+                    >
+                      <Truck className="w-4 h-4 text-green-500" />
+                    </Button>
+                  </TooltipCustom>
+                }
+                {row.original.status !== 'processing' &&
+                  <TooltipCustom placeHolder="در حال آماده سازی">
+                    <Button
+                      onClick={() => onChangeState('processing', row.original.storeId, row.original.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-blue-500/20 cursor-pointer"
+                    >
+                      <RefreshCw className="w-4 h-4 text-yellow-500 " />
+                    </Button>
+                  </TooltipCustom>
+                }
+              </>
+            }
+            <TooltipCustom placeHolder="مشاهده جزئیات">
+              <Button
+                onClick={() => { setViewOrder(row.original), setModalMode('view') }}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-blue-500/20 cursor-pointer"
+              >
+                <Eye className="w-4 h-4 " />
+              </Button>
+            </TooltipCustom>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
+  const { handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
+    defaultValues: { status: '' }
+  });
+
+  const status = watch('status')
+
+  const onChangeState = (status: string, storeId: string, id: string) => {
+    if (status && storeId && id) {
+      const body = {
+        storeId: storeId,
+        status: status
+      }
+      updateMutate({ id, body }, {
+        onSuccess: () => {
+          setModalMode(null)
+          setViewOrder(null)
+        }
+      })
+    }
+  };
+
+  const onSubmitForm = (data: { status: string }) => {
+    if (!viewOrder) return
+    const body = {
+      storeId: viewOrder.storeId,
+      status: data.status
+    }
+    viewOrder?.id && updateMutate({ id: viewOrder?.id, body }, {
+      onSuccess: () => {
+        setModalMode(null)
+        setViewOrder(null)
+      }
+    })
+  };
+
+  const onError = (err: any) => {
+    console.log(err);
+  }
+
+  if (isLoading) return <LoadingPage />;
+
+  if (isError)
+    return (
+      <div className="text-center py-20">
+        <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+        <button onClick={() => router.refresh()} className="text-primary font-bold">
+          تلاش مجدد
         </button>
       </div>
+    );
 
-      {/* Orders List */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  // ============ Render ============
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-2xl font-black mb-1">
+            {isAdmin ? 'مدیریت سفارشات فروشگاه‌ها' : 'سفارشات فروشگاه من'}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {data?.pagination?.total || 0} سفارش
+          </p>
         </div>
-      ) : (
-        <>
-          <div className="space-y-3">
-            {filtered.map((order, i) => (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="bg-card border border-border rounded-2xl p-5 hover:shadow-md transition-shadow"
-              >
-                <div className="flex flex-col sm:flex-row justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className="font-mono text-sm font-bold">#{order.orderNumber}</span>
-                      <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-bold', STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700')}>
-                        {STATUS_NAMES[order.status] || order.status}
-                      </span>
-                      {order.paymentStatus === 'paid' && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          پرداخت شده
-                        </span>
-                      )}
-                      {order.paymentStatus === 'refunded' && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                          مسترد شده
-                        </span>
-                      )}
-                      {order.paymentStatus === 'pending' && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                          در انتظار پرداخت
-                        </span>
-                      )}
-                    </div>
+      </div>
 
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      {order.shippingName && <span>👤 {order.shippingName}</span>}
-                      {order.user?.username && <span>@{order.user.username}</span>}
-                      {order.trackingCode && <span>📦 {order.trackingCode}</span>}
-                      <span>📅 {new Date(order.createdAt).toLocaleDateString('fa-IR')}</span>
-                    </div>
-
-                    {order.items && order.items.length > 0 && (
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        {order.items.map(item => `${item.title} × ${item.quantity}`).join('، ')}
-                      </div>
-                    )}
-
-                    {order.commissionAmount != null && (
-                      <div className="mt-1 text-xs text-green-600 dark:text-green-400">
-                        کمیسیون: {order.commissionAmount.toLocaleString()} تومان
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="text-xl font-black text-primary">
-                      {(order.total || 0).toLocaleString()} تومان
-                    </div>
-                    <select
-                      value={order.status}
-                      onChange={e => handleStatusChange(order.id, e.target.value)}
-                      disabled={updatingIds.has(order.id)}
-                      className={cn(
-                        'h-9 px-3 rounded-xl border border-border bg-background text-xs min-w-[130px]',
-                        updatingIds.has(order.id) && 'opacity-50 cursor-not-allowed',
-                      )}
-                    >
-                      {Object.entries(STATUS_NAMES).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
-                    {updatingIds.has(order.id) && (
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-4 py-2 rounded-xl border border-border text-sm hover:bg-accent disabled:opacity-40 transition-colors"
-              >
-                قبلی
-              </button>
-              <span className="px-4 py-2 text-sm text-muted-foreground">
-                صفحه {page} از {totalPages}
-              </span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 rounded-xl border border-border text-sm hover:bg-accent disabled:opacity-40 transition-colors"
-              >
-                بعدی
-              </button>
+      {/* Search */}
+      <SearchBox
+        inputs={[{ label: 'شماره سفارش', name: 'search', placeholder: 'جستجو...' }]}
+      />
+      <Dialog open={modalMode === 'edit' && !storeId} onOpenChange={() => { setModalMode(null), setViewOrder(null) }}>
+        <DialogContent dir="rtl" className="max-w-4xl! max-h-[90vh] overflow-y-auto bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right">
+          <DialogHeader>
+            <DialogTitle className="text-admin-text-primary text-xl font-bold">
+              ویرایش سفارش
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmitForm, onError)} className="space-y-6 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SelectCustom
+                value={status}
+                placeHolder='انتخاب کنید'
+                label='وضعیت سفارش'
+                setValue={(e) => setValue('status', e)}
+                children={[
+                  { name: 'در انتظار', id: 'pending' },
+                  { name: 'تایید شده', id: 'confirmed' },
+                  { name: 'در حال آماده سازی', id: 'processing' },
+                  { name: 'ارسال شده', id: 'shipped' },
+                  { name: 'تحویل داده شده', id: 'delivered' },
+                  { name: 'کنسل شده', id: 'cancelled' },
+                  { name: 'مرجوع شده', id: 'returned' },
+                ]}
+                error={errors.status}
+              />
             </div>
-          )}
+            <DialogFooter className="flex justify-between! items-center w-full pt-4 border-t border-border/30">
+              <CustomButton
+                type="submit"
+                isPending={updatePending}
+                name={'ذخیره تغییرات'}
+                color="white"
+                iconStart={<Save className="w-4 h-4" />}
+              />
+              <CustomButton
+                onClick={() => { setModalMode(null), setViewOrder(null) }}
+                isPending={false}
+                name="انصراف"
+                color="gray"
+                iconStart={<X className="w-4 h-4" />}
+              />
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Table */}
+      <DynamicTable
+        data={orders}
+        columns={columns}
+        totalRows={data?.pagination?.total || 0}
+        isLoading={isFetching}
+        onBulkDelete={() => { }}
+      />
 
-          {/* Empty state */}
-          {filtered.length === 0 && !loading && (
-            <div className="text-center py-20 bg-card border border-border rounded-2xl">
-              <ClipboardList className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">سفارشی یافت نشد</p>
-            </div>
-          )}
-        </>
-      )}
+      {/* View Dialog */}
+      <DialogView
+        open={modalMode === 'view'}
+        title="جزئیات سفارش"
+        setOpen={() => setModalMode(null)}
+        options={
+          viewOrder
+            ? [
+              {
+                head: 'اطلاعات اصلی',
+                detail: [
+                  { name: 'شناسه', value: <span className="font-mono text-[10px]">{viewOrder.id}</span> },
+                  { name: 'شماره سفارش', value: <span className="font-mono font-bold text-primary">{formatOrderNumber(viewOrder.orderNumber)}</span> },
+                  { name: 'وضعیت', value: getStatus(viewOrder.status).label },
+                  { name: 'فروشگاه', value: viewOrder.storeName },
+                  { name: 'نام انگلیسی', value: viewOrder.storeNameEn },
+                ],
+              },
+              {
+                head: 'اطلاعات مالی',
+                detail: [
+                  { name: 'مجموع محصولات', value: `${formatPrice(viewOrder.subtotal)} تومان` },
+                  { name: 'هزینه ارسال', value: Number(viewOrder.shippingCost) === 0 ? 'رایگان' : `${formatPrice(viewOrder.shippingCost)} تومان` },
+                  { name: 'تخفیف', value: Number(viewOrder.discountAmount) > 0 ? `${formatPrice(viewOrder.discountAmount)}- تومان` : 'بدون تخفیف' },
+                  { name: 'مبلغ کل', value: `${formatPrice(viewOrder.totalPrice)} تومان` },
+                  { name: 'مالیات', value: `${formatPrice(viewOrder.taxAmount)} تومان` },
+                  ...(isAdmin
+                    ? [
+                      { name: 'کمیسیون', value: `${formatPrice(viewOrder.commissionAmount)} تومان` },
+                      { name: 'درصد کمیسیون', value: viewOrder.commission ? `${viewOrder.commission}%` : '-' },
+                      { name: 'مبلغ واریزی', value: formatPrice(Number(viewOrder.totalPrice) - Number(viewOrder.taxAmount) - Number(viewOrder.commissionAmount)) },
+                    ]
+                    : []),
+                ],
+              },
+              {
+                head: 'اطلاعات ارسال',
+                detail: [
+                  { name: 'روش ارسال', value: viewOrder.shippingName || '-' },
+                  { name: 'کد رهگیری', value: viewOrder.trackingCode || 'ندارد' },
+                ],
+              },
+              {
+                head: 'یادداشت',
+                detail: [{ name: 'یادداشت', value: viewOrder.note || 'بدون یادداشت' }],
+              },
+              ...(isAdmin
+                ? [
+                  {
+                    head: 'شناسه‌ها (ادمین)',
+                    detail: [
+                      { name: 'شناسه Checkout', value: <span className="font-mono text-[10px]">{viewOrder.checkoutId}</span> },
+                      { name: 'شناسه فروشگاه', value: <span className="font-mono text-[10px]">{viewOrder.storeId}</span> },
+                      { name: 'شناسه کاربر', value: <span className="font-mono text-[10px]">{viewOrder.userId}</span> },
+                      { name: 'شناسه روش ارسال', value: <span className="font-mono text-[10px]">{viewOrder.storeShippingMethodId || '-'}</span> },
+                      { name: 'شناسه کد تخفیف', value: <span className="font-mono text-[10px]">{viewOrder.discountCodeId || '-'}</span> },
+                    ],
+                  },
+                ]
+                : []),
+              {
+                head: 'تاریخ‌ها',
+                detail: [
+                  { name: 'تاریخ ایجاد', value: formatDate(viewOrder.createdAt) },
+                  { name: 'آخرین بروزرسانی', value: formatDate(viewOrder.updatedAt) },
+                  { name: 'تاریخ تحویل', value: formatDate(viewOrder.deliveredAt) },
+                  { name: 'تاریخ لغو', value: formatDate(viewOrder.cancelledAt) },
+                  { name: 'مهلت مرجوعی', value: formatDate(viewOrder.returnDeadline) },
+                ],
+              },
+            ]
+            : []
+        }
+      />
     </div>
   );
 }

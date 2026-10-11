@@ -1,61 +1,104 @@
 import { PaginationType } from "@/lib/api";
 import { apiClient } from "@/lib/api-client";
-
 const BASE_URL = "/orders";
-
-// ============================================
-// تایپ‌ها
-// ============================================
-
-export interface OrderItem {
-    id: string;
-    sku: string;
-    variantName: string;
-    title: string;
-    price: number;
-    quantity: number;
-    total: number;
-    image: string | null;
-    createdAt: string;
-    orderId: string;
-    productId: string;
-    storeId: string;
-    variantId: string;
+export interface CheckoutsType {
+    id: string
+    checkoutNumber: string
+    commissionAmount: string
+    salesProfit: string
+    totalAmount: string
+    discountAmount: string,
+    taxAmount: string
+    discountStatus: null | 'PLATFORM' | 'STORE' | 'COMMISSION' | 'PRODUCT',
+    status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned'
+    paymentStatus: 'pending' | 'paid' | 'refunded',
+    paymentMethod: null | string,
+    paymentRef: null | string,
+    shippingName: string
+    shippingPhone: string
+    shippingCity: string
+    shippingProvince: string
+    shippingAddress: string
+    shippingPostal: string
+    discountId: null | string
+    userId: string
+    addressId: string
+    createdAt: string
+    updatedAt: string
+    orders: OrderType[];
 }
 
-export interface Order {
+export interface MyCheckout {
+    checkouts: CheckoutsType[]
+    pagination: PaginationType
+}
+
+export interface UpdateCheckout {
+    shippingName: string
+    shippingPhone: string
+    shippingProvince: string
+    shippingCity: string
+    shippingAddress: string
+    shippingPostal: string
+    status: string
+    paymentStatus: string
+}
+
+export interface UpdateOrder {
+    storeId: string
+    status: string
+}
+
+export interface OrderItemType {
+    sku: string;
+    name: string;
+    nameEn: string;
+    price: string;
+    originalPrice: string;
+    total: string;
+    quantity: number;
+    returnedQty: number;
+    attributes?: {
+        key: string;
+        label: string;
+        value: string;
+    }[];
+    colorName?: string | null;
+    colorHex?: string | null;
+    productId: string;
+}
+
+export interface OrderType {
     id: string;
     orderNumber: string;
     status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
-    paymentStatus: 'pending' | 'paid' | 'refunded';
-    paymentMethod: 'card' | 'wallet' | 'cod' | 'zarinpal' | null;
-    paymentRef: string | null;
-    subtotal: number;
-    shippingCost: number;
-    discountAmount: number;
-    commissionAmount: number;
-    total: number;
-    shippingAddress: string | null;
-    shippingCity: string | null;
-    shippingProvince: string | null;
-    shippingPostal: string | null;
-    shippingPhone: string | null;
-    shippingName: string | null;
-    trackingCode: string | null;
-    notes: string | null;
-    sellerNotes: string | null;
-    cancelledAt: string | null;
-    deliveredAt: string | null;
+    shippingCost: string;
+    shippingName: string;
+    storeName: string;
+    storeNameEn: string;
+    subtotal: string;
+    totalPrice: string;
+    discountAmount: string;
+    note?: string | null;
+    trackingCode?: string | null;
+    storeShippingMethodId?: string | null;
+    items: OrderItemType[];
     createdAt: string;
     updatedAt: string;
-    userId: string;
-    addressId: string | null;
-    discountId: string | null;
-    items: OrderItem[];
+    deliveredAt?: string | null;
+    cancelledAt?: string | null;
+    storeId: string
+    commission: string
+    commissionAmount: string
+    userId: string
+    checkoutId: string
+    discountCodeId: string | null
+    returnDeadline?: string | null;
+    taxAmount: string
 }
 
 export interface OrdersResponse {
-    orders: Order[];
+    orders: OrderType[];
     pagination: PaginationType
 }
 
@@ -67,228 +110,80 @@ export interface CreateOrderDto {
         shippingCost: string
         shippingId: string
         shippingName: string
-        shippingTime: number  | string
+        shippingTime: number | string
         storeId: string
     }[]
     paymentMethod: string
 }
 
-export interface UpdateOrderStatusDto {
-    status: Order['status'];
-    sellerNotes?: string;
-}
-
-export interface Payment {
-    id: string;
-    amount: number;
-    method: 'card' | 'wallet' | 'cod' | 'zarinpal';
-    status: 'pending' | 'paid' | 'refunded';
-    gatewayRef: string | null;
-    authority: string | null;
-    errorMessage: string | null;
-    paidAt: string | null;
-    createdAt: string;
-    orderId: string;
-}
-
-export interface CreatePaymentDto {
-    method: 'card' | 'wallet' | 'zarinpal';
-}
-
-export interface Refund {
-    id: string;
-    amount: number;
-    reason: string;
-    status: 'pending' | 'paid' | 'cancelled';
-    processedAt: string | null;
-    createdAt: string;
-    orderId: string;
-}
-
-export interface CreateRefundDto {
-    amount: number;
-    reason: string;
-}
-
-export interface TrackingEvent {
-    id: string;
-    status: 'pending' | 'processing' | 'shipped' | 'in_transit' | 'delivered';
-    location: string | null;
-    description: string;
-    createdAt: string;
-    orderId: string;
-}
-
-export interface OrderStats {
-    totalOrders: number;
-    pendingOrders: number;
-    processingOrders: number;
-    shippedOrders: number;
-    deliveredOrders: number;
-    cancelledOrders: number;
-    returnedOrders: number;
-    totalRevenue: number;
-    todayRevenue: number;
-    thisWeekRevenue: number;
-    thisMonthRevenue: number;
-}
-
-// ============================================
-// سرویس
-// ============================================
-
 export const orderService = {
-    // ============================================
-    // ۱. ثبت سفارش جدید
-    // POST /orders
-    // ============================================
     create: (data: CreateOrderDto) => {
-        return apiClient.post<Order>(BASE_URL, data);
+        return apiClient.post<OrderType>(BASE_URL, data);
     },
 
-    // ============================================
     // ۲. لیست سفارشات کاربر
-    // GET /orders
-    // ============================================
-    list: () => {
-        return apiClient.get<OrdersResponse>(BASE_URL);
+    list: (filters?: Record<string, any>) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filters || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<MyCheckout>(`${BASE_URL}/me?${queryString}`);
     },
 
-    // ============================================
-    // ۳. جزئیات سفارش
-    // GET /orders/{id}
-    // ============================================
+    updateCheckout: async (id: string, data: UpdateCheckout) => {
+        const texts = await apiClient.put<UpdateCheckout>(`${BASE_URL}/${id}`, data);
+        return texts
+    },
+
+    updateOrder: (id: string, data: UpdateOrder) => {
+        return apiClient.put<UpdateOrder>(`${BASE_URL}/edit/${id}`, data);
+    },
+
     getOne: (id: string) => {
-        return apiClient.get<Order>(`${BASE_URL}/${id}`);
+        return apiClient.get<CheckoutsType>(`${BASE_URL}/id/${id}`);
     },
 
-    // ============================================
-    // ۴. لغو سفارش توسط خریدار
-    // PATCH /orders/{id}/cancel
-    // ============================================
     cancel: (id: string) => {
-        return apiClient.patch<{ message: string; order: Order }>(
-            `${BASE_URL}/${id}/cancel`
-        );
+        return apiClient.delete<{ message: string; order: OrderType }>(`${BASE_URL}/${id}`);
     },
 
-    // ============================================
-    // ۵. رهگیری سفارش با شماره سفارش
-    // GET /orders/track/{orderNumber}
-    // ============================================
-    trackByNumber: (orderNumber: string) => {
-        return apiClient.get<{ order: Order; tracking: TrackingEvent[] }>(
-            `${BASE_URL}/track/${orderNumber}`
-        );
+    delete: (id: string) => {
+        return apiClient.delete<{ message: string; order: OrderType }>(`${BASE_URL}/${id}`);
     },
 
-    // ============================================
-    // ۶. رهگیری سفارش با آیدی
-    // GET /orders/{id}/tracking
-    // ============================================
-    getTracking: (id: string) => {
-        return apiClient.get<TrackingEvent[]>(`${BASE_URL}/${id}/tracking`);
-    },
-
-    // ============================================
     // ۷. سفارشات فروشنده
-    // GET /orders/seller/items
-    // ============================================
-    getSellerOrders: (params?: { page?: number; limit?: number; status?: string }) => {
-        return apiClient.get<OrdersResponse>(`${BASE_URL}/seller/items`, { params });
-    },
-
-    // ============================================
-    // ۸. تغییر وضعیت سفارش
-    // PUT /orders/{id}/status
-    // ============================================
-    updateStatus: (id: string, data: UpdateOrderStatusDto) => {
-        return apiClient.put<{ message: string; order: Order }>(
-            `${BASE_URL}/${id}/status`,
-            data
+    getStoreOrders: (filters?: Record<string, any>, storeId?: string) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filters || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
         );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<OrdersResponse>(`${BASE_URL}/store/${storeId}?${queryString}`);
     },
 
-    // ============================================
     // ۹. تمام سفارشات (ادمین)
-    // GET /orders/admin/all
-    // ============================================
-    listAdmin: (params?: {
-        page?: number;
-        limit?: number;
-        status?: string;
-        search?: string;
-        fromDate?: string;
-        toDate?: string;
-    }) => {
-        return apiClient.get<OrdersResponse>(`${BASE_URL}/admin/all`, { params });
-    },
-
-    // ============================================
-    // ۱۰. آمار سفارشات (ادمین)
-    // GET /orders/admin/stats
-    // ============================================
-    getStats: () => {
-        return apiClient.get<OrderStats>(`${BASE_URL}/admin/stats`);
-    },
-
-    // ============================================
-    // ۱۱. ایجاد پرداخت برای سفارش
-    // POST /orders/{id}/payments
-    // ============================================
-    createPayment: (id: string, data: CreatePaymentDto) => {
-        return apiClient.post<{ payment: Payment; redirectUrl?: string }>(
-            `${BASE_URL}/${id}/payments`,
-            data
+    listAdminOrder: (filters?: Record<string, any>) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filters || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
         );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<OrdersResponse>(`${BASE_URL}/admin/order?${queryString}`);
     },
-
-    // ============================================
-    // ۱۲. لیست پرداخت‌های سفارش
-    // GET /orders/{id}/payments
-    // ============================================
-    getPayments: (id: string) => {
-        return apiClient.get<Payment[]>(`${BASE_URL}/${id}/payments`);
+    confirmPayment: (id: string) => {
+        return apiClient.patch(`${BASE_URL}/${id}`)
     },
-
-    // ============================================
-    // ۱۳. تأیید پرداخت
-    // PATCH /orders/payments/{paymentId}/confirm
-    // ============================================
-    confirmPayment: (paymentId: string, params?: { authority?: string; status?: string }) => {
-        return apiClient.patch<{ message: string; order: Order }>(
-            `${BASE_URL}/payments/${paymentId}/confirm`,
-            params
+    listAdminCheckouts: (filters?: Record<string, any>) => {
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filters || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
         );
-    },
-
-    // ============================================
-    // ۱۴. درخواست مرجوعی سفارش
-    // POST /orders/{id}/refunds
-    // ============================================
-    requestRefund: (id: string, data: CreateRefundDto) => {
-        return apiClient.post<{ message: string; refund: Refund }>(
-            `${BASE_URL}/${id}/refunds`,
-            data
-        );
-    },
-
-    // ============================================
-    // ۱۵. لیست مرجوعی‌های کاربر
-    // GET /orders/refunds
-    // ============================================
-    getRefunds: () => {
-        return apiClient.get<Refund[]>(`${BASE_URL}/refunds`);
-    },
-
-    // ============================================
-    // ۱۶. پردازش مرجوعی توسط ادمین
-    // PATCH /orders/refunds/{refundId}/process
-    // ============================================
-    processRefund: (refundId: string, data?: { status: 'paid' | 'cancelled' }) => {
-        return apiClient.patch<{ message: string; refund: Refund }>(
-            `${BASE_URL}/refunds/${refundId}/process`,
-            data
-        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<MyCheckout>(`${BASE_URL}/admin?${queryString}`);
     },
 };

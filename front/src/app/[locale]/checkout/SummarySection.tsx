@@ -26,7 +26,6 @@ import { useCart, useDeleteFromCart, useUpdateCart } from "@/hooks/cart.hook";
 import { useValidateDiscount } from "@/hooks/discount.hook";
 import { toast } from "sonner";
 
-// شناسه‌های این لیست باید دقیقا با enum سمت بک‌اند (paymentMethod در CreateOrderDto) یکی باشد
 const PAYMENT_METHODS = [
     {
         id: 'zarinpal',
@@ -58,7 +57,6 @@ const PAYMENT_METHODS = [
     },
 ];
 
-// خلاصه‌ی شیوه ارسال انتخاب‌شده برای یک فروشگاه (محاسبه‌شده در صفحه checkout و به این کامپوننت پاس داده می‌شود)
 export interface StoreShippingSelection {
     storeId: string;
     storeName: string;
@@ -66,20 +64,6 @@ export interface StoreShippingSelection {
     cost: number | null;
     estimatedDays?: number | string;
 }
-
-// ---------------------------------------------------------------------------
-// شکل واقعی پاسخ useValidateDiscount (طبق نمونه‌ای که فرستادید):
-// {
-//   eligible: boolean,            // اگر false باشد یعنی کد قابل استفاده نیست (مثلا مبلغ خرید کمتر از minOrderAmount)
-//   discountId, code, type,       // type: 'fixed' | 'percentage'
-//   status,                       // 'STORE' یعنی تخفیف به‌صورت جداگانه روی هر فروشگاه محاسبه شده
-//   subtotal, discountAmount, totalAfterDiscount,   // اعداد کل سفارش (به‌صورت رشته می‌آیند)
-//   minOrderAmount, maxDiscount,
-//   stores: [{ storeId, storeName, subtotal, discountAmount, totalAfterDiscount, carts: [...] }]
-// }
-// یعنی هر فروشگاه هم discountAmount مخصوص خودش را دارد؛ بعضی فروشگاه‌ها ممکن است
-// اصلاً در محاسبه تخفیف سهمی نداشته باشند (discountAmount صفر یا فروشگاه اصلاً در آرایه نباشد).
-// ---------------------------------------------------------------------------
 
 interface DiscountStoreBreakdown {
     storeId: string;
@@ -146,29 +130,21 @@ export function SummarySection({
     const baseTotalPrice = cartData?.totalPrice || 0;
     const baseTotalItems = cartData?.totalItems || 0;
 
-    // اگر کد تخفیف اعمال شده باشد، دیتای جدید (شامل قیمت‌های تخفیف‌خورده) جایگزین دیتای پایه سبد می‌شود
     const cartItems = useMemo(
         () => (appliedDiscount ? appliedDiscount.stores.flatMap((s) => s.carts || []) : baseCartItems),
         [appliedDiscount, baseCartItems]
     );
-    // تخفیف تعداد کالاها را تغییر نمی‌دهد، پس همیشه از تعداد پایه سبد استفاده می‌کنیم
     const totalItems = baseTotalItems;
-    // مبلغ نهایی سبد (بدون هزینه ارسال): در صورت اعمال کد از totalAfterDiscount بک‌اند می‌آید
-    // const totalPrice = appliedDiscount ? Number(appliedDiscount.totalAfterDiscount) : baseTotalPrice;
     const totalPrice = appliedDiscount ? Number(appliedDiscount.totalAfterDiscount) : baseTotalPrice;
 
     const currentPayment = PAYMENT_METHODS.find((i) => i.id === paymentId) || PAYMENT_METHODS[0];
 
-    // جمع هزینه ارسال همه فروشگاه‌ها (اگر شیوه‌ای برای فروشگاهی انتخاب نشده باشد، فعلا صفر در نظر گرفته می‌شود)
     const totalShippingCost = useMemo(
         () => storeShippingSelections.reduce((sum, s) => sum + (s.cost || 0), 0),
         [storeShippingSelections]
     );
     const hasIncompleteShipping = showShipping && storeShippingSelections.some((s) => s.cost === null);
 
-    // محاسبه قیمت اولیه و تخفیف کالاها (تخفیف‌های خود محصول، جدا از کد تخفیف)
-    // نکته: هر آیتم سبد از بک‌اند خودش totalPrice و totalDiscount (تخفیف‌خورده و برای کل quantity) را دارد،
-    // پس دیگر لازم نیست type/isActive/endsAt تخفیف را خودمان دوباره حساب کنیم؛ همان مقادیر آماده را جمع می‌زنیم.
     const { originalPrice, productsDiscount } = useMemo(() => {
         return cartItems.reduce(
             (acc: { originalPrice: number; productsDiscount: number }, item: any) => {

@@ -3,11 +3,12 @@
  */
 import { Injectable, NotFoundException, BadRequestException, Body } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateDiscountDto } from './dto/discount.dto';
+import { CreateDiscountDto, SearchDiscountDto } from './dto/discount.dto';
 import pagination from '../common/utils/pagination';
 import { ValidateDiscountDto } from './dto/validate.discount.dto';
 import { DiscountQueueService } from '@/queues/discount/discount-queue.service';
 import { Prisma, StatusDiscount, DiscountType } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 
 type Decimal = Prisma.Decimal;
 @Injectable()
@@ -15,17 +16,47 @@ export class DiscountsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly discountQueueService: DiscountQueueService,
+    private readonly configService: ConfigService,
   ) { }
 
   /** دریافت تمام کدهای تخفیف */
-  async findAll(page: number = 1, limit: number = 10) {
-    const skip = (Number(page) - 1) * Number(limit);
+  async findAll(query: SearchDiscountDto) {
+    const { code, status, type, isActive, limit, order, page = 1, userId } = query
+    const where: Prisma.DiscountCodeWhereInput = {
+      ...(code && { code: { contains: code, mode: 'insensitive' } }),
+      ...(status && status !== 'All' && { status }),
+      ...(isActive && { isActive }),
+      ...(userId && { userId }),
+      ...((type === 'fixed' || type === 'percentage') && { type }),
+    }
+    const limitPage = Number(limit) || Number(this.configService.get('limit.discounts'))
+    const skip = (Number(page) - 1) * Number(limitPage);
     const [discounts, total] = await Promise.all([
-      this.prisma.discountCode.findMany({ take: limit, orderBy: { createdAt: 'asc' }, include: { discountCodeStores: { select: { storeId: true } } }, skip }),
-      this.prisma.discountCode.count(),
+      this.prisma.discountCode.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              lastName: true,
+              firstName: true,
+              username: true,
+              id: true,
+              store: {
+                select: {
+                  slug: true,
+                  name: true,
+                  nameEn: true
+                }
+              }
+            }
+          }
+        },
+        take: limitPage, orderBy: { createdAt: order || 'asc' }, skip
+      }),
+      this.prisma.discountCode.count({ where }),
     ]);
-    const pages = pagination(total, page, limit)
-    return { discounts, total, pagination: pages };
+    const pages = pagination(total, page, limitPage)
+    return { discounts, pagination: pages };
   }
 
   async listDiscount() {
@@ -43,7 +74,7 @@ export class DiscountsService {
   }
 
   /** ایجاد کد تخفیف جدید */
-  async create(creatorId: string, dto: CreateDiscountDto) {
+  async create(userId: string, dto: CreateDiscountDto) {
     const { storeId, ...body } = dto
     const existing = await this.prisma.discountCode.findUnique({ where: { code: dto.code.toUpperCase() } });
     if (existing) throw new BadRequestException('این کد تخفیف قبلاً ثبت شده است');
@@ -55,7 +86,7 @@ export class DiscountsService {
         code: dto.code.toUpperCase(),
         startsAt: new Date(dto.startsAt),
         endsAt: new Date(dto.endsAt),
-        creatorId,
+        userId
       },
     });
     if (storeIdArry.length && body.status === 'STORE') {
@@ -69,13 +100,11 @@ export class DiscountsService {
         data: map
       })
     }
-    if (dto.status === 'PRODUCT') {
-      if (discount.endsAt) {
-        await this.discountQueueService.scheduleExpire(discount.id, discount.endsAt);
-      }
-      if (discount.startsAt > now) {
-        await this.discountQueueService.scheduleActivate(discount.id, discount.startsAt);
-      }
+    if (discount.endsAt) {
+      await this.discountQueueService.scheduleExpire(discount.id, discount.endsAt);
+    }
+    if (discount.startsAt > now) {
+      await this.discountQueueService.scheduleActivate(discount.id, discount.startsAt);
     }
     return { success: true }
   }
@@ -116,14 +145,14 @@ export class DiscountsService {
       })
     }
     if (existingDiscount.status === 'PRODUCT') {
-      await this.discountQueueService.cancelJobs(discountId);
       await this.discountQueueService.enqueueImmediateSync(discountId);
-      if (discount.endsAt) {
-        await this.discountQueueService.scheduleExpire(discount.id, discount.endsAt);
-      }
-      if (discount.startsAt > now) {
-        await this.discountQueueService.scheduleActivate(discount.id, discount.startsAt);
-      }
+    }
+    await this.discountQueueService.cancelJobs(discountId);
+    if (discount.endsAt) {
+      await this.discountQueueService.scheduleExpire(discount.id, discount.endsAt);
+    }
+    if (discount.startsAt > now) {
+      await this.discountQueueService.scheduleActivate(discount.id, discount.startsAt);
     }
     return { success: true }
   }
@@ -144,6 +173,7 @@ export class DiscountsService {
       await this.discountQueueService.enqueueSyncForProducts(productIds);
       return { success: true }
     } else {
+      await this.discountQueueService.cancelJobs(id);
       await this.prisma.discountCode.delete({ where: { id } });
       return { success: true }
     }

@@ -54,7 +54,6 @@ export default function AdminWalletPage() {
     setSelectedWallet(wallet);
     setModalMode('view');
   };
-
   const buildWalletDialogOptions = (wallet: WalletEntity) => {
     const options = [
       {
@@ -71,7 +70,7 @@ export default function AdminWalletPage() {
         head: 'موجودی‌ها',
         detail: [
           { name: 'موجودی قابل برداشت', value: `${formatCurrency(wallet.balance)} تومان` },
-          { name: 'موجودی در انتظار', value: `${formatCurrency(wallet.pendingBalance)} تومان` },
+          { name: 'تسویه در انتظار', value: `${formatCurrency(wallet.pendingBalance)} تومان` },
           { name: 'در حال برداشت', value: `${formatCurrency(wallet.withdrawBalance)} تومان` },
           { name: 'موجودی مسدود', value: `${formatCurrency(wallet.frozenBalance)} تومان` },
         ],
@@ -94,15 +93,15 @@ export default function AdminWalletPage() {
         ],
       },
     ];
-    if (wallet.bankAccounts?.length) {
+    if (wallet?.bankAccounts?.length) {
       wallet.bankAccounts.forEach((item) => {
         options.push({
-          head: `🏦 ${item.bankName || 'بانک'}`,
+          head: `🏦 ${item?.bankName || 'بانک'}`,
           detail: [
-            { name: 'نام بانک', value: item.bankName || '-' },
-            { name: 'نام صاحب حساب', value: item.accountHolder || '-' },
-            { name: 'شماره شبا', value: item.iban || '-' },
-            { name: 'شماره کارت', value: item.cardNumber || '-' },
+            { name: 'نام بانک', value: item?.bankName || '-' },
+            { name: 'نام صاحب حساب', value: item?.accountHolder || '-' },
+            { name: 'شماره شبا', value: item?.iban || '-' },
+            { name: 'شماره کارت', value: item?.cardNumber || '-' },
           ],
         });
       });
@@ -148,7 +147,7 @@ export default function AdminWalletPage() {
     },
     {
       accessorKey: 'pendingBalance',
-      header: 'در انتظار',
+      header: 'در انتظار تسویه',
       cell: ({ row }) => (
         <span className="font-bold text-amber-500 text-sm">
           {formatCurrency(row.original.pendingBalance)}
@@ -281,7 +280,7 @@ export default function AdminWalletPage() {
                   <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 h-full">
                     <div className="flex items-center gap-2 mb-3">
                       <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">موجودی قابل برداشت</span>
+                      <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">سود فروش</span>
                     </div>
                     <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(myWallet?.balance || 0)}
@@ -294,7 +293,7 @@ export default function AdminWalletPage() {
                   <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 h-full">
                     <div className="flex items-center gap-2 mb-3">
                       <TrendingUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span className="text-xs text-amber-700 dark:text-amber-400 font-bold">در انتظار</span>
+                      <span className="text-xs text-amber-700 dark:text-amber-400 font-bold">مالیات</span>
                     </div>
                     <p className="text-2xl font-black text-amber-600 dark:text-amber-400">
                       {formatCurrency(myWallet?.pendingBalance || 0)}

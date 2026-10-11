@@ -91,7 +91,7 @@ export default function page() {
                                 <p className="text-[10px] text-slate-400 font-normal">اطلاعات کاربر</p>
                                 <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">{ticket.user?.firstName + " " + ticket.user?.lastName}</p>
                                 <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">نام کاربر : {ticket.user?.username}</p>
-                                <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">نقش : {ticket.user?.role === "buyer" ? "خریدار" : ticket.user?.role === "admin" ? "ادمین" : "فروشنده"}</p>
+                                <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">نقش : {ticket.user?.role === "user" ? "خریدار" : ticket.user?.role === "admin" ? "ادمین" : "فروشنده"}</p>
                                 <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">شماره تلفن : {ticket.user?.phone || '-'}</p>
                                 <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">وضعیت : {!ticket.isUserRead ? 'خوانده نشده' : 'خوانده شده'}</p>
                                 <p className="text-sm font-semibold dark:text-white mt-0.5 truncate">آیدی : {ticket.userId}</p>

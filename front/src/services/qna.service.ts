@@ -65,7 +65,7 @@ export const qnaService = {
   // دریافت Q&A محصول (عمومی)
   getByProduct: (productId: string, page?: number | unknown) => {
     console.log(`${BASE_URL}/product/${productId}?page=${page}`);
-    
+
     return apiClient.get<QnaResponse>(`${BASE_URL}/product/${productId}?page=${page}`);
   },
 
@@ -78,6 +78,16 @@ export const qnaService = {
     );
     const queryString = new URLSearchParams(cleanFilters).toString();
     return apiClient.get<QnaResponse>(`${BASE_URL}/admin?${queryString}`);
+  },
+  // دریافت Q&A محصول (ادمین)
+  getStore: (params?: SearchQnaDTO, storeId?: string) => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(params || {})
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => [key, String(value)])
+    );
+    const queryString = new URLSearchParams(cleanFilters).toString();
+    return apiClient.get<QnaResponse>(`${BASE_URL}/store/${storeId}?${queryString}`);
   },
 
   // دریافت یک Q&A

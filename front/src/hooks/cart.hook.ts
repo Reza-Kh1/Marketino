@@ -28,7 +28,6 @@ export function useCart() {
     });
 }
 
-
 export const discountChange = (price: number, discount: DiscountType | null) => {
     if (!discount) return {
         total: price,

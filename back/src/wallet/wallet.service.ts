@@ -45,11 +45,6 @@ export class WalletService {
     const random = crypto.randomBytes(3).toString('hex').toUpperCase();
     return `${prefix}-${date}-${random}`;
   }
-  private async getSellerWallet(userId: string) {
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
-    if (!wallet || wallet.isPlatform) { throw new BadRequestException('کیف پول فروشنده یافت نشد'); }
-    return wallet;
-  }
 
   private async getPlatformWallet() {
     const wallet = await this.prisma.wallet.findFirst({ where: { isPlatform: true } });
@@ -57,39 +52,6 @@ export class WalletService {
     return wallet;
   }
 
-  async createPurchaseTransaction(userId: string, amount: WalletAmount, orderId: string, SettlementDate?: Date,) {
-    const value = new Prisma.Decimal(amount);
-    if (value.lessThanOrEqualTo(0)) { throw new BadRequestException('مبلغ خرید نامعتبر است'); }
-    const seller = await this.getSellerWallet(userId);
-    const platform = await this.getPlatformWallet();
-    return this.prisma.$transaction(async tx => {
-      const transaction = await tx.walletTransaction.create({
-        data: {
-          amount: value,
-          type: WalletTransactionType.purchase,
-          status: WalletTransactionStatus.pending,
-          trackingCode: this.generateTrackingCode(WalletTransactionType.purchase),
-          userId,
-          walletId: seller.id,
-          orderId,
-          SettlementDate,
-        },
-      });
-      await tx.wallet.update({
-        where: { id: seller.id },
-        data: {
-          pendingBalance: { increment: value },
-        },
-      });
-      await tx.wallet.update({
-        where: { id: platform.id },
-        data: {
-          balance: { increment: value },
-        },
-      });
-      return transaction;
-    });
-  }
   async completeTransaction(id: string, description?: string) {
     return this.prisma.$transaction(async tx => {
       const transaction = await tx.walletTransaction.findUnique({
@@ -205,158 +167,7 @@ export class WalletService {
       });
     });
   }
-  async createCommissionTransaction(userId: string, amount: WalletAmount, orderId: string, description?: string) {
-    const value = new Prisma.Decimal(amount);
-    if (value.lessThanOrEqualTo(0)) { return null }
-    const seller = await this.getSellerWallet(userId);
-    const platform = await this.getPlatformWallet();
-    return this.prisma.$transaction(async tx => {
-      if (new Prisma.Decimal(seller.balance).lessThan(value)) {
-        throw new BadRequestException('موجودی قابل برداشت فروشنده برای کمیسیون کافی نیست');
-      }
-      await tx.wallet.update({
-        where: { id: seller.id },
-        data: {
-          balance: { decrement: value },
-        },
-      });
-      await tx.wallet.update({
-        where: { id: platform.id },
-        data: {
-          balance: { increment: value },
-        },
-      });
-      return tx.walletTransaction.create({
-        data: {
-          amount: value,
-          type: WalletTransactionType.commission,
-          status: WalletTransactionStatus.completed,
-          trackingCode: this.generateTrackingCode(WalletTransactionType.commission),
-          userId,
-          walletId: seller.id,
-          orderId,
-          description,
-        },
-      });
-    });
-  }
-  async createTaxTransaction(userId: string, amount: WalletAmount, orderId: string, description?: string) {
-    const value = new Prisma.Decimal(amount);
-    if (value.lessThanOrEqualTo(0)) { return null; }
-    const seller = await this.getSellerWallet(userId);
-    const platform = await this.getPlatformWallet();
-    return this.prisma.$transaction(async tx => {
-      if (new Prisma.Decimal(seller.balance).lessThan(value)) {
-        throw new BadRequestException('موجودی فروشنده برای پرداخت مالیات کافی نیست');
-      }
-      await tx.wallet.update({
-        where: { id: seller.id },
-        data: {
-          balance: { decrement: value },
-        },
-      });
-      await tx.wallet.update({
-        where: { id: platform.id },
-        data: {
-          balance: { increment: value },
-        },
-      });
-      return tx.walletTransaction.create({
-        data: {
-          amount: value,
-          type: WalletTransactionType.tax,
-          status: WalletTransactionStatus.completed,
-          trackingCode: this.generateTrackingCode(WalletTransactionType.tax),
-          userId,
-          walletId: seller.id,
-          orderId,
-          description,
-        },
-      });
-    });
-  }
-  async createReturnTransaction(
-    userId: string,
-    amount: WalletAmount,
-    returnRequestId: string,
-    settled: boolean,
-    orderId?: string,
-    description?: string,
-  ) {
-    /*
-     * نیاز دارد:
-     * - userId فروشنده
-     * - returnRequestId
-     * - amount مرجوعی
-     * - settled
-     *
-     * settled = true:
-     *   پول قبلاً به balance فروشنده منتقل شده
-     *
-     * settled = false:
-     *   هنوز در pendingBalance است
-     */
-    const value = new Prisma.Decimal(amount);
-    if (value.lessThanOrEqualTo(0)) {
-      throw new BadRequestException('مبلغ مرجوعی نامعتبر است');
-    }
-    const seller = await this.getSellerWallet(userId);
-    const platform = await this.getPlatformWallet();
 
-    return this.prisma.$transaction(async tx => {
-      if (settled) {
-        if (new Prisma.Decimal(seller.balance).lessThan(value)) {
-          throw new BadRequestException('موجودی فروشنده برای مرجوعی کافی نیست');
-        }
-
-        await tx.wallet.update({
-          where: { id: seller.id },
-          data: {
-            balance: { decrement: value },
-          },
-        });
-      } else {
-        if (new Prisma.Decimal(seller.pendingBalance).lessThan(value)) {
-          throw new BadRequestException('موجودی pending فروشنده برای مرجوعی کافی نیست');
-        }
-
-        await tx.wallet.update({
-          where: { id: seller.id },
-          data: {
-            pendingBalance: { decrement: value },
-          },
-        });
-      }
-
-      /*
-       * مبلغ برگشتی از حساب مالی پلتفرم خارج می‌شود.
-       */
-      if (new Prisma.Decimal(platform.balance).lessThan(value)) {
-        throw new BadRequestException('موجودی کیف پول پلتفرم برای بازپرداخت کافی نیست');
-      }
-
-      await tx.wallet.update({
-        where: { id: platform.id },
-        data: {
-          balance: { decrement: value },
-        },
-      });
-
-      return tx.walletTransaction.create({
-        data: {
-          amount: value,
-          type: WalletTransactionType.return_deduction,
-          status: WalletTransactionStatus.completed,
-          trackingCode: this.generateTrackingCode(WalletTransactionType.return_deduction),
-          userId,
-          walletId: seller.id,
-          orderId,
-          returnRequestId,
-          description,
-        },
-      });
-    });
-  }
   async requestWithdrawal(userId: string, amount: WalletAmount) {
     const value = new Prisma.Decimal(amount);
     if (value.lessThanOrEqualTo(0)) { throw new BadRequestException('مبلغ برداشت نامعتبر است') }
@@ -495,7 +306,7 @@ export class WalletService {
       ...(type !== 'all' && { type }),
       ...(trackingCode && { trackingCode })
     }
-    const [data, count] = await this.prisma.$transaction([
+    const [transaction, count] = await this.prisma.$transaction([
       this.prisma.walletTransaction.findMany({
         where,
         skip,
@@ -505,7 +316,7 @@ export class WalletService {
       this.prisma.walletTransaction.count({ where }),
     ]);
     return {
-      data,
+      transaction,
       pagination: pagination(count, Number(page), Number(limitPage)),
     };
   }
@@ -520,7 +331,7 @@ export class WalletService {
       ...(userId && { userId }),
       ...(trackingCode && { trackingCode })
     }
-    const [data, count] = await this.prisma.$transaction([
+    const [transaction, count] = await this.prisma.$transaction([
       this.prisma.walletTransaction.findMany({
         where,
         skip,
@@ -530,7 +341,7 @@ export class WalletService {
       this.prisma.walletTransaction.count({ where }),
     ]);
     return {
-      data,
+      transaction,
       pagination: pagination(count, Number(page), Number(limitPage)),
     };
   }

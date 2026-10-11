@@ -3,8 +3,9 @@ import { EmailService } from "@/email/email.service";
 import { PrismaService } from "@/prisma/prisma.service";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { CreateOrderDto } from "./dto/order.dto";
-import { Prisma } from "@prisma/client";
+import { CheckoutItemDto, CreateCheckoutDto, SearchCheckouts, SearchOrders, UpdateCheckoutDto, updateStoreOrderDto } from "./dto/order.dto";
+import { OrderStatus, PaymentStatus, Prisma, UserRole } from "@prisma/client";
+import pagination from "@/common/utils/pagination";
 
 @Injectable()
 export class OrdersService {
@@ -14,12 +15,35 @@ export class OrdersService {
         private readonly configService: ConfigService,
     ) { }
 
-    private async calculateCheckout(userId: string, body: CreateOrderDto) {
+    private generateTrackingCode(prefix = 'TXN'): string {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+        const segment = (length: number): string => {
+            let result = '';
+
+            for (let i = 0; i < length; i++) {
+                result += chars[Math.floor(Math.random() * chars.length)];
+            }
+
+            return result;
+        };
+
+        return `${prefix}-${segment(4)}-${segment(4)}-${segment(4)}`;
+    }
+
+    private generateCheckoutNumber(): string {
+        const timestamp = Date.now().toString().slice(-8);
+        const random = Math.floor(1000 + Math.random() * 9000);
+
+        return `${timestamp}${random}`;
+    }
+
+    private async calculateCheckout(userId: string, body: CreateCheckoutDto) {
         const { addressId, orders, discountId } = body
         const storeIds = [...new Set(orders.map(x => x.storeId))]
 
         const [address, stores, cartItems, rawDiscount] = await Promise.all([
-            this.prisma.address.findFirst({ where: { id: addressId, userId } }),
+            this.prisma.address.findFirst({ where: { id: addressId, userId }, include: { city: { select: { name: true } }, province: { select: { name: true } } } }),
             this.prisma.store.findMany({ where: { id: { in: storeIds } }, select: { id: true, name: true, nameEn: true, commissionRate: true, taxRate: true } }),
             this.prisma.cartItem.findMany({
                 where: { userId, product: { storeId: { in: storeIds } } },
@@ -187,8 +211,587 @@ export class OrdersService {
         }
     }
 
-    async createOrder(userId: string, body: CreateOrderDto) {
-        const checkout = await this.calculateCheckout(userId, body)
-        return { success: checkout }
+    private validateCheckoutResult(
+        checkout: any,
+        stores: any[],
+        address: any,
+    ): void {
+        if (!checkout) {
+            throw new BadRequestException('اطلاعات محاسبه سفارش دریافت نشد.');
+        }
+
+        if (!address?.id) {
+            throw new BadRequestException('آدرس ارسال سفارش معتبر نیست.');
+        }
+
+        if (!Array.isArray(stores) || stores.length === 0) {
+            throw new BadRequestException(
+                'هیچ فروشگاهی برای ثبت سفارش یافت نشد.',
+            );
+        }
+
+        const requiredCheckoutFields = [
+            'totalOriginal',
+            'totalAmount',
+            'discountAmount',
+            'commissionAmount',
+            'taxAmount',
+            'salesProfit',
+        ];
+
+        for (const field of requiredCheckoutFields) {
+            const value = Number(checkout[field]);
+
+            if (!Number.isFinite(value) || value < 0) {
+                throw new BadRequestException(
+                    `مقدار ${field} در اطلاعات سفارش معتبر نیست.`,
+                );
+            }
+        }
+
+        for (const store of stores) {
+            if (!store.storeId) {
+                throw new BadRequestException(
+                    'شناسه فروشگاه در اطلاعات سفارش وجود ندارد.',
+                );
+            }
+
+            if (!store.shippingId) {
+                throw new BadRequestException(
+                    `روش ارسال فروشگاه ${store.storeName} مشخص نشده است.`,
+                );
+            }
+
+            if (!Array.isArray(store.orderItems) || store.orderItems.length === 0) {
+                throw new BadRequestException(
+                    `هیچ محصولی برای فروشگاه ${store.storeName} وجود ندارد.`,
+                );
+            }
+
+            const numericFields = [
+                'shippingCost',
+                'commission',
+                'commissionAmount',
+                'originalPrice',
+                'subtotal',
+                'taxAmount',
+                'totalPrice',
+                'discountAmount',
+                'payoutAmount',
+            ];
+
+            for (const field of numericFields) {
+                const value = Number(store[field]);
+
+                if (!Number.isFinite(value) || value < 0) {
+                    throw new BadRequestException(
+                        `مقدار ${field} برای فروشگاه ${store.storeName} معتبر نیست.`,
+                    );
+                }
+            }
+
+            for (const item of store.orderItems) {
+                if (
+                    !item.productId ||
+                    !item.variantId ||
+                    !item.sku ||
+                    !item.quantity ||
+                    item.quantity <= 0
+                ) {
+                    throw new BadRequestException(
+                        `اطلاعات محصول ${item.name ?? ''} برای ثبت سفارش ناقص است.`,
+                    );
+                }
+
+                if (!Number.isFinite(Number(item.price)) || Number(item.price) < 0) {
+                    throw new BadRequestException(
+                        `قیمت محصول ${item.name ?? ''} معتبر نیست.`,
+                    );
+                }
+
+                if (!Number.isFinite(Number(item.total)) || Number(item.total) < 0) {
+                    throw new BadRequestException(
+                        `مبلغ محصول ${item.name ?? ''} معتبر نیست.`,
+                    );
+                }
+            }
+        }
+    }
+
+    async createCheckout(userId: string, body: CreateCheckoutDto) {
+        const { address, checkout, stores } = await this.calculateCheckout(userId, body);
+        this.validateCheckoutResult(checkout, stores, address);
+
+        // return {
+        //     address,
+        //     checkout, stores
+        // }
+        return this.prisma.$transaction(async (tx) => {
+            const createdCheckout = await tx.checkout.create({
+                data: {
+                    checkoutNumber: this.generateCheckoutNumber(),
+                    commissionAmount: checkout.commissionAmount,
+                    salesProfit: checkout.salesProfit,
+                    totalAmount: checkout.totalAmount,
+                    discountAmount: checkout.commissionDiscountAmount || checkout.discountAmount,
+                    taxAmount: checkout.taxAmount,
+                    discountStatus: checkout.discountType,
+                    shippingName: address.fullName,
+                    shippingPhone: address.phone,
+                    shippingCity: address.city?.name,
+                    shippingProvince: address.province?.name,
+                    shippingAddress: address.address,
+                    shippingPostal: address.postalCode,
+                    discountId: checkout.discountCodeId || null,
+                    userId,
+                    addressId: address.id,
+                },
+            });
+            const createdOrders = [] as any;
+            for (const store of stores) {
+                const order = await tx.order.create({
+                    data: {
+                        orderNumber: this.generateCheckoutNumber(),
+                        status: 'pending',
+                        shippingCost: store.shippingCost,
+                        shippingName: store.shippingName,
+                        storeName: store.storeName,
+                        storeNameEn: store.storeNameEn,
+                        commission: store.commission,
+                        commissionAmount: store.commissionAmount,
+                        subtotal: store.subtotal,
+                        totalPrice: store.totalPrice,
+                        discountAmount: store.discountAmount,
+                        note: store.note || null,
+                        checkoutId: createdCheckout.id,
+                        storeId: store.storeId,
+                        userId,
+                        storeShippingMethodId: store.shippingId || null,
+                        discountCodeId: store.discountCodeId || null,
+                        taxAmount: store.taxAmount,
+                        items: {
+                            create: store.orderItems.map((item) => ({
+                                sku: item.sku,
+                                name: item.name,
+                                nameEn: item.nameEn,
+                                price: item.price,
+                                originalPrice: item.originalPrice,
+                                total: item.total,
+                                quantity: item.quantity,
+                                returnedQty: item.returnedQty ?? 0,
+                                attributes: item.attributes ?? null,
+                                colorName: item.colorName ?? null,
+                                colorHex: item.colorHex ?? null,
+                                productId: item.productId,
+                                storeId: item.storeId,
+                                variantId: item.variantId,
+                            })),
+                        },
+                    },
+                    include: {
+                        items: true,
+                    },
+                });
+                createdOrders.push(order);
+                for (const item of store.orderItems) {
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: {
+                            saleCount: {
+                                increment: item.quantity,
+                            },
+                        },
+                    });
+                    const result = await tx.productVariant.updateMany({
+                        where: {
+                            id: item.variantId,
+                            quantity: {
+                                gte: item.quantity,
+                            },
+                        },
+                        data: {
+                            quantity: {
+                                decrement: item.quantity,
+                            },
+                            saleCount: {
+                                increment: item.quantity,
+                            },
+                        },
+                    });
+                    if (result.count === 0) {
+                        throw new BadRequestException(
+                            `موجودی محصول ${item.name} کافی نیست.`,
+                        );
+                    }
+                }
+            }
+            await tx.cartItem.deleteMany({ where: { userId } })
+            return {
+                success: true,
+                checkout: createdCheckout,
+                orders: createdOrders,
+                address,
+            };
+        });
+    }
+
+    async getAdminOrder(query: SearchOrders) {
+        const { limit, page = 1, paymentStatus, userId } = query
+        const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
+        const skip = (Number(page) - 1) * limitPage;
+        const where = {
+            // ...(paymentStatus && paymentStatus !== 'All' && { paymentStatus }),
+            // ...(userId && { userId }),
+        }
+        const [orders, total] = await Promise.all([
+            this.prisma.order.findMany({
+                where,
+                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+            }),
+            this.prisma.order.count({ where }),
+        ]);
+
+        return { orders, pagination: pagination(total, page, limitPage) }
+    }
+
+    async getAdminChekout(query: SearchCheckouts) {
+        const { limit, page = 1, paymentStatus, userId } = query
+        const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
+        const skip = (Number(page) - 1) * limitPage;
+        const where = {
+            ...(paymentStatus && paymentStatus !== 'All' && { paymentStatus }),
+            ...(userId && { userId }),
+        }
+        const [checkouts, total] = await Promise.all([
+            this.prisma.checkout.findMany({
+                where,
+                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+            }),
+            this.prisma.checkout.count({ where }),
+        ]);
+        return { checkouts, pagination: pagination(total, page, limitPage) }
+    }
+
+    async getStoresOrder(storeId: string, query: SearchOrders) {
+        const { limit, page = 1 } = query
+        const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
+
+        const skip = (Number(page) - 1) * limitPage;
+        const [orders, total] = await Promise.all([
+            this.prisma.order.findMany({
+                where: {
+                    storeId
+                },
+                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+            }),
+            this.prisma.order.count({ where: { storeId } }),
+        ]);
+        return { orders, pagination: pagination(total, page, limitPage) }
+    }
+
+    async getMyChekout(userId: string, query: SearchCheckouts) {
+        const { limit = 1, page = 1, paymentStatus, status } = query
+        const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
+        const skip = (Number(page) - 1) * limitPage;
+        const where = {
+            userId,
+            ...(status && status !== 'All' && { status }),
+            ...(paymentStatus && paymentStatus !== 'All' && { paymentStatus })
+        }
+        const [checkouts, total] = await Promise.all([
+            this.prisma.checkout.findMany({
+                where,
+                select: {
+                    checkoutNumber: true,
+                    createdAt: true,
+                    id: true,
+                    discountAmount: true,
+                    paymentMethod: true,
+                    paymentStatus: true,
+                    status: true,
+                    paymentRef: true,
+                    totalAmount: true,
+                    userId: true
+                },
+                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+            }),
+            this.prisma.checkout.count({ where }),
+        ]);
+        return { checkouts, pagination: pagination(total, page, limitPage) }
+    }
+
+    async updateCheckout(id: string, body: UpdateCheckoutDto, role: UserRole) {
+        const data = await this.prisma.checkout.update({
+            where: { id },
+            data: (role === 'admin' || role === 'superAdmin') ? { ...body } : { status: body.status }
+        })
+
+        if (data.status === 'cancelled') {
+            await this.cancelCheckout(data.id, data.userId)
+        }
+
+        if (data.status === 'returned') {
+
+        }
+        return { success: true }
+    }
+
+    async cancelCheckout(checkoutId: string, userId: string) {
+        return this.prisma.$transaction(async tx => {
+            const items = (await tx.orderItem.findMany({
+                where: { order: { checkoutId, userId, status: 'pending' } },
+                select: { productId: true, variantId: true, quantity: true },
+            }));
+            if (!items.length) throw new BadRequestException('این سفارش قابل لغو نیست.');
+            await Promise.all(items.flatMap(({ productId, variantId, quantity }) => [
+                tx.productVariant.update({
+                    where: { id: variantId },
+                    data: { quantity: { increment: quantity }, saleCount: { decrement: quantity } },
+                }),
+                tx.product.update({
+                    where: { id: productId },
+                    data: { saleCount: { decrement: quantity } },
+                }),
+            ]));
+            await tx.order.updateMany({
+                where: { checkoutId, userId, status: 'pending' },
+                data: { status: 'cancelled', cancelledAt: new Date() },
+            });
+            return { success: true };
+        });
+    }
+
+    async updateOrderStore(id: string, body: updateStoreOrderDto) {
+        const order = await this.prisma.order.update({
+            where: { id, storeId: body.storeId },
+            data: { status: body.status },
+            select: { checkoutId: true },
+        });
+        const statuses = await this.prisma.order.findMany({
+            where: { checkoutId: order.checkoutId },
+            select: { status: true },
+        });
+        const priority: OrderStatus[] = [
+            'cancelled',
+            'returned',
+            'pending',
+            'confirmed',
+            'processing',
+            'shipped',
+            'delivered',
+        ];
+
+        const checkoutStatus =
+            statuses.every(x => x.status === 'delivered') ? 'delivered' :
+                statuses.every(x => x.status === 'cancelled') ? 'cancelled' :
+                    statuses.every(x => x.status === 'returned') ? 'returned' :
+                        priority.find(status => statuses.some(x => x.status === status)) ?? 'pending';
+
+        await this.prisma.checkout.update({
+            where: { id: order.checkoutId },
+            data: { status: checkoutStatus },
+        });
+        return { success: true };
+    }
+
+    async updatePaymentCheckout(checkoutId: string) {
+        return this.prisma.$transaction(async (tx) => {
+            // پرداخت فقط یک بار از pending به paid تغییر می‌کند
+            const checkout = await tx.checkout.update({
+                where: {
+                    id: checkoutId,
+                    paymentStatus: 'pending',
+                },
+                data: {
+                    paymentStatus: 'paid',
+                },
+                select: {
+                    id: true,
+                    checkoutNumber: true,
+                    taxAmount: true,
+                    salesProfit: true,
+                    orders: {
+                        select: {
+                            id: true,
+                            returnDeadline: true,
+                            totalPrice: true,
+                            commissionAmount: true,
+                            taxAmount: true,
+                            store: {
+                                select: {
+                                    owner: {
+                                        select: {
+                                            id: true,
+                                            wallet: {
+                                                select: {
+                                                    id: true,
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            const superAdmin = await tx.user.findFirst({ where: { role: 'superAdmin' }, select: { id: true, wallet: { select: { id: true } } } })
+            if (!checkout.orders.length || !superAdmin?.id || !superAdmin?.wallet?.id) {
+                throw new BadRequestException('سفارشی برای این پرداخت پیدا نشد.');
+            }
+            const deadLine = new Date(
+                Date.now() + 7 * 24 * 60 * 60 * 1000,
+            );
+
+            for (const order of checkout.orders) {
+                const seller = order.store.owner;
+                const wallet = seller.wallet;
+                const deadLine = order.returnDeadline
+                if (!wallet) {
+                    throw new BadRequestException(`کیف پول فروشنده سفارش ${order.id} پیدا نشد.`,);
+                }
+                // const settlementDate = new Date(deadLine);
+                // settlementDate.setDate(settlementDate.getDate() + 1);
+
+                const total = new Prisma.Decimal(order.totalPrice);
+                const commission = new Prisma.Decimal(order.commissionAmount,);
+                const tax = new Prisma.Decimal(order.taxAmount);
+                const sellerAmount = total.minus(commission).minus(tax);
+
+                if (total.lte(0) || commission.lt(0) || tax.lt(0) || sellerAmount.lt(0)) {
+                    throw new BadRequestException(`مبالغ مالی سفارش ${order.id} معتبر نیستند.`);
+                }
+
+                // فقط سهم خالص فروشنده وارد موجودی در انتظار می‌شود
+                await tx.wallet.update({
+                    where: { id: wallet.id },
+                    data: {
+                        pendingBalance: { increment: sellerAmount },
+                    },
+                });
+
+                // 1. سهم خالص فروشنده؛ منتظر موعد تسویه
+                await tx.walletTransaction.create({
+                    data: {
+                        type: 'sale_settlement',
+                        status: 'pending',
+                        amount: sellerAmount,
+                        trackingCode: this.generateTrackingCode('SET'),
+                        userId: seller.id,
+                        walletId: wallet.id,
+                        orderId: order.id,
+                        settlementDate: deadLine
+                    },
+                });
+                // 2. کمیسیون؛ ردیف توضیحی صورتحساب، بدون کسر مجدد از کیف پول
+                if (commission.gt(0)) {
+                    await tx.walletTransaction.create({
+                        data: {
+                            type: 'commission',
+                            status: 'completed',
+                            amount: commission,
+                            trackingCode: this.generateTrackingCode('COM'),
+                            userId: seller.id,
+                            walletId: wallet.id,
+                            orderId: order.id,
+                        },
+                    });
+                }
+
+                // 3. مالیات؛ ردیف توضیحی صورتحساب
+                if (tax.gt(0)) {
+                    await tx.walletTransaction.create({
+                        data: {
+                            type: 'tax',
+                            status: 'completed',
+                            amount: tax,
+                            trackingCode: this.generateTrackingCode('TAX'),
+                            userId: seller.id,
+                            walletId: wallet.id,
+                            orderId: order.id,
+                        },
+                    });
+                }
+            }
+            await tx.walletTransaction.createMany({
+                data: [
+                    {
+                        amount: checkout.salesProfit,
+                        type: 'deposit',
+                        trackingCode: this.generateTrackingCode('DES'),
+                        status: 'completed',
+                        userId: superAdmin?.id,
+                        walletId: superAdmin.wallet.id,
+                        description: ` سود سفارش ${checkout.checkoutNumber} `,
+                    },
+                    {
+                        amount: checkout.taxAmount,
+                        type: 'tax',
+                        trackingCode: this.generateTrackingCode('TAX'),
+                        status: 'completed',
+                        userId: superAdmin?.id,
+                        walletId: superAdmin.wallet.id,
+                        description: ` مالیات سفارش ${checkout.checkoutNumber} `,
+                    },
+                ]
+            })
+            await tx.wallet.update({
+                where: {
+                    id: superAdmin.wallet.id
+                },
+                data: {
+                    balance: { increment: checkout.salesProfit },
+                    pendingBalance: { increment: checkout.taxAmount },
+                }
+            })
+            await tx.order.updateMany({
+                where: { checkoutId: checkoutId },
+                data: { status: 'confirmed' }
+            })
+            await tx.checkout.update({
+                where: { id: checkoutId },
+                data: { status: 'confirmed' }
+            })
+
+            return { success: true, };
+        });
+    }
+
+    async getDetailCheckout(id: string) {
+        const data = await this.prisma.checkout.findUnique({
+            where: {
+                id
+            },
+            include: {
+                orders: {
+                    include: {
+                        items: {
+                            select: {
+                                sku: true,
+                                name: true,
+                                nameEn: true,
+                                price: true,
+                                originalPrice: true,
+                                total: true,
+                                quantity: true,
+                                returnedQty: true,
+                                attributes: true,
+                                colorName: true,
+                                colorHex: true,
+                                productId: true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        return data
+    }
+
+    async deleteCheckout(id: string) {
+        const data = await this.prisma.checkout.findUnique({ where: { id } })
+        if (!data || data.paymentStatus === 'paid') throw new BadRequestException('درخواست ممکن نیست سفارش پرداخت شده است')
+        await this.prisma.checkout.delete({ where: { id } })
+        return { success: true }
     }
 }

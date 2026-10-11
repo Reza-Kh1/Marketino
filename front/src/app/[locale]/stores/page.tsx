@@ -169,7 +169,7 @@ export default async function StoreListPage({ params, searchParams }: Props) {
               <SearchStore />
             </div>
             {/* Top 3 highlight */}
-            {!hasParams && (
+            {!hasParams && data?.stores.length > 3 && (
               <div className="mt-10">
                 <div className="mb-4 flex items-center gap-2 text-xs font-bold text-muted-foreground">
                   <Sparkles className="size-3.5 text-amber-500" />

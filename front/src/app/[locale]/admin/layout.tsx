@@ -2,63 +2,52 @@
 
 import {
   LayoutDashboard, Users, Store, Package, ClipboardList, Tag,
-  ArrowRight, Shield, Star, TrendingUp, DollarSign, UserPlus,
-  Settings, Menu, X, Image, Grid3X3, BarChart3, MessageSquare,
-  Bell, History,
+  ArrowRight, Shield, Star,
+  Settings, Menu, X, Image, Grid3X3, MessageSquare,
+  Bell,
   Ribbon,
   ShoppingCart,
   ImageUp,
   Headset,
-  MessagesSquare,
-  Flag, MailQuestion,
+  MailQuestion,
   ShieldAlert,
   ArrowUpNarrowWide,
   Paintbrush,
   GitCompare,
   Building2,
   Wallet,
-  ArrowLeftRight
+  ArrowLeftRight,
+  PackageSearch
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { Metadata } from 'next';
-import { Link, usePathname, useRouter } from '@/i18n/navigation';
-
-// export const metadata: Metadata = {
-//   title: 'پنل مدیریت | وارن',
-//   robots: { index: false, follow: false }, // ادمین هیچ‌وقت نباید ایندکس بشه
-// };
+import { Link, usePathname } from '@/i18n/navigation';
 
 const FULL_MENU = [
   { href: '/admin', label: 'داشبورد', icon: LayoutDashboard, permission: 'dashboard' },
-  { href: '/admin/users', label: 'کاربران', icon: Users, permission: 'users' },
-  { href: '/admin/store', label: 'فروشندگان', icon: Store, permission: 'sellers' },
-  { href: '/admin/products', label: 'محصولات', icon: Package, permission: 'products' },
-  { href: '/admin/orders', label: 'سفارشات', icon: ClipboardList, permission: 'orders' },
-  { href: '/admin/discounts', label: 'تخفیف‌ها', icon: Tag, permission: 'discounts' },
-  { href: '/admin/banners', label: 'بنرها', icon: Image, permission: 'banners' },
-  { href: '/admin/categories', label: 'دسته‌بندی‌ها', icon: Grid3X3, permission: 'categories' },
-  { href: '/admin/reports', label: 'گزارشات', icon: BarChart3, permission: 'reports' },
-  { href: '/admin/net-profit', label: 'سود خالص', icon: DollarSign, permission: 'dashboard' },
-  { href: '/admin/carts', label: 'سبد خرید', icon: ShoppingCart, permission: 'dashboard', superAdminOnly: true },
-  { href: '/admin/tickets', label: 'تیکت‌ها', icon: Headset, permission: 'tickets' },
-  { href: '/admin/notifications', label: 'اعلان‌ها', icon: Bell, permission: 'notifications' },
-  { href: '/admin/trust-metrics', label: 'معیارهای اعتماد', icon: TrendingUp, permission: 'sellers' },
-  { href: '/admin/reviews', label: 'نظرات محصولات', icon: Star, permission: 'reviews' },
-  { href: '/admin/store-reviews', label: 'نظرات فروشندگان', icon: ArrowUpNarrowWide, permission: 'reviews' },
-  { href: '/admin/activity-log', label: 'گزارش فعالیت', icon: History, permission: 'activity' },
-  { href: '/admin/colleagues', label: 'همکاران', icon: UserPlus, permission: null, superAdminOnly: true },
-  { href: '/admin/report', label: 'گزارش تخلف', icon: ShieldAlert, permission: null, superAdminOnly: true },
   { href: '/admin/wallet', label: 'کیف پول', icon: Wallet, superAdminOnly: true },
   { href: '/admin/finance', label: 'تراکنش ها', icon: ArrowLeftRight, permission: null, superAdminOnly: true },
-  { href: '/admin/brand', label: 'برند', icon: Ribbon, permission: null },
-  { href: '/admin/chats', label: 'چت ها', icon: MessagesSquare, permission: 'settings' },
-  { href: '/admin/colors', label: 'رنگ ها', icon: Paintbrush, permission: 'settings' },
-  { href: '/admin/media', label: 'رسانه ها', icon: ImageUp, permission: 'settings' },
-  { href: '/admin/province', label: 'شهر و استان', icon: Building2 },
-  { href: '/admin/qna', label: 'پرسش و پاسخ', icon: MailQuestion, },
+  { href: '/admin/checkouts', label: 'سفارشات', icon: ClipboardList, permission: 'checkouts' },
+  { href: '/admin/orders', label: 'سفارش فروشنده', icon: PackageSearch, permission: 'orders' },
+  { href: '/admin/carts', label: 'سبد خرید', icon: ShoppingCart, permission: 'dashboard', superAdminOnly: true },
+  { href: '/admin/discounts', label: 'تخفیف‌ها', icon: Tag, permission: 'discounts' },
+  { href: '/admin/banners', label: 'بنرها', icon: Image, permission: 'banners' },
+  { href: '/admin/products', label: 'محصولات', icon: Package, permission: 'products' },
   { href: '/admin/variant', label: 'تنوع محصول (Variant)', icon: GitCompare, },
+  { href: '/admin/reviews', label: 'نظرات محصولات', icon: Star, permission: 'reviews' },
+  { href: '/admin/store-reviews', label: 'نظرات فروشندگان', icon: ArrowUpNarrowWide, permission: 'reviews' },
+  { href: '/admin/qna', label: 'پرسش و پاسخ', icon: MailQuestion, },
+  { href: '/admin/users', label: 'کاربران', icon: Users, permission: 'users' },
+  { href: '/admin/store', label: 'فروشندگان', icon: Store, permission: 'sellers' },
+  { href: '/admin/categories', label: 'دسته‌بندی‌ها', icon: Grid3X3, permission: 'categories' },
+  { href: '/admin/tickets', label: 'تیکت‌ها', icon: Headset, permission: 'tickets' },
+  { href: '/admin/report', label: 'گزارش تخلف', icon: ShieldAlert, permission: null, superAdminOnly: true },
+  { href: '/admin/media', label: 'رسانه ها', icon: ImageUp, permission: 'settings' },
+  { href: '/admin/colors', label: 'رنگ ها', icon: Paintbrush, permission: 'settings' },
+  { href: '/admin/brand', label: 'برند', icon: Ribbon, permission: null },
+  { href: '/admin/province', label: 'شهر و استان', icon: Building2 },
+  { href: '/admin/notifications', label: 'اعلان‌ها', icon: Bell, permission: 'notifications' },
   { href: '/admin/settings', label: 'تنظیمات', icon: Settings, permission: 'settings' },
 ];
 

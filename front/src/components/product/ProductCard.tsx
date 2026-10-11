@@ -54,7 +54,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
         {/* badges */}
         {isFeatured && <FeaturedBtn />}
-        <OffBtn value={discountPercent} />
+        <OffBtn value={discountPercent} haveFeature={isFeatured} />
         <QuickViewDialog product={product} />
         {/* bottom fade */}
         <div
@@ -94,7 +94,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         <div className="space-y-2.5 border-t border-border/60 pt-2.5">
           <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
             <div className="inline-flex items-center gap-0.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 font-bold text-amber-600 dark:text-amber-400">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
               <span className="tabular-nums">{product.rating?.toLocaleString('fa-IR') ?? '—'}</span>
             </div>
 
@@ -116,7 +116,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           <div className="flex items-end justify-between gap-2">
             <div className="flex min-w-0 flex-col">
               {hasDiscount && (
-                <span className="text-[10px] font-medium tabular-nums text-muted-foreground line-through">
+                <span className="text-[11px] font-medium tabular-nums text-muted-foreground line-through">
                   {originalPrice.toLocaleString('fa-IR')}
                 </span>
               )}
@@ -128,11 +128,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               </div>
             </div>
 
-            {hasDiscount && (
-              <span className="shrink-0 rounded-lg bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                ٪{discountPercent.toLocaleString('fa-IR')}
-              </span>
-            )}
+          
           </div>
         </div>
       </Link>

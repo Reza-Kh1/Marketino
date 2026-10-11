@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import MotionWrapper from "../motion/MotionWrapper";
 import { useAuth } from "@/lib/auth-context";
 import IsLoginUser from "../IsLoginUser";
-import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
 import { useCreateQnA } from "@/hooks/qna.hook";
 

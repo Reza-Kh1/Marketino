@@ -60,7 +60,7 @@ export default function WalletManager() {
                     کیف پول
                   </div>
                   <div className="text-3xl sm:text-5xl font-black mt-4 tracking-tight flex items-baseline gap-2 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                    {walletData?.balance.toLocaleString()}
+                    {Number(walletData?.balance).toLocaleString()}
                     <span className="text-sm font-normal text-slate-400">تومان</span>
                   </div>
                   <div className="space-y-2">
@@ -68,14 +68,14 @@ export default function WalletManager() {
                       <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
                       قابل برداشت:
                       <span className="text-emerald-400 font-bold">
-                        {walletData?.balance.toLocaleString()} تومان
+                        {Number(walletData?.balance).toLocaleString()} تومان
                       </span>
                     </p>
                     <p className="text-xs text-slate-400 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
                       در انتظار تسویه:
                       <span className="text-amber-400 font-bold">
-                        {walletData?.pendingBalance.toLocaleString()} تومان
+                        {Number(walletData?.pendingBalance).toLocaleString('fa')} تومان
                       </span>
                       <span className="text-[10px] text-slate-500">(پس از پایان مهلت مرجوعی)</span>
                     </p>
@@ -83,7 +83,7 @@ export default function WalletManager() {
                       <span className="w-2 h-2 rounded-full bg-rose-400 inline-block"></span>
                       مسدود شده:
                       <span className="text-rose-400 font-bold">
-                        {walletData?.frozenBalance.toLocaleString()} تومان
+                        {Number(walletData?.frozenBalance).toLocaleString()} تومان
                       </span>
                     </p>
                     {Number(walletData?.withdrawBalance) > 0 && (
@@ -91,7 +91,7 @@ export default function WalletManager() {
                         <span className="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
                         در حال برداشت:
                         <span className="text-blue-400 font-bold">
-                          {walletData?.withdrawBalance.toLocaleString()} تومان
+                          {Number(walletData?.withdrawBalance).toLocaleString()} تومان
                         </span>
                       </p>
                     )}

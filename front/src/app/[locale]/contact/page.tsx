@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Clock, Send, MessageCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const CONTACT_INFO = [
   { icon: Phone, title: 'تلفن', value: '۰۲۱-۴۱۰۰۲۰۰۰', sub: 'شنبه تا پنجشنبه ۹ صبح تا ۶ عصر' },

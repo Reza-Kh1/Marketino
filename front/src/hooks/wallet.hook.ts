@@ -16,11 +16,9 @@ export const WALLET_KEYS = {
     all: ["wallet"] as const,
     myWallet: () => [...WALLET_KEYS.all, "my"] as const,
     wallet: (id: string) => [...WALLET_KEYS.all, "profile", id] as const,
-    myTransactions: () => [...WALLET_KEYS.all, "my-transactions"] as const,
-    adminWallets: (params?: WalletSearchDto) =>
-        [...WALLET_KEYS.all, "admin", "wallets", params] as const,
-    adminTransactions: (params?: TransactionSearchDto) =>
-        [...WALLET_KEYS.all, "admin", "transactions", params] as const,
+    myTransactionsSearch: (params?: TransactionSearchDto) => [...WALLET_KEYS.all, "my-transactions", params] as const,
+    adminWallets: (params?: WalletSearchDto) => [...WALLET_KEYS.all, "admin", "wallets", params] as const,
+    adminTransactions: (params?: TransactionSearchDto) => [...WALLET_KEYS.all, "admin", "transactions", params] as const,
 } as const;
 
 const handleError = (error: any) => {
@@ -29,9 +27,7 @@ const handleError = (error: any) => {
     list.forEach((msg: string) => toast.error(msg, { position: "top-center" }));
 };
 
-// ==========================================
 // 1. Hooks: User Wallet
-// ==========================================
 export function useMyWallet(enabled = true) {
     return useQuery<WalletEntity>({
         queryKey: WALLET_KEYS.myWallet(),
@@ -42,6 +38,7 @@ export function useMyWallet(enabled = true) {
     });
 }
 
+// 1. Hooks: User Wallet
 export function useWallet(id: string, enabled = true) {
     return useQuery<WalletEntity>({
         queryKey: WALLET_KEYS.wallet(id),
@@ -64,16 +61,19 @@ export function useCreateMyWallet() {
     });
 }
 
-export function useMyTransactions(params: TransactionSearchDto, enabled = true) {
+// تراکنش های من
+export function useMyTransactions(userId: string | null, params: TransactionSearchDto, enabled = true) {
     return useQuery<AllTransaction>({
-        queryKey: WALLET_KEYS.myTransactions(),
-        queryFn: () => walletService.getMyTransactions(params),
+        queryKey: WALLET_KEYS.myTransactionsSearch(params),
+        queryFn: () => walletService.getMyTransactions(userId, params),
         staleTime: 30 * 1000,
         refetchOnWindowFocus: false,
         enabled,
     });
 }
 
+
+// درخواست برداشت
 export function useRequestWithdrawal() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -81,7 +81,7 @@ export function useRequestWithdrawal() {
         onSuccess: () => {
             toast.success("درخواست برداشت با موفقیت ثبت شد");
             queryClient.invalidateQueries({ queryKey: WALLET_KEYS.myWallet() });
-            queryClient.invalidateQueries({ queryKey: WALLET_KEYS.myTransactions() });
+            queryClient.invalidateQueries({ queryKey: WALLET_KEYS.myTransactionsSearch() });
         },
         onError: handleError,
     });

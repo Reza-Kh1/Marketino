@@ -35,10 +35,19 @@ export function useProductQnA(productId: string, page: number = 1, enabled: bool
 }
 
 // دریافت Q&A ادمین
-export function useAdminQnA(params?: SearchQnaDTO) {
+export function useAdminQnA(params?: SearchQnaDTO, storeId?: string) {
   return useQuery<QnaResponse>({
     queryKey: QNA_KEYS.listWithFilters(params),
     queryFn: () => qnaService.getAdmin(params),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useStoreQnA(params?: SearchQnaDTO, storeId?: string) {
+  return useQuery<QnaResponse>({
+    queryKey: QNA_KEYS.listWithFilters(params),
+    queryFn: () => qnaService.getStore(params, storeId),
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

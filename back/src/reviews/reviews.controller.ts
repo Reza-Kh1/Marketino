@@ -94,13 +94,13 @@ export class ReviewsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('seller')
-  @Get('seller/my-reviews')
+  @Get('store/:storeId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'دریافت نظرات مربوط به محصولات فروشنده جاری' })
   async getSellerReviews(
-    @CurrentUser('id') sellerId: string,
+    @Param('storeId') storeId: string,
     @Query() query: ReviewSearchDto,
   ) {
-    return this.reviewsService.getSellerProductReviews(sellerId, query);
+    return this.reviewsService.getAllReviewsForStore(storeId, query);
   }
 }

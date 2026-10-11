@@ -45,7 +45,6 @@ export default function ProductBuyBox({
   const { mutate: addToCart, isPending } = useAddToCart();
   const { data: cartData } = useCart();
   const showVariantPicker = hasRealVariants(variants);
-
   const [selectedColorId, setSelectedColorId] = useState(colors[0]?.colorId ?? "");
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string | null>>(() =>
     resolveDefaultAttributes(variants, colors[0]?.colorId ?? "", attributeGroups)
@@ -103,15 +102,14 @@ export default function ProductBuyBox({
     });
   };
 
-  const checkCart = (variantId: string) => {
-    const check = cartData?.carts.some((item) => {
-      return item.variantId === variantId;
-    });
-    return check;
+  const checkCart = (variantId?: string) => {
+    return cartData?.stores?.some((store) =>
+      store.carts.some((cart) => cart.variantId === variantId)
+    ) ?? false;
   };
+
   return (
     <div className="space-y-4 sm:space-y-6">
-
       {showVariantPicker && colors.length > 1 && (
         <div className="space-y-2 sm:space-y-3">
           <label className="text-xs sm:text-sm flex items-center gap-1.5 font-bold">
@@ -135,8 +133,8 @@ export default function ProductBuyBox({
                   onClick={() => handleColorSelect(color.colorId)}
                   title={color.name}
                   className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg shadow-lg border flex items-center justify-center transition-all relative ${selectedColorId === color.colorId
-                      ? "ring-1 ring-offset-1 ring-offset-white dark:ring-offset-slate-900 ring-cyan-500 scale-110 shadow-cyan-400/20"
-                      : "ring-1 cursor-pointer ring-slate-200/50 dark:ring-slate-700/50 hover:ring-cyan-400/50"
+                    ? "ring-1 ring-offset-1 ring-offset-white dark:ring-offset-slate-900 ring-cyan-500 scale-110 shadow-cyan-400/20"
+                    : "ring-1 cursor-pointer ring-slate-200/50 dark:ring-slate-700/50 hover:ring-cyan-400/50"
                     } ${!colorHasStock ? "opacity-30 cursor-not-allowed" : "hover:scale-105"}`}
                   style={{ backgroundColor: color.hexCode }}
                 >
@@ -173,8 +171,8 @@ export default function ProductBuyBox({
                     disabled={!optionInStock}
                     onClick={() => handleAttributeSelect(group.key, value)}
                     className={`min-w-12 h-10 sm:h-12 px-3 sm:px-4 rounded-lg sm:rounded-xl border-2 font-black text-xs sm:text-sm transition-all duration-300 ${selectedAttrs[group.key] === value
-                        ? "border-cyan-700 bg-cyan-500/10 text-cyan-500 dark:text-cyan-400 shadow-[0_0_18px_rgba(6,182,212,0.25)] scale-105"
-                        : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-400"
+                      ? "border-cyan-700 bg-cyan-500/10 text-cyan-500 dark:text-cyan-400 shadow-[0_0_18px_rgba(6,182,212,0.25)] scale-105"
+                      : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-400"
                       } ${!optionInStock ? "opacity-30 cursor-not-allowed" : ""}`}
                   >
                     {value}

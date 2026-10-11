@@ -60,14 +60,6 @@ model User {
   ticketMessages       TicketMessage[]
   checkouts            Checkout[]
 
-  buyerConversations  Conversation[] @relation("ConversationBuyer")
-  sellerConversations Conversation[] @relation("ConversationSeller")
-  receivedMessages    Message[]      @relation("ReceivedMessages")
-  sentMessages        Message[]      @relation("SentMessages")
-  blogPosts           BlogPost[]
-  compareItems        CompareItem[]
-  notifications       Notification[]
-
   @@map("users")
 }
 
@@ -231,8 +223,6 @@ model Product {
   storeId         String?          @map("store_id")
 
   cartItems     CartItem[]
-  compareItems  CompareItem[]
-  conversations Conversation[]
   orderItems    OrderItem[]
   images        ProductImage[]
   variants      ProductVariant[]
@@ -282,12 +272,13 @@ model ProductVariant {
 }
 
 model AttributeDefinition {
-  id       String     @id @default(cuid())
-  key      String     @unique @map("key")
-  label    String     @map("label")
+  id       String                  @id @default(cuid())
+  key      String                  @unique @map("key")
+  label    String                  @map("label")
   category Category[]
+  values   VariantAttributeValue[]
 
-  values VariantAttributeValue[]
+  @@map("attribute_definition")
 }
 
 model VariantAttributeValue {
@@ -301,6 +292,7 @@ model VariantAttributeValue {
 
   @@unique([variantId, attributeId])
   @@index([attributeId, value])
+  @@map("variant_attribute_value")
 }
 
 model Color {
@@ -312,6 +304,8 @@ model Color {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   productVariants ProductVariant[]
+
+  @@map("color")
 }
 
 model ProductImage {
@@ -389,29 +383,30 @@ model Order {
   totalPrice       Decimal     @map("total_price") @db.Decimal(13, 2)
   discountAmount   Decimal     @default(0) @map("discount_amount") @db.Decimal(12, 2)
   note             String?     @map("note")
+  trackingCode     String?     @map("tracking_code")
+  taxAmount        Decimal     @default(0) @map("tax_amount") @db.Decimal(12, 2)
 
-  trackingCode          String?              @map("tracking_code")
-  deliveredAt           DateTime?            @map("delivered_at")
-  cancelledAt           DateTime?            @map("cancelled_at")
-  returnDeadline        DateTime?            @map("return_deadline")
-  createdAt             DateTime             @default(now()) @map("created_at")
-  updatedAt             DateTime             @updatedAt @map("updated_at")
-  storeShippingMethodId String?              @map("shipping_method_id")
-  checkoutId            String               @map("checkout_id")
-  storeId               String               @map("store_id")
-  discountCodeId        String?              @map("discount_code_id")
-  userId                String               @map("user_id")
-  checkout              Checkout             @relation(fields: [checkoutId], references: [id])
-  store                 Store                @relation(fields: [storeId], references: [id])
-  user                  User                 @relation(fields: [userId], references: [id]) // نگه دار برای کوئری سریع‌تر
-  items                 OrderItem[]
-  invoice               Invoice?
-  returnRequests        ReturnRequest[]
-  ticket                Ticket?
-  trackingEvents        TrackingEvent[]
-  storeShippingMethod   StoreShippingMethod? @relation(fields: [storeShippingMethodId], references: [id])
-  discountCode          DiscountCode?        @relation(fields: [discountCodeId], references: [id])
-  walletTransactions    WalletTransaction[]
+  checkoutId            String    @map("checkout_id")
+  storeId               String    @map("store_id")
+  userId                String    @map("user_id")
+  storeShippingMethodId String?   @map("shipping_method_id")
+  discountCodeId        String?   @map("discount_code_id")
+  deliveredAt           DateTime? @map("delivered_at")
+  cancelledAt           DateTime? @map("cancelled_at")
+  returnDeadline        DateTime? @map("return_deadline")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  checkout            Checkout             @relation(fields: [checkoutId], references: [id])
+  store               Store                @relation(fields: [storeId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id]) // نگه دار برای کوئری سریع‌تر
+  items               OrderItem[]
+  invoice             Invoice?
+  returnRequests      ReturnRequest[]
+  ticket              Ticket?
+  storeShippingMethod StoreShippingMethod? @relation(fields: [storeShippingMethodId], references: [id])
+  discountCode        DiscountCode?        @relation(fields: [discountCodeId], references: [id])
+  walletTransactions  WalletTransaction[]
 
   @@index([userId])
   @@index([storeId])
@@ -451,14 +446,15 @@ model OrderItem {
 }
 
 model Checkout {
-  id               String  @id @default(uuid())
-  checkoutNumber   String  @unique @map("checkout_number")
-  commissionAmount Decimal @default(0) @map("commission_amount") @db.Decimal(13, 2)
-  salesProfit      Decimal @default(0) @map("sales_profit") @db.Decimal(13, 2)
-  totalAmount      Decimal @map("total_amount") @db.Decimal(13, 2)
-  discountAmount   Decimal @default(0) @map("discount_amount") @db.Decimal(13, 2)
-
+  id               String          @id @default(uuid())
+  checkoutNumber   String          @unique @map("checkout_number")
+  commissionAmount Decimal         @default(0) @map("commission_amount") @db.Decimal(13, 2)
+  salesProfit      Decimal         @default(0) @map("sales_profit") @db.Decimal(13, 2)
+  totalAmount      Decimal         @map("total_amount") @db.Decimal(13, 2)
+  discountAmount   Decimal         @default(0) @map("discount_amount") @db.Decimal(13, 2)
+  taxAmount        Decimal         @default(0) @map("tax_amount") @db.Decimal(13, 2)
   discountStatus   StatusDiscount? @map("discount_status")
+  status           OrderStatus     @default(pending) @map("status")
   paymentStatus    PaymentStatus   @default(pending) @map("payment_status")
   paymentMethod    PaymentMethod?  @map("payment_method")
   paymentRef       String?         @map("payment_ref")
@@ -473,6 +469,7 @@ model Checkout {
   userId     String        @map("user_id")
   addressId  String?       @map("address_id")
   createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
   user       User          @relation(fields: [userId], references: [id])
   address    Address?      @relation(fields: [addressId], references: [id])
   discount   DiscountCode? @relation(fields: [discountId], references: [id])
@@ -629,25 +626,6 @@ model WishlistItem {
   @@map("wishlist_items")
 }
 
-model Notification {
-  id            String           @id @default(uuid())
-  type          NotificationType
-  title         String
-  body          String
-  link          String?
-  referenceType String?          @map("reference_type")
-  referenceId   String?          @map("reference_id")
-  isRead        Boolean          @default(false) @map("is_read")
-  readAt        DateTime?        @map("read_at")
-  createdAt     DateTime         @default(now()) @map("created_at")
-  userId        String           @map("user_id")
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-  @@map("notifications")
-}
-
 model Wallet {
   id              String  @id @default(uuid())
   userId          String  @unique @map("user_id")
@@ -679,7 +657,7 @@ model WalletTransaction {
   walletId        String    @map("wallet_id")
   orderId         String?   @map("order_id")
   returnRequestId String?   @map("return_request_id")
-  SettlementDate  DateTime? @map("settlement_date")
+  settlementDate  DateTime? @map("settlement_date")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -720,30 +698,31 @@ model BankAccount {
 model DiscountCode {
   id             String         @id @default(uuid())
   code           String         @unique @map("code")
-  type           DiscountType   @default(percentage) @map("type")
-  status         StatusDiscount @default(PRODUCT)
+  description    String?
+  maxDiscount    Decimal?       @map("max_discount") @db.Decimal(12, 2)
   value          Decimal        @map("value") @db.Decimal(12, 2)
   minOrderAmount Decimal        @default(0) @map("min_order_amount") @db.Decimal(12, 2)
-  maxDiscount    Decimal?       @map("max_discount") @db.Decimal(12, 2)
   usageLimit     Int            @default(0) @map("usage_limit")
   usedCount      Int            @default(0) @map("used_count")
   perUserLimit   Int            @default(0) @map("per_user_limit")
-  startsAt       DateTime       @map("starts_at")
-  endsAt         DateTime       @map("ends_at")
   isActive       Boolean        @default(true) @map("is_active")
-  description    String?
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-  creatorId      String?        @map("creator_id")
+  status         StatusDiscount @default(PRODUCT)
+  type           DiscountType   @default(percentage) @map("type")
+
+  userId    String?  @map("user_id")
+  startsAt  DateTime @map("starts_at")
+  endsAt    DateTime @map("ends_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   usages             DiscountCodeUsage[]
-  creator            User?               @relation("DiscountCodeCreator", fields: [creatorId], references: [id])
+  user               User?               @relation("DiscountCodeCreator", fields: [userId], references: [id])
   orders             Order[]
   productVariants    ProductVariant[]
   checkouts          Checkout[]
   discountCodeStores DiscountCodeStore[]
 
-  @@index([creatorId])
+  @@index([userId])
   @@map("discount_codes")
 }
 
@@ -941,35 +920,6 @@ model Qna {
   @@map("qna")
 }
 
-model BlogPost {
-  id                String         @id @default(uuid())
-  title             String
-  titleEn           String?        @map("title_en")
-  slug              String         @unique
-  slugEn            String?        @unique @map("slug_en")
-  excerpt           String?
-  excerptEn         String?        @map("excerpt_en")
-  content           String
-  contentEn         String?        @map("content_en")
-  image             String?
-  tags              String?
-  status            BlogPostStatus @default(draft)
-  publishedAt       DateTime?      @map("published_at")
-  viewCount         Int            @default(0) @map("view_count")
-  metaTitle         String?        @map("meta_title")
-  metaTitleEn       String?        @map("meta_title_en")
-  metaDescription   String?        @map("meta_description")
-  metaDescriptionEn String?        @map("meta_description_en")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-  authorId          String         @map("author_id")
-  author            User           @relation(fields: [authorId], references: [id])
-
-  @@index([status])
-  @@index([publishedAt])
-  @@map("blog_posts")
-}
-
 model Banner {
   id         String         @id @default(uuid())
   title      String
@@ -1011,72 +961,6 @@ model OtpCode {
   @@index([contact])
   @@index([expiresAt])
   @@map("otp_codes")
-}
-
-model TrackingEvent {
-  id          String         @id @default(uuid())
-  status      TrackingStatus
-  location    String?
-  description String
-  createdAt   DateTime       @default(now()) @map("created_at")
-  orderId     String         @map("order_id")
-  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-  @@index([createdAt])
-  @@map("tracking_events")
-}
-
-model CompareItem {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
-  userId    String   @map("user_id")
-  productId String   @map("product_id")
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId])
-  @@map("compare_items")
-}
-
-model Conversation {
-  id            String    @id @default(uuid())
-  subject       String?
-  lastMessage   String?   @map("last_message")
-  lastMessageAt DateTime? @map("last_message_at")
-  isRead        Boolean   @default(false) @map("is_read")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  productId     String?   @map("product_id")
-  buyerId       String    @map("buyer_id")
-  sellerId      String    @map("seller_id")
-  buyer         User      @relation("ConversationBuyer", fields: [buyerId], references: [id])
-  product       Product?  @relation(fields: [productId], references: [id])
-  seller        User      @relation("ConversationSeller", fields: [sellerId], references: [id])
-  messages      Message[]
-
-  @@index([buyerId])
-  @@index([sellerId])
-  @@map("conversations")
-}
-
-model Message {
-  id             String       @id @default(uuid())
-  text           String
-  isRead         Boolean      @default(false) @map("is_read")
-  readAt         DateTime?    @map("read_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  conversationId String       @map("conversation_id")
-  senderId       String       @map("sender_id")
-  receiverId     String       @map("receiver_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
-
-  @@index([conversationId])
-  @@index([senderId])
-  @@index([receiverId])
-  @@map("messages")
 }
 
 enum StatusDiscount {
@@ -1144,14 +1028,6 @@ enum DiscountType {
   fixed
 }
 
-enum NotificationType {
-  order
-  message
-  system
-  seller
-  promotion
-}
-
 enum WalletTransactionType {
   deposit // واریز
   withdraw // برداشت
@@ -1192,11 +1068,6 @@ enum RefundMethod {
   original_payment
 }
 
-enum BlogPostStatus {
-  draft
-  published
-}
-
 enum BannerPosition {
   home_top
   home_middle
@@ -1212,14 +1083,6 @@ enum OtpType {
 enum OtpPurpose {
   auth
   reset
-}
-
-enum TrackingStatus {
-  pending
-  processing
-  shipped
-  in_transit
-  delivered
 }
 
 enum InvoiceStatus {

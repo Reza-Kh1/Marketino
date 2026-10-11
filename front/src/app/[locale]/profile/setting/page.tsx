@@ -1,6 +1,5 @@
 'use client'
 import React, { useEffect } from 'react'
-import LoadingPage from '../../shops/[id]/loading'
 import { useProfileUser, useUpdateUser } from '@/hooks/user.hook'
 import InputForm from '@/components/inputs/InputForm'
 import { useForm } from 'react-hook-form'
@@ -12,6 +11,7 @@ import { ArrowRight, Store } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import LoadingPage from '@/components/LoadingPage'
 
 const schema = z.object({
     firstName: z.string().min(3, { message: "نام نباید خالی باشد" }),
@@ -65,7 +65,7 @@ export default function page() {
             <MotionWrapper preset='slideUpBlur'
                 className="bg-card border border-border rounded-3xl p-6 md:p-10 mb-8">
                 <div className="flex flex-col sm:flex-row items-start gap-6">
-                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-3xl font-black shrink-0 shadow-lg">
+                    <div className="w-20 h-20 rounded-3xl bg-linear-to-br from-primary to-secondary flex items-center justify-center text-white text-3xl font-black shrink-0 shadow-lg">
                         {(user?.firstName || user?.username || 'U')[0].toUpperCase()}
                     </div>
                     <div className="flex-1">
@@ -79,9 +79,9 @@ export default function page() {
                             </span>
                         </div>
                         <p className="text-muted-foreground">@{user?.username} | {user?.email}</p>
-                        {isSeller && user?.storeName && (
-                            <Link href={`/shops/${user.id}`} className="inline-flex items-center gap-1 mt-2 text-sm text-primary font-bold hover:underline">
-                                <Store className="w-4 h-4" /> {user.storeName}
+                        {isSeller && user?.store.slug && (
+                            <Link href={`/stores/${user.store.slug}`} className="inline-flex items-center gap-1 mt-2 text-sm text-primary font-bold hover:underline">
+                                <Store className="w-4 h-4" /> {user.store.slug}
                                 <ArrowRight className="w-3 h-3" />
                             </Link>
                         )}

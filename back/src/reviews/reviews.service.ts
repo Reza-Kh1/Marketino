@@ -64,7 +64,7 @@ export class ReviewsService {
         select: { body: true, answerReview: true, user: { select: { id: true, firstName: true, lastName: true } }, rating: true, updatedAt: true },
       }),
       this.prisma.review.count({ where }),
-    ]);    
+    ]);
     return {
       reviews,
       pagination: {
@@ -221,16 +221,16 @@ export class ReviewsService {
   }
 
   /**
-   * دریافت نظرات مربوط به محصولات یک فروشنده خاص
-   */
-  async getSellerProductReviews(sellerId: string, query: ReviewSearchDto) {
+     * دریافت تمام نظرات در پنل فروشنده
+     */
+  async getAllReviewsForStore(storeId: string, query: ReviewSearchDto) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || Number(this.configService.get('limit.reviews'))
     const skip = (page - 1) * limit;
 
     const where: any = {
       product: {
-        storeId: sellerId,
+        storeId: storeId,
       },
     };
 
@@ -254,12 +254,7 @@ export class ReviewsService {
 
     return {
       reviews,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: pagination(total, page, limit),
     };
   }
 }

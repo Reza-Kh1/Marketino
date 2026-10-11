@@ -21,8 +21,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import CustomButton from '@/components/CustomButton';
 import { WalletTransactionEntity, TransactionSearchDto } from '@/services/wallet.service';
 import { format } from 'date-fns-jalali';
-import { Badge } from '@/components/ui/badge';
-import { useAdminTransactions, useApproveWithdrawal, useCompleteTransaction, useDeleteTransaction, useFailTransaction, useRejectWithdrawal, useWallet } from '@/hooks/wallet.hook';
+import { faIR } from 'date-fns-jalali/locale/fa-IR';
+import { useAdminTransactions, useApproveWithdrawal, useCompleteTransaction, useDeleteTransaction, useFailTransaction, useMyTransactions, useRejectWithdrawal, useWallet } from '@/hooks/wallet.hook';
 
 const typeDetails: Record<string, { label: string; colorClass: string; isPositive: boolean }> = {
   deposit: { label: 'واریز', colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', isPositive: true },
@@ -41,7 +41,7 @@ const statusMap: Record<string, { label: string; className: string; icon: any }>
   failed: { label: 'ناموفق', className: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30', icon: XCircle },
 };
 
-export default function AdminWalletTransactionsPage() {
+export default function AdminWalletTransactionsPage({ isAdmin = true, userId }: { isAdmin?: boolean, userId?: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [modalMode, setModalMode] = useState<'view' | 'delete' | 'wallet' | null>(null);
@@ -67,14 +67,14 @@ export default function AdminWalletTransactionsPage() {
     };
   }, [searchParams]);
 
-  const { data: transactionsData, isError, isFetching, isLoading } = useAdminTransactions(filters);
+  const getTransaction = isAdmin ? useAdminTransactions(filters) : useMyTransactions(userId || '', filters)
+  const { data: transactionsData, isError, isFetching, isLoading } = getTransaction;
   const { data: walletData, isLoading: walletLoading } = useWallet(selectedWalletId || '');
-  
   const { mutate: approveMutate, isPending: isApproving } = useApproveWithdrawal();
   const { mutate: rejectMutate, isPending: isRejecting } = useRejectWithdrawal();
   const { mutate: completeMutate, isPending: isCompleting } = useCompleteTransaction();
   const { mutate: failMutate, isPending: isFailing } = useFailTransaction();
-  const { mutate: deleteMutate, isPending: isDeleting } = useDeleteTransaction();
+  const { mutate: deleteMutate, isPending: isDeleting } = useDeleteTransaction()
 
   const handleApproveWithdrawal = (transaction: WalletTransactionEntity) => {
     approveMutate(
@@ -131,6 +131,22 @@ export default function AdminWalletTransactionsPage() {
     setModalMode('wallet');
   };
 
+  const formatDate = (date: string | Date) => {
+    const d = new Date(date);
+    const datePart = new Intl.DateTimeFormat('fa-GB-u-ca-persian', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+
+    const timePart = new Intl.DateTimeFormat('fa-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(d);
+    return `${timePart} _ ${datePart}`;
+  };
+
   const columns: ColumnDef<WalletTransactionEntity>[] = useMemo(() => [
     {
       id: 'select',
@@ -174,8 +190,8 @@ export default function AdminWalletTransactionsPage() {
       cell: ({ row }) => {
         const detail = typeDetails[row.original.type] || typeDetails.deposit;
         return (
-          <span className={cn('font-bold text-sm', detail.isPositive ? 'text-emerald-500' : 'text-rose-500')}>
-            {detail.isPositive ? '+' : '-'}{Number(row.original.amount).toLocaleString('fa-IR')}
+          <span className={cn('font-bold text-sm')}>
+            {Number(row.original.amount).toLocaleString('fa-IR')}
           </span>
         );
       }
@@ -208,7 +224,8 @@ export default function AdminWalletTransactionsPage() {
       header: 'تاریخ',
       cell: ({ row }) => (
         <span className="text-xs text-muted-foreground">
-          {format(new Date(row.original.createdAt), "yyyy/MM/dd - HH:mm")}
+
+          {formatDate(row.original.createdAt)}
         </span>
       )
     },
@@ -219,7 +236,7 @@ export default function AdminWalletTransactionsPage() {
         const tx = row.original;
         return (
           <div className="flex items-center gap-1">
-            {tx.type === 'withdraw' && tx.status === 'pending' && (
+            {isAdmin && tx.type === 'withdraw' && tx.status === 'pending' && (
               <>
                 <TooltipCustom placeHolder="تأیید برداشت">
                   <Button
@@ -246,7 +263,7 @@ export default function AdminWalletTransactionsPage() {
               </>
             )}
 
-            {tx.type === 'purchase' && tx.status === 'pending' && (
+            {isAdmin && (tx.type === 'purchase' || tx.type === 'sale_settlement') && tx.status === 'pending' && (
               <>
                 <TooltipCustom placeHolder="تکمیل تراکنش">
                   <Button
@@ -272,18 +289,6 @@ export default function AdminWalletTransactionsPage() {
                 </TooltipCustom>
               </>
             )}
-
-            <TooltipCustom placeHolder="مشاهده کیف پول">
-              <Button
-                onClick={() => handleViewWallet(tx.walletId)}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 cursor-pointer hover:bg-blue-500/20"
-              >
-                <Wallet className="w-4 h-4 text-blue-500" />
-              </Button>
-            </TooltipCustom>
-
             <TooltipCustom placeHolder="مشاهده جزئیات">
               <Button
                 onClick={() => { setSelectedTransaction(tx); setModalMode('view'); }}
@@ -294,23 +299,39 @@ export default function AdminWalletTransactionsPage() {
                 <Eye className="w-4 h-4" />
               </Button>
             </TooltipCustom>
-
-            <TooltipCustom placeHolder="حذف">
-              <Button
-                onClick={() => { setSelectedTransaction(tx); setModalMode('delete'); }}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </TooltipCustom>
+            {isAdmin &&
+              <>
+                <TooltipCustom placeHolder="مشاهده کیف پول">
+                  <Button
+                    onClick={() => handleViewWallet(tx.walletId)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 cursor-pointer hover:bg-blue-500/20"
+                  >
+                    <Wallet className="w-4 h-4 text-blue-500" />
+                  </Button>
+                </TooltipCustom>
+                <TooltipCustom placeHolder="حذف">
+                  <Button
+                    onClick={() => { setSelectedTransaction(tx); setModalMode('delete'); }}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TooltipCustom>
+              </>
+            }
           </div>
         );
       }
     },
   ], [isApproving, isRejecting, isCompleting, isFailing, isDeleting]);
+  
+    console.log(transactionsData)
 
+  
   if (isError) return (
     <div className="text-center py-20">
       <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
@@ -395,7 +416,7 @@ export default function AdminWalletTransactionsPage() {
               { name: 'نوع تراکنش', value: typeDetails[selectedTransaction.type]?.label || selectedTransaction.type },
               { name: 'وضعیت', value: statusMap[selectedTransaction.status]?.label || selectedTransaction.status },
               { name: 'مبلغ (تومان)', value: Number(selectedTransaction.amount).toLocaleString('fa-IR') },
-              { name: 'توضیحات', value: selectedTransaction.description || 'بدون توضیحات' },
+              { name: 'توضیحات', value: selectedTransaction.description || '_' },
             ]
           },
           {
@@ -403,16 +424,17 @@ export default function AdminWalletTransactionsPage() {
             detail: [
               { name: 'شناسه کاربر', value: selectedTransaction.userId },
               { name: 'شناسه کیف پول', value: selectedTransaction.walletId },
-              { name: 'شناسه سفارش', value: selectedTransaction.orderId || 'مربوط به سفارش خاصی نیست' },
-              { name: 'شناسه درخواست مرجوعی', value: selectedTransaction.returnRequestId || 'مرتبط با مرجوعی نیست' },
-              { name: 'تاریخ تسویه', value: selectedTransaction.SettlementDate ? format(new Date(selectedTransaction.SettlementDate), "yyyy/MM/dd - HH:mm") : 'تعیین نشده' },
+              // { name: 'مالک کیف پول', value: selectedTransaction.is },
+              { name: 'شناسه سفارش', value: selectedTransaction.orderId || '_' },
+              { name: 'شناسه درخواست مرجوعی', value: selectedTransaction.returnRequestId || '_' },
+              { name: 'تاریخ تسویه', value: selectedTransaction.SettlementDate ? formatDate(selectedTransaction.SettlementDate) : '_' },
             ]
           },
           {
             head: 'تاریخ‌ها',
             detail: [
-              { name: 'تاریخ ایجاد', value: format(new Date(selectedTransaction.createdAt), "yyyy/MM/dd - HH:mm") },
-              { name: 'آخرین بروزرسانی', value: format(new Date(selectedTransaction.updatedAt), "yyyy/MM/dd - HH:mm") },
+              { name: 'تاریخ ایجاد', value: formatDate(selectedTransaction.createdAt) },
+              { name: 'آخرین بروزرسانی', value: formatDate(selectedTransaction.updatedAt) },
             ]
           }
         ] : []}
@@ -442,7 +464,7 @@ export default function AdminWalletTransactionsPage() {
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">موجودی در انتظار</p>
+                  <p className="text-xs text-muted-foreground mb-1">موجودی در انتظار تسویه</p>
                   <p className="text-lg font-bold text-amber-500">
                     {Number(walletData.pendingBalance).toLocaleString('fa-IR')} تومان
                   </p>
@@ -469,39 +491,43 @@ export default function AdminWalletTransactionsPage() {
                     <p className="font-mono text-xs" dir="ltr">{walletData.id}</p>
                   </div>
                   <div>
+                    <p className="text-xs text-admin-text-muted mb-1">وضعیت</p>
+                    <p className="font-mono text-xs" dir="ltr">{walletData.isPlatform ? 'کیف پول پلتفرم' : 'کیف پول فروشنده'}</p>
+                  </div>
+                  <div>
                     <p className="text-xs text-admin-text-muted mb-1">شناسه کاربر</p>
                     <p className="font-mono text-xs" dir="ltr">{walletData.userId}</p>
                   </div>
                   <div>
                     <p className="text-xs text-admin-text-muted mb-1">تاریخ ایجاد</p>
-                    <p className="text-xs">{format(new Date(walletData.createdAt), "yyyy/MM/dd - HH:mm")}</p>
+                    <p className="text-xs">{formatDate(walletData.createdAt)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-admin-text-muted mb-1">آخرین بروزرسانی</p>
-                    <p className="text-xs">{format(new Date(walletData.updatedAt), "yyyy/MM/dd - HH:mm")}</p>
+                    <p className="text-xs">{formatDate(walletData.updatedAt)}</p>
                   </div>
                 </div>
               </div>
 
-              {walletData.bankAccount && (
+              {walletData?.bankAccounts && (
                 <div className="space-y-3 bg-admin-border/5 p-4 rounded-xl border border-admin-border/30">
                   <h3 className="text-sm font-semibold text-admin-primary border-r-2 border-admin-primary pr-2">اطلاعات بانکی</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-admin-text-muted mb-1">شماره شبا</p>
-                      <p className="font-mono text-xs" dir="ltr">{walletData.bankAccount.iban}</p>
+                      <p className="font-mono text-xs" dir="ltr">{walletData.bankAccounts[0]?.iban}</p>
                     </div>
                     <div>
                       <p className="text-xs text-admin-text-muted mb-1">نام بانک</p>
-                      <p className="text-xs">{walletData.bankAccount.bankName}</p>
+                      <p className="text-xs">{walletData.bankAccounts[0]?.bankName}</p>
                     </div>
                     <div>
                       <p className="text-xs text-admin-text-muted mb-1">شماره کارت</p>
-                      <p className="font-mono text-xs" dir="ltr">{walletData.bankAccount.cardNumber}</p>
+                      <p className="font-mono text-xs" dir="ltr">{walletData.bankAccounts[0]?.cardNumber}</p>
                     </div>
                     <div>
                       <p className="text-xs text-admin-text-muted mb-1">نام صاحب حساب</p>
-                      <p className="text-xs">{walletData.bankAccount.accountHolder}</p>
+                      <p className="text-xs">{walletData.bankAccounts[0]?.accountHolder}</p>
                     </div>
                   </div>
                 </div>

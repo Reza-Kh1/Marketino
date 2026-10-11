@@ -19,15 +19,11 @@ const FOOTER_SECTIONS = [
       { label: 'درباره ما', href: '/about' },
       { label: 'تماس با ما', href: '/contact' },
       { label: 'قوانین و مقررات', href: '/terms' },
-      { label: 'وبلاگ', href: '/blog' },
     ],
   },
   {
     title: 'محصولات',
     links: [
-      { label: 'کالای دیجیتال', href: '/products?category=electronics' },
-      { label: 'پوشاک و مد', href: '/products?category=clothing' },
-      { label: 'خانه و آشپزخانه', href: '/products?category=home' },
       { label: 'همه محصولات', href: '/products' },
     ],
   },

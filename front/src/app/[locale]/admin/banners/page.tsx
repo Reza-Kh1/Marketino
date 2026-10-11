@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Image, Plus, X, AlertTriangle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { bannersApi, type Banner } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const POSITION_NAMES: Record<string, string> = { hero: 'اصلی', secondary: 'فرعی' };
 

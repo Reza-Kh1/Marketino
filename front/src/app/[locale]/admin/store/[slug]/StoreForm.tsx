@@ -293,6 +293,12 @@ export default function StorForm({ store, isStore = false }: { store?: Store, is
                                 register={register}
                             />
                         )}
+                        <InputForm
+                            label='آیدی فروشگاه'
+                            name='id'
+                            value={store?.id}
+                            disabled
+                        />
                         {store?.slug && (
                             <InputForm
                                 label='اسلاگ'

@@ -16,22 +16,21 @@ import { useAuth } from '@/lib/auth-context';
 
 const MENU = [
   { href: '/seller', label: 'داشبورد', icon: LayoutDashboard },
-  { href: '/seller/products', label: 'مدیریت محصولات', icon: Package },
+  { href: '/seller/wallet', label: 'کیف پول', icon: Wallet },
+  { href: '/seller/finance', label: 'تراکنش های مالی', icon: ArrowLeftRight },
   { href: '/seller/orders', label: 'مدیریت سفارشات', icon: ClipboardList },
-  { href: '/seller/analytics', label: 'آمار و تحلیل', icon: BarChart3 },
-  { href: '/seller/reviewStore', label: 'نظرات مشتریان', icon: ArrowUpNarrowWide },
+  { href: '/seller/products', label: 'مدیریت محصولات', icon: Package },
   { href: '/seller/reviews', label: 'نظرات محصولات', icon: Star },
   { href: '/seller/qna', label: 'پرسش و پاسخ', icon: MailQuestion },
+  { href: '/seller/reviewStore', label: 'نظرات مشتریان', icon: ArrowUpNarrowWide },
   { href: '/seller/discounts', label: 'کدهای تخفیف', icon: Percent },
-  { href: '/seller/finance', label: 'تراکنش های مالی', icon: ArrowLeftRight },
-  { href: '/seller/wallet', label: 'کیف پول', icon: Wallet },
   { href: '/seller/shipping', label: 'تنظیمات ارسال', icon: Truck },
   { href: '/seller/settings', label: 'تنظیمات فروشگاه', icon: Settings },
 ];
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isLoading, storeId } = useAuth();
+  const { isLoading, storeId, storeSlug } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) => {
@@ -53,7 +52,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         </Link>
       ))}
       <hr className="my-2 border-border" />
-      <Link href={`/shops`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-accent transition-colors">
+      <Link href={`/stores/${storeSlug}`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-accent transition-colors">
         <Store className="w-5 h-5" /> فروشگاه من
       </Link>
       <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-accent transition-colors">

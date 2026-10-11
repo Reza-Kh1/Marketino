@@ -42,6 +42,17 @@ export interface DiscountType {
     status: 'PLATFORM' | 'STORE' | 'COMMISSION' | 'PRODUCT'
     discountCodeStores?: { storeId: string }[]
     discountAmount?: number; // اضافی (محاسبه شده)
+    user?: {
+        lastName: string
+        firstName: string
+        username: string
+        id: string
+        store?: {
+            name: string
+            nameEn: string
+            slug: string
+        }
+    }
 }
 
 export interface AllDiscountResponse {
@@ -58,7 +69,13 @@ export interface ListDiscountType {
 export const discountService = {
     // دریافت لیست با فیلتر (برای ادمین)
     list: (filters?: Record<string, any>) => {
-        return apiClient.get<AllDiscountResponse>(BASE_URL);
+        const cleanFilters = Object.fromEntries(
+            Object.entries(filters || {})
+                .filter(([_, value]) => value !== undefined && value !== null)
+                .map(([key, value]) => [key, String(value)])
+        );
+        const queryString = new URLSearchParams(cleanFilters).toString();
+        return apiClient.get<AllDiscountResponse>(`${BASE_URL}?${queryString}`);
     },
 
     // دریافت لیست ساده برای select

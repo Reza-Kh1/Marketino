@@ -15,7 +15,7 @@ export default function Breadcrumb({ items, pageName, itemsCustom }: BreadcrumbT
     return (
         <nav aria-label="مسیر" className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-6 whitespace-nowrap">
             <Link href={'/'} className="hover:text-cyan-500 transition-colors cursor-pointer"> خانه </Link>
-            {items?.length || itemsCustom?.length && '/'}
+            {items?.length || itemsCustom?.length ? '/' : ''}
             {items?.map((item, index) => (
                 <Link href={'/search/category-' + item.slug} key={item.id} className="flex items-center gap-2">
                     <span

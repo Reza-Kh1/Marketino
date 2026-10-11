@@ -131,17 +131,13 @@ export class AppService {
     const baseUrl = process.env.SITE_URL || 'http://localhost:3000';
     const isEn = lang === 'en';
 
-    const [products, categories, blogPosts, sellers] = await Promise.all([
+    const [products, categories, sellers] = await Promise.all([
       this.prisma.product.findMany({
         where: { status: 'approved' },
         select: { slug: true, slugEn: true, updatedAt: true },
       }),
       this.prisma.category.findMany({
         where: { isActive: true },
-        select: { slug: true, slugEn: true, updatedAt: true },
-      }),
-      this.prisma.blogPost.findMany({
-        where: { status: 'published' },
         select: { slug: true, slugEn: true, updatedAt: true },
       }),
       this.prisma.user.findMany({
@@ -167,12 +163,6 @@ export class AppService {
     for (const c of categories) {
       const slug = isEn && c.slugEn ? c.slugEn : c.slug;
       urls.push(this.buildUrl(baseUrl, `/categories/${slug}`, 'daily', '0.7', c.updatedAt));
-    }
-
-    // وبلاگ
-    for (const b of blogPosts) {
-      const slug = isEn && b.slugEn ? b.slugEn : b.slug;
-      urls.push(this.buildUrl(baseUrl, `/blog/${slug}`, 'monthly', '0.6', b.updatedAt));
     }
 
     // فروشنده‌ها

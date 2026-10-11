@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
-import { Star, Eye, ShoppingBag, Sparkles, CheckCircle2, ImageIcon, ArrowLeft, ShoppingBasket, X } from 'lucide-react';
+import { Star, Eye, ShoppingBag, Sparkles, CheckCircle2, ImageIcon, ArrowLeft, ShoppingBasket, X, Percent } from 'lucide-react';
 import ImgTag from '../ImgTag';
 import CustomButton from '../CustomButton';
 import { ProductEntity } from '@/services/product.service';
@@ -55,10 +55,9 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
                 {/* بج‌ها */}
                 {hasDiscount && (
                   <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-linear-to-tr from-rose-600 to-pink-500 text-white font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-xl shadow-md shadow-rose-500/30 z-10">
-                    ٪{discountPercent} تخفیف
+                    <Percent className='w-2.5 h-2.5 sm:w-3 sm:h-3' />{discountPercent} تخفیف
                   </div>
                 )}
-                <OffBtn value={discountPercent} name="تخفیف" />
                 {product.isFeatured && <FeaturedBtn />}
               </div>
 

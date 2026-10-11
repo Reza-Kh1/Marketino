@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { MessageSquare, ChevronDown, Send, AlertTriangle, Clock, AlertCircle, CheckCircle, XCircle, Eye, SendHorizontal, Trash2, Check, X, Pen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAdminQnA, useCreateQnA, useDeleteQnA, useUpdateQnA } from '@/hooks/qna.hook';
+import { useAdminQnA, useCreateQnA, useDeleteQnA, useStoreQnA, useUpdateQnA } from '@/hooks/qna.hook';
 import PendingApi from '@/components/PendingApi';
 import DynamicTable from '@/components/DynamicTable';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ const statusConfig = {
     }
 };
 
-export default function AdminQnAPage() {
+export default function AdminQnAPage({ isStore = false, storeId }: { isStore?: boolean, storeId?: string | null }) {
     const [modalMode, setModalMode] = useState<'view' | 'delete' | 'answer' | null>(null);
     const [selectQnA, setSelectQnA] = useState<QnAEntity | null>(null);
     const [answer, setAnswer] = useState<null | string>(null)
@@ -73,8 +73,8 @@ export default function AdminQnAPage() {
             ...(parentId && { parentId: parentId }),
         } as any
     }, [searchParams]);
-
-    const { data: qnaData, isError, isFetching } = useAdminQnA(filters);
+    const getQna = isStore ? useStoreQnA : useAdminQnA
+    const { data: qnaData, isError, isFetching } = getQna(filters, storeId || '');
     const getStatusLabel = (status: string) => {
         const map: Record<string, string> = {
             'PENDING': 'در انتظار',
@@ -205,17 +205,19 @@ export default function AdminQnAPage() {
                                     <Check className="w-4 h-4 text-green-500" />
                                 </Button>
                             </TooltipCustom>
-                            <TooltipCustom placeHolder="رد">
-                                <Button
-                                    onClick={() => updateQna(row.original.id, StatusQna.rejected)}
-                                    disabled={pendingUpdate}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 cursor-pointer hover:bg-red-500/20"
-                                >
-                                    <X className="w-4 h-4 text-red-500" />
-                                </Button>
-                            </TooltipCustom>
+                            {!isStore &&
+                                <TooltipCustom placeHolder="رد">
+                                    <Button
+                                        onClick={() => updateQna(row.original.id, StatusQna.rejected)}
+                                        disabled={pendingUpdate}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 cursor-pointer hover:bg-red-500/20"
+                                    >
+                                        <X className="w-4 h-4 text-red-500" />
+                                    </Button>
+                                </TooltipCustom>
+                            }
                         </>
                     )}
                     {row.original.status === StatusQna.rejected && (
@@ -233,7 +235,7 @@ export default function AdminQnAPage() {
                             </TooltipCustom>
                         </>
                     )}
-                    {row.original.status === StatusQna.approved && (
+                    {row.original.status === StatusQna.approved && !isStore && (
                         <>
                             <TooltipCustom placeHolder="رد">
                                 <Button
@@ -268,16 +270,18 @@ export default function AdminQnAPage() {
                             <Eye className="w-4 h-4" />
                         </Button>
                     </TooltipCustom>
-                    <TooltipCustom placeHolder="حذف">
-                        <Button
-                            onClick={() => { setSelectQnA(row.original); setModalMode("delete"); }}
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-                    </TooltipCustom>
+                    {!isStore && (
+                        <TooltipCustom placeHolder="حذف">
+                            <Button
+                                onClick={() => { setSelectQnA(row.original); setModalMode("delete"); }}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-red-500 cursor-pointer hover:bg-red-500/20"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </TooltipCustom>
+                    )}
                 </div>
             )
         },
@@ -334,7 +338,6 @@ export default function AdminQnAPage() {
                     { label: 'آیدی پرسش', name: 'parentId', placeholder: 'پاسخ هاش مربوط به یک پرسش' },
                 ]}
             />
-
             <DynamicTable
                 data={qnaData?.qnas || []}
                 columns={columns}

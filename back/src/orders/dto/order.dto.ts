@@ -1,16 +1,18 @@
 /**
  * Order DTOs - اشیاء انتقال داده سفارشات
  */
+import { DefaultQueryDto } from '@/common/dtos/defualt.query.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { OrderStatus, PaymentMethod, PaymentStatus, StatusDiscount } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsIn, IsUUID, ValidateIf, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsUUID, ValidateIf, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsNumber, IsEnum } from 'class-validator';
 
-export class OrderItemDto {
+export class CheckoutItemDto {
   @ApiProperty({
     description: 'شناسه فروشگاه',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   storeId!: string;
 
@@ -43,7 +45,7 @@ export class OrderItemDto {
   note?: string;
 }
 
-export class CreateOrderDto {
+export class CreateCheckoutDto {
   @ApiPropertyOptional({
     description: 'شناسه آدرس ذخیره‌شده کاربر (در صورت انتخاب آدرس قبلی)',
     example: '123e4567-e89b-12d3-a456-426614174000',
@@ -54,7 +56,7 @@ export class CreateOrderDto {
 
   @ApiProperty({
     description: 'لیست سفارشات',
-    type: [OrderItemDto],
+    type: [CheckoutItemDto],
     example: [
       {
         storeId: '123e4567-e89b-12d3-a456-426614174000',
@@ -69,9 +71,9 @@ export class CreateOrderDto {
   })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
+  @Type(() => CheckoutItemDto)
   @ArrayMinSize(1)
-  orders!: OrderItemDto[];
+  orders!: CheckoutItemDto[];
 
   @ApiPropertyOptional({
     description: 'کد تخفیف (اختیاری)',
@@ -91,27 +93,6 @@ export class CreateOrderDto {
   paymentMethod!: string;
 }
 
-export class UpdateOrderStatusDto {
-  @ApiProperty({ description: 'وضعیت جدید', enum: ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] })
-  @IsString()
-  status!: string;
-
-  @ApiPropertyOptional({ description: 'کد پیگیری' })
-  @IsOptional()
-  @IsString()
-  trackingCode?: string;
-
-  @ApiPropertyOptional({ description: 'یادداشت فروشنده' })
-  @IsOptional()
-  @IsString()
-  sellerNotes?: string;
-}
-
-
-// ============================================
-// Payment DTOs
-// ============================================
-
 export class CreatePaymentDto {
   @ApiProperty({ description: 'روش پرداخت', enum: ['card', 'wallet', 'zarinpal'] })
   @IsString()
@@ -123,19 +104,232 @@ export class CreatePaymentDto {
   gatewayRef?: string;
 }
 
-export class ConfirmPaymentDto {
-  @ApiPropertyOptional({ description: 'شماره ارجاع نهایی درگاه' })
+export class SearchCheckouts extends DefaultQueryDto {
+  @ApiPropertyOptional({
+    description: 'وضعیت پرداخت سفارش',
+    enum: [PaymentStatus, 'All'],
+    required: false,
+  })
   @IsOptional()
   @IsString()
-  gatewayRef?: string;
+  paymentStatus?: PaymentStatus | 'All';
+
+  @ApiPropertyOptional({
+    description: 'وضعیت سفارش',
+    enum: [OrderStatus, 'All'],
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  status?: OrderStatus | 'All'
+
+  @ApiPropertyOptional({
+    description: 'وضعیت تخفیف اعمال‌شده روی سفارش',
+    default: 'new',
+    enum: [StatusDiscount, 'All'],
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  discountStatus?: StatusDiscount | 'All';
+
+  @ApiPropertyOptional({
+    description: 'روش پرداخت استفاده‌شده برای سفارش',
+    default: 'new',
+    enum: [PaymentMethod, 'All'],
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  paymentMethod?: PaymentMethod | 'All';
+
+  @ApiPropertyOptional({
+    description: 'شناسه تخفیف اعمال‌شده روی سفارش',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  discountId?: string;
+
+  @ApiPropertyOptional({
+    description: 'شماره سفارش (Checkout) برای جستجو',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  checkoutNumber?: string;
+
+  @ApiPropertyOptional({
+    description: 'شماره پیگیری پرداخت (Payment Reference)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  paymentRef?: string;
+
+  @ApiPropertyOptional({
+    description: 'شناسه کاربر صاحب سفارش',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }
 
-// ============================================
-// Refund DTOs
-// ============================================
-
-export class CreateRefundDto {
-  @ApiProperty({ description: 'دلیل مرجوعی' })
+export class SearchOrders extends DefaultQueryDto {
+  @ApiPropertyOptional({
+    description: 'وضعیت پرداخت سفارش',
+    default: 'new',
+    enum: [PaymentStatus, 'All'],
+    required: false,
+  })
+  @IsOptional()
   @IsString()
-  reason!: string;
+  paymentStatus?: PaymentStatus | 'All';
+
+  @ApiPropertyOptional({
+    description: 'شماره سفارش برای جستجو',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  orderNumber?: string;
+
+  @ApiPropertyOptional({
+    description: 'کد رهگیری مرسوله پستی',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  trackingCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'شناسه روش ارسال فروشگاه',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  storeShippingMethodId?: string;
+
+  @ApiPropertyOptional({
+    description: 'شناسه کاربر صاحب سفارش',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @ApiPropertyOptional({
+    description: 'شناسه فروشگاه مربوط به سفارش',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  storeId?: string;
+}
+
+// ============ DTO ============
+export class UpdateCheckoutDto {
+  @ApiPropertyOptional({
+    description: 'نام گیرنده سفارش',
+    example: 'رضاخانی',
+    minLength: 3,
+    maxLength: 100,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shippingName?: string;
+
+  @ApiPropertyOptional({
+    description: 'شماره تماس گیرنده (۱۱ رقم با ۰۹ شروع)',
+    example: '09390199977',
+    pattern: '^09\\d{9}$',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shippingPhone?: string;
+
+  @ApiPropertyOptional({
+    description: 'استان مقصد',
+    example: 'seed-province-tehran',
+    minLength: 2,
+    maxLength: 100,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shippingProvince?: string;
+
+  @ApiPropertyOptional({
+    description: 'شهر مقصد',
+    example: 'seed-city-tehran',
+    minLength: 2,
+    maxLength: 100,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shippingCity?: string;
+
+  @ApiPropertyOptional({
+    description: 'آدرس کامل تحویل',
+    example: 'فرحزاد- میدان فرحزاد-خ گلستان-بن بست لاله یکم-پ ۱۳-طبقه۲',
+    minLength: 10,
+    maxLength: 500,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shippingAddress?: string;
+
+  @ApiPropertyOptional({
+    description: 'کد پستی ۱۰ رقمی',
+    example: '1981735345',
+    pattern: '^\\d{10}$',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  shippingPostal?: string;
+
+  @ApiPropertyOptional({
+    description: 'وضعیت سفارش',
+    enum: OrderStatus,
+    example: OrderStatus.pending,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus, { message: 'وضعیت سفارش معتبر نیست' })
+  status?: OrderStatus;
+
+  @ApiPropertyOptional({
+    description: 'وضعیت پرداخت',
+    enum: PaymentStatus,
+    example: PaymentStatus.pending,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PaymentStatus, { message: 'وضعیت پرداخت معتبر نیست' })
+  paymentStatus?: PaymentStatus;
+}
+
+export class updateStoreOrderDto {
+  @ApiPropertyOptional({
+    description: 'وضعیت سفارش',
+    enum: OrderStatus,
+    example: OrderStatus.pending,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus, { message: 'وضعیت سفارش معتبر نیست' })
+  status?: OrderStatus;
+
+  @ApiPropertyOptional({
+    description: 'شناسه فروشگاه مربوط به سفارش',
+    required: false,
+  })
+  @IsString()
+  storeId!: string;
 }

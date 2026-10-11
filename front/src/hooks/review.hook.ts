@@ -15,7 +15,7 @@ const REVIEW_KEYS = {
 // ============ هوک‌های Query ============
 
 // دریافت تمام نظرات برای پنل ادمین
-export function useAdminReviews(params?: SearchReviewDTO) {
+export function useAdminReviews(params?: SearchReviewDTO, storeId?: string) {
   return useQuery<ReviewResponse>({
     queryKey: REVIEW_KEYS.adminFilters(params || {}),
     queryFn: () => reviewService.getAdminAll(params),
@@ -24,10 +24,10 @@ export function useAdminReviews(params?: SearchReviewDTO) {
   });
 }
 
-export function useStoreReviews(params?: SearchReviewDTO) {
+export function useStoreReviews(params?: SearchReviewDTO, storeId?: string) {
   return useQuery<ReviewResponse>({
     queryKey: REVIEW_KEYS.adminFilters(params || {}),
-    queryFn: () => reviewService.getStoreAll(params),
+    queryFn: () => reviewService.getStoreAll(params, storeId),
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

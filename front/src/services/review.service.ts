@@ -100,13 +100,13 @@ export const reviewService = {
   },
 
   // دریافت تمام نظرات برای پنل ادمین
-  getStoreAll: (params?: SearchReviewDTO) => {
+  getStoreAll: (params?: SearchReviewDTO, storeId?: string) => {
     const cleanFilters = Object.fromEntries(
       Object.entries(params || {})
         .filter(([_, value]) => value !== undefined && value !== null)
         .map(([key, value]) => [key, String(value)])
     );
     const queryString = new URLSearchParams(cleanFilters).toString();
-    return apiClient.get<ReviewResponse>(`${BASE_URL}/seller/my-reviews?${queryString}`);
+    return apiClient.get<ReviewResponse>(`${BASE_URL}/store/${storeId}?${queryString}`);
   },
 };

@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle, Eye, Trash2, TrendingUp, Plus, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
 import { Link } from '@/i18n/navigation';
 import ImgTag from '@/components/ImgTag';
 import { useSearchParams } from 'next/navigation';
