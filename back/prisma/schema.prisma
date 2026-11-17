@@ -575,7 +575,6 @@ model Review {
   variantInfo      Json?    @map("variant_info")
   userId           String   @map("user_id")
   productId        String   @map("product_id")
-  orderId          String?  @map("order_id")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User    @relation("ReviewUser", fields: [userId], references: [id])
@@ -599,9 +598,7 @@ model StoreReview {
   productName      String?     @map("product_name")
   status           StoreStatus @default(pending) @map("status")
   answerReview     String?     @map("answer_review")
-  answerAt         DateTime?   @map("answer_at")
-  responseAt       DateTime?   @map("response_at")
-
+  
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
