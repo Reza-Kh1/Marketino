@@ -41,9 +41,6 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  // en
-  language String @default("fa")
-
   addresses            Address[]
   cartItems            CartItem[]
   orders               Order[]
@@ -202,7 +199,7 @@ model Product {
   updatedAt       DateTime         @updatedAt @map("updated_at")
   categoryId      String           @map("category_id")
   brandId         String?          @map("brand_id")
-  storeId         String?          @map("store_id")
+  storeId         String           @map("store_id")
   title           String           @map("title")
   slug            String           @unique @map("slug")
   metaTitle       String?          @map("meta_title")
@@ -218,7 +215,7 @@ model Product {
   reviews       Review[]
   wishlistItems WishlistItem[]
   qnas          Qna[]
-  store         Store?           @relation(fields: [storeId], references: [id])
+  store         Store            @relation(fields: [storeId], references: [id])
 
   @@index([storeId])
   @@index([categoryId])
@@ -439,6 +436,7 @@ model OrderItem {
 
   @@index([orderId])
   @@index([storeId])
+  @@index([storeId, price])
   @@map("order_items")
 }
 
@@ -562,19 +560,21 @@ model ReturnItem {
 }
 
 model Review {
-  id               String   @id @default(uuid())
+  id        String  @id @default(uuid())
+  answerId  String? @map("answer_id")
+  userId    String  @map("user_id")
+  productId String  @map("product_id")
+
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  verifiedPurchase Boolean  @default(false)
+  variantInfo      Json?    @map("variant_info")
   rating           Int
   title            String?
   body             String
   answerReview     String?  @map("answer_review")
-  answerId         String?  @map("answer_id")
-  isApproved       Boolean  @default(false) @map("is_approved")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  verifiedPurchase Boolean  @default(false)
-  variantInfo      Json?    @map("variant_info")
-  userId           String   @map("user_id")
-  productId        String   @map("product_id")
+
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User    @relation("ReviewUser", fields: [userId], references: [id])
@@ -589,8 +589,10 @@ model Review {
 }
 
 model StoreReview {
-  id               String      @id @default(uuid())
-  userId           String      @map("user_id")
+  id      String @id @default(uuid())
+  userId  String @map("user_id")
+  storeId String @map("store_id")
+
   verifiedPurchase Boolean     @default(false)
   rating           Int         @map("rating")
   body             String?     @map("body")
@@ -598,11 +600,9 @@ model StoreReview {
   productName      String?     @map("product_name")
   status           StoreStatus @default(pending) @map("status")
   answerReview     String?     @map("answer_review")
-  
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
-  storeId String @map("store_id")
 
   user  User  @relation(fields: [userId], references: [id])
   store Store @relation(fields: [storeId], references: [id])

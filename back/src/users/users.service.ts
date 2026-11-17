@@ -21,7 +21,7 @@ export class UsersService {
         id: true, username: true, email: true, firstName: true, lastName: true,
         phone: true, avatar: true, role: true, store: { select: { commissionRate: true, id: true, slug: true } },
         isActive: true, isVerified: true, emailVerified: true,
-        hasSetPassword: true, language: true, lastLogin: true, createdAt: true, updatedAt: true, permissions: true
+        hasSetPassword: true, lastLogin: true, createdAt: true, updatedAt: true, permissions: true
       },
     });
     if (!user) throw new NotFoundException('کاربر یافت نشد');
@@ -89,7 +89,7 @@ export class UsersService {
       data: dto,
       select: {
         id: true, username: true, email: true, firstName: true, lastName: true,
-        phone: true, avatar: true, role: true, language: true,
+        phone: true, avatar: true, role: true
       },
     });
   }

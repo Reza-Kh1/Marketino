@@ -287,7 +287,7 @@ export class AdminService {
             _count: { select: { storeReview: true } },
             rating: {
               select: {
-                avgRating: true, totalReviews: true, responseRate: true,
+                avgRating: true, totalReviews: true,
                 productQuality: true,
               },
             },

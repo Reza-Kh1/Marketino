@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { ReviewsService } from './reviews.service';
 import {
   CreateReviewDto,
   GetReviewsQueryDto,
@@ -23,11 +22,12 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { ReviewSearchDto } from './dto/review.search.dto';
+import { ReviewsService } from './reviews.service';
 
 @ApiTags('Reviews')
 @Controller('reviews')
 export class ReviewsController {
-  constructor(private readonly reviewsService: ReviewsService) { }
+  constructor(private readonly reviewsService: ReviewsService) {}
 
   @Public()
   @Get('product/:productId')
@@ -39,20 +39,50 @@ export class ReviewsController {
     return this.reviewsService.getProductReviews(productId, query);
   }
 
+  /**
+   * ثبت نظر جدید — فقط کاربر لاگین‌شده
+   * فرانت فقط productId + rating + body (+ title اختیاری) می‌فرستد.
+   * بک‌اند خودش خریدار بودن را چک می‌کند.
+   */
   @UseGuards(JwtAuthGuard)
   @Post()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'ثبت نظر جدید توسط کاربر' })
-  async create(@CurrentUser('id') userId: string, @Body() dto: CreateReviewDto) {
+  @ApiOperation({
+    summary:
+      'ثبت نظر جدید (حتی بدون خرید مجاز است؛ در صورت خرید verifiedPurchase + variantInfo ست می‌شود)',
+  })
+  async create(
+    @CurrentUser('id') userId: string,
+    @Body() dto: CreateReviewDto,
+  ) {
     return this.reviewsService.create(userId, dto);
+  }
+
+  /**
+   * Recalculate اجباری امتیاز و تعداد نظرات یک محصول
+   * فقط admin / superAdmin
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'superAdmin')
+  @Post('product/:productId/recalculate-rating')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'محاسبه مجدد میانگین امتیاز و تعداد نظرات تاییدشده محصول (برای مواقعی که دیتا out-of-sync شده)',
+  })
+  async recalculateProductRating(@Param('productId') productId: string) {
+    return this.reviewsService.recalculateProductRating(productId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'superAdmin', 'seller')
   @Patch(':id/moderate')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'تایید یا رد نظر (مخصوص ادمین)' })
-  async moderate(@Param('id') id: string, @Body() dto: ModerateReviewDto) {
+  @ApiOperation({ summary: 'تایید یا رد نظر (ادمین / فروشنده)' })
+  async moderate(
+    @Param('id') id: string,
+    @Body() dto: ModerateReviewDto,
+  ) {
     return this.reviewsService.moderateReview(id, dto);
   }
 
@@ -60,7 +90,7 @@ export class ReviewsController {
   @Roles('admin', 'superAdmin', 'seller')
   @Post(':id/answer')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'پاسخ به نظر (مخصوص ادمین/فروشنده)' })
+  @ApiOperation({ summary: 'پاسخ به نظر' })
   async answer(
     @Param('id') id: string,
     @CurrentUser('id') adminId: string,
@@ -87,7 +117,7 @@ export class ReviewsController {
   @Roles('admin', 'superAdmin')
   @Get('admin/all')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'دریافت تمام نظرات برای پنل ادمین' })
+  @ApiOperation({ summary: 'لیست تمام نظرات برای پنل ادمین' })
   async getAllForAdmin(@Query() query: ReviewSearchDto) {
     return this.reviewsService.getAllReviewsForAdmin(query);
   }
@@ -96,7 +126,7 @@ export class ReviewsController {
   @Roles('seller')
   @Get('store/:storeId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'دریافت نظرات مربوط به محصولات فروشنده جاری' })
+  @ApiOperation({ summary: 'نظرات محصولات فروشنده جاری' })
   async getSellerReviews(
     @Param('storeId') storeId: string,
     @Query() query: ReviewSearchDto,

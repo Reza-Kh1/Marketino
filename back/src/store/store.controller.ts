@@ -88,11 +88,34 @@ export class StoreController {
   @Post(':storeId/reviews')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create store review' })
+  @ApiOperation({
+    summary:
+      'Create store review (حتی بدون خرید مجاز است؛ در صورت خرید verifiedPurchase + productName ست می‌شود)',
+  })
   @ApiParam({ name: 'storeId', description: 'Store ID' })
   @ApiBody({ type: CreateStoreReviewDto })
-  async createStoreReview(@CurrentUser('id') userId: string, @Param('storeId') storeId: string, @Body() dto: CreateStoreReviewDto) {
+  async createStoreReview(
+    @CurrentUser('id') userId: string,
+    @Param('storeId') storeId: string,
+    @Body() dto: CreateStoreReviewDto,
+  ) {
     return this.storeService.createStoreReview(userId, storeId, dto);
+  }
+
+  /**
+   * Recalculate اجباری امتیاز فروشگاه از روی نظرات تاییدشده
+   */
+  @Post(':storeId/recalculate-rating')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Roles('admin', 'superAdmin')
+  @ApiOperation({
+    summary:
+      'محاسبه مجدد کامل امتیاز فروشگاه از روی نظرات تاییدشده (برای مواقع out-of-sync)',
+  })
+  @ApiParam({ name: 'storeId', description: 'Store ID' })
+  async recalculateStoreRating(@Param('storeId') storeId: string) {
+    return this.storeService.recalculateStoreRating(storeId);
   }
 
   @Put('reviews/:reviewId/approve')

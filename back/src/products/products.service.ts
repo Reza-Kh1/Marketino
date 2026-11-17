@@ -241,9 +241,11 @@ export class ProductsService {
 
   async approveProduct(id: string) {
     const product = await this.prisma.product.findUnique({ where: { id } });
-    if (!product) throw new NotFoundException('محصول یافت نشد');
-
-    await this.prisma.product.update({ where: { id }, data: { status: 'approved' } });
+    if (!product || !product.storeId) throw new NotFoundException('محصول یافت نشد');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.storeRating.update({ where: { storeId: product.storeId }, data: { productCount: { increment: 1 } } }),
+        await tx.product.update({ where: { id }, data: { status: 'approved' } });
+    })
     return { message: 'محصول تأیید شد' };
   }
 

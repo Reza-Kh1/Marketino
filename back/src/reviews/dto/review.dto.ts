@@ -8,11 +8,6 @@ export class CreateReviewDto {
   @IsNotEmpty()
   productId!: string;
 
-  @ApiPropertyOptional({ description: 'شناسه سفارش مرتبط' })
-  @IsString()
-  @IsOptional()
-  orderId?: string;
-
   @ApiProperty({ description: 'امتیاز از ۱ تا ۵', minimum: 1, maximum: 5 })
   @IsInt()
   @Min(1)

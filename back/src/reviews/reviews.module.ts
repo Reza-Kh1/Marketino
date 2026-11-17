@@ -1,5 +1,5 @@
 /**
- * ReviewsModule - ماژول نظرات و دیدگاه‌ها
+ * ReviewsModule - ماژول نظرات محصولات
  */
 import { Module } from '@nestjs/common';
 import { ReviewsController } from './reviews.controller';
