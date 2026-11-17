@@ -178,14 +178,14 @@ export class SearchCheckouts extends DefaultQueryDto {
 
 export class SearchOrders extends DefaultQueryDto {
   @ApiPropertyOptional({
-    description: 'وضعیت پرداخت سفارش',
+    description: 'وضعیت سفارش',
     default: 'new',
-    enum: [PaymentStatus, 'All'],
+    enum: [OrderStatus, 'All'],
     required: false,
   })
   @IsOptional()
   @IsString()
-  paymentStatus?: PaymentStatus | 'All';
+  status?: OrderStatus | 'All';
 
   @ApiPropertyOptional({
     description: 'شماره سفارش برای جستجو',
@@ -204,12 +204,20 @@ export class SearchOrders extends DefaultQueryDto {
   trackingCode?: string;
 
   @ApiPropertyOptional({
-    description: 'شناسه روش ارسال فروشگاه',
+    description: 'نام فروشگاه',
     required: false,
   })
   @IsOptional()
   @IsString()
-  storeShippingMethodId?: string;
+  storeName?: string;
+
+  @ApiPropertyOptional({
+    description: 'شناسه تخفیف',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  discountCodeId?: string;
 
   @ApiPropertyOptional({
     description: 'شناسه کاربر صاحب سفارش',
@@ -226,6 +234,14 @@ export class SearchOrders extends DefaultQueryDto {
   @IsOptional()
   @IsString()
   storeId?: string;
+
+  @ApiPropertyOptional({
+    description: 'شناسه  مربوط به سفارش',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  checkoutId?: string;
 }
 
 // ============ DTO ============

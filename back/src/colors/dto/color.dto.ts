@@ -8,11 +8,12 @@ export class CreateColorDto {
   @MaxLength(100)
   name!: string;
 
-  @ApiProperty({ description: 'نام انگلیسی رنگ' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  nameEn!: string;
+  //  Change Lang
+  // @ApiProperty({ description: 'نام انگلیسی رنگ' })
+  // @IsString()
+  // @IsNotEmpty()
+  // @MaxLength(100)
+  // nameEn!: string;
 
   @ApiProperty({ description: 'نام اسلاگ رنگ' })
   @IsString()
@@ -34,11 +35,12 @@ export class UpdateColorDto {
   @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({ description: 'نام انگلیسی رنگ' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  nameEn?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ description: 'نام انگلیسی رنگ' })
+  // @IsString()
+  // @IsOptional()
+  // @MaxLength(100)
+  // nameEn?: string;
 
   @ApiProperty({ description: 'نام اسلاگ رنگ' })
   @IsString()

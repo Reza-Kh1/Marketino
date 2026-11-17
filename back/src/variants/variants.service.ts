@@ -161,7 +161,13 @@ export class VariantsService {
       orderBy: { createdAt: 'asc' },
       include: {
         discount: { select: { id: true, code: true, isActive: true, value: true, type: true, startsAt: true, endsAt: true } },
-        color: { select: { id: true, hexCode: true, name: true, nameEn: true } },
+        color: {
+          select: {
+            id: true, hexCode: true, name: true,
+            //  Change Lang
+            // nameEn: true
+          }
+        },
         attributes: {
           select: {
             id: true,
@@ -185,7 +191,8 @@ export class VariantsService {
           where: { id: variantId },
           data: {
             ...(variantData.name !== undefined && { name: variantData.name }),
-            ...(variantData.nameEn !== undefined && { nameEn: variantData.nameEn }),
+            //  Change Lang
+            // ...(variantData.nameEn !== undefined && { nameEn: variantData.nameEn }),
             ...(variantData.price !== undefined && { price: variantData.price }),
             ...(variantData.quantity !== undefined && { quantity: variantData.quantity }),
             ...(variantData.colorId !== undefined && { colorId: variantData.colorId || null }),
@@ -275,7 +282,14 @@ export class VariantsService {
       where,
       ...(noDetail !== 'true' && {
         include: {
-          category: { select: { name: true, nameEn: true, id: true } }
+          category: {
+            select: {
+              name: true,
+              //  Change Lang
+              // nameEn: true, 
+              id: true
+            }
+          }
         }
       })
     });

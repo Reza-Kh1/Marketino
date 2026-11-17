@@ -26,7 +26,12 @@ export class BrandService {
         }
         orderBy.push({ name: 'asc' });
         return this.prisma.brand.findMany({
-            select: { id: true, name: true, nameEn: true, slug: true, logo: true},
+            select: {
+                id: true, name: true,
+                //  Change Lang
+                //  nameEn: true, 
+                slug: true, logo: true
+            },
             orderBy,
             take: limit || undefined
         });

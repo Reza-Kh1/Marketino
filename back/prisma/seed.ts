@@ -1,22 +1,8 @@
-import {
-  PrismaClient,
-  ProductCondition,
-  ProductStatus,
-  StoreStatus,
-  UserRole,
-  ReviewApproval,
-} from '@prisma/client';
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient, UserRole, StoreStatus, ProductCondition, ProductStatus, StatusDiscount, DiscountType, ImageUseCase, ReviewApproval } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
-
-// ============================================================
-// 🔐 تنظیمات - پسورد دلخواه خودتون رو اینجا تغییر بدید
-// ============================================================
-const DEFAULT_PASSWORD = '123'; // ← این رو به هر چی دوست دارید تغییر بدید
-
-// ============================================================
 
 const images = [
   'marketino/image/2026/07/images-1-853487-2020.jpg',
@@ -37,1428 +23,811 @@ const images = [
   'marketino/image/2026/07/images-9-820133-6613.jpg',
 ];
 
-const id = (prefix: string, value: string | number) => `seed-${prefix}-${value}`;
-
-// هش کردن پسورد
-async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 10);
-}
-
-// Types
-type SellerWithStore = {
-  user: Awaited<ReturnType<typeof prisma.user.upsert>>;
-  store: Awaited<ReturnType<typeof prisma.store.upsert>>;
-};
-
-type Buyer = Awaited<ReturnType<typeof prisma.user.upsert>>;
-type Product = Awaited<ReturnType<typeof prisma.product.upsert>>;
-
-type ColorWithName = {
-  id: string;
-  hexCode: string;
-  name: string;
-  nameEn: string;
-};
-
 async function main() {
-  // هش کردن پسورد
-  const hashedPassword = await hashPassword(DEFAULT_PASSWORD);
-  console.log(`🔐 Password: "${DEFAULT_PASSWORD}"`);
+  console.log('Starting seed...');
 
-  /*
-   * ------------------------------------------------------
-   * 1. Province / City
-   * ------------------------------------------------------
-   */
+  // ==================== PROVINCES & CITIES ====================
+  const provinceData = [
+    { name: 'تهران', cities: [{ name: 'تهران' }, { name: 'اسلامشهر' }, { name: 'شهریار' }, { name: 'قدس' }, { name: 'ملارد' }] },
+    { name: 'البرز', cities: [{ name: 'کرج' }, { name: 'فردیس' }, { name: 'نظرآباد' }, { name: 'هشتگرد' }] },
+    { name: 'اصفهان', cities: [{ name: 'اصفهان' }, { name: 'کاشان' }, { name: 'نجف‌آباد' }, { name: 'خمینی‌شهر' }] },
+    { name: 'فارس', cities: [{ name: 'شیراز' }, { name: 'مرودشت' }, { name: 'جهرم' }, { name: 'فسا' }] },
+    { name: 'خراسان رضوی', cities: [{ name: 'مشهد' }, { name: 'نیشابور' }, { name: 'سبزوار' }, { name: 'تربت حیدریه' }] },
+    { name: 'آذربایجان شرقی', cities: [{ name: 'تبریز' }, { name: 'مراغه' }, { name: 'مرند' }, { name: 'اهر' }] },
+    { name: 'آذربایجان غربی', cities: [{ name: 'ارومیه' }, { name: 'خوی' }, { name: 'مهاباد' }, { name: 'بوکان' }] },
+    { name: 'خوزستان', cities: [{ name: 'اهواز' }, { name: 'آبادان' }, { name: 'دزفول' }, { name: 'خرمشهر' }] },
+    { name: 'مازندران', cities: [{ name: 'ساری' }, { name: 'بابل' }, { name: 'آمل' }, { name: 'قائم‌شهر' }] },
+    { name: 'گیلان', cities: [{ name: 'رشت' }, { name: 'بندرانزلی' }, { name: 'لاهیجان' }, { name: 'آستارا' }] },
+    { name: 'کرمان', cities: [{ name: 'کرمان' }, { name: 'رفسنجان' }, { name: 'جیرفت' }, { name: 'سیرجان' }] },
+    { name: 'سیستان و بلوچستان', cities: [{ name: 'زاهدان' }, { name: 'چابهار' }, { name: 'ایرانشهر' }, { name: 'زابل' }] },
+    { name: 'همدان', cities: [{ name: 'همدان' }, { name: 'ملایر' }, { name: 'نهاوند' }] },
+    { name: 'کرمانشاه', cities: [{ name: 'کرمانشاه' }, { name: 'اسلام‌آباد غرب' }, { name: 'سنقر' }] },
+    { name: 'لرستان', cities: [{ name: 'خرم‌آباد' }, { name: 'بروجرد' }, { name: 'دورود' }] },
+    { name: 'کردستان', cities: [{ name: 'سنندج' }, { name: 'سقز' }, { name: 'مریوان' }] },
+    { name: 'مرکزی', cities: [{ name: 'اراک' }, { name: 'ساوه' }, { name: 'خمین' }] },
+    { name: 'قم', cities: [{ name: 'قم' }] },
+    { name: 'قزوین', cities: [{ name: 'قزوین' }, { name: 'تاکستان' }, { name: 'آبیک' }] },
+    { name: 'اردبیل', cities: [{ name: 'اردبیل' }, { name: 'پارس‌آباد' }, { name: 'مشگین‌شهر' }] },
+    { name: 'زنجان', cities: [{ name: 'زنجان' }, { name: 'ابهر' }, { name: 'خدابنده' }] },
+    { name: 'گلستان', cities: [{ name: 'گرگان' }, { name: 'گنبد کاووس' }, { name: 'علی‌آباد کتول' }] },
+    { name: 'هرمزگان', cities: [{ name: 'بندرعباس' }, { name: 'میناب' }, { name: 'قشم' }] },
+    { name: 'بوشهر', cities: [{ name: 'بوشهر' }, { name: 'بندرگناوه' }, { name: 'دیر' }] },
+    { name: 'یزد', cities: [{ name: 'یزد' }, { name: 'اردکان' }, { name: 'میبد' }] },
+    { name: 'سمنان', cities: [{ name: 'سمنان' }, { name: 'شاهرود' }, { name: 'دامغان' }] },
+    { name: 'چهارمحال و بختیاری', cities: [{ name: 'شهرکرد' }, { name: 'بروجن' }, { name: 'فارسان' }] },
+    { name: 'کهگیلویه و بویراحمد', cities: [{ name: 'یاسوج' }, { name: 'گچساران' }, { name: 'دهدشت' }] },
+    { name: 'ایلام', cities: [{ name: 'ایلام' }, { name: 'دهلران' }, { name: 'آبدانان' }] },
+    { name: 'خراسان شمالی', cities: [{ name: 'بجنورد' }, { name: 'شیروان' }, { name: 'اسفراین' }] },
+    { name: 'خراسان جنوبی', cities: [{ name: 'بیرجند' }, { name: 'قائن' }, { name: 'فردوس' }] },
+  ];
 
-  const province = await prisma.province.upsert({
-    where: { name: 'تهران' },
-    update: {},
-    create: {
-      id: id('province', 'tehran'),
-      name: 'تهران',
-      nameEn: 'Tehran',
-    },
-  });
+  const provinces: { id: string; name: string }[] = [];
+  const citiesMap: Record<string, string> = {}; // name -> id
 
-  const city = await prisma.city.upsert({
-    where: {
-      provinceId_name: {
-        provinceId: province.id,
-        name: 'تهران',
-      },
-    },
-    update: {},
-    create: {
-      id: id('city', 'tehran'),
-      name: 'تهران',
-      nameEn: 'Tehran',
-      provinceId: province.id,
-    },
-  });
+  for (const p of provinceData) {
+    const province = await prisma.province.create({
+      data: { name: p.name },
+    });
+    provinces.push({ id: province.id, name: p.name });
 
-  console.log(`📍 Province: ${province.name}, City: ${city.name}`);
+    for (const c of p.cities) {
+      const city = await prisma.city.create({
+        data: {
+          name: c.name,
+          provinceId: province.id,
+        },
+      });
+      citiesMap[c.name] = city.id;
+    }
+  }
+  console.log(`Created ${provinces.length} provinces and cities`);
+  const salt = await bcrypt.genSalt(12);
 
-  /*
-   * ------------------------------------------------------
-   * 2. Super Admin
-   * ------------------------------------------------------
-   */
-
-  const superAdmin = await prisma.user.upsert({
-    where: { username: 'superadmin' },
-    update: {
-      email: 'superadmin@seed.local',
-      firstName: 'مدیر',
-      lastName: 'کل',
-      role: UserRole.superAdmin,
-      isActive: true,
-      isVerified: true,
-      emailVerified: true,
-      password: hashedPassword,
-    },
-    create: {
-      id: id('user', 'superadmin'),
+  const hashedPassword = await bcrypt.hash('123', salt);
+  // ==================== USERS (1 SuperAdmin + 2 Sellers) ====================
+  const superAdmin = await prisma.user.create({
+    data: {
       username: 'superadmin',
-      email: 'superadmin@seed.local',
+      email: 'superadmin@marketino.ir',
       password: hashedPassword,
       firstName: 'مدیر',
-      lastName: 'کل',
-      phone: '0912000000',
+      lastName: 'سیستم',
       role: UserRole.superAdmin,
       isActive: true,
       isVerified: true,
       emailVerified: true,
+      language: 'fa',
     },
   });
 
-  console.log(`👑 Super Admin: ${superAdmin.username}`);
-
-  /*
-   * ------------------------------------------------------
-   * 3. Sellers (3 فروشنده)
-   * ------------------------------------------------------
-   */
-
-  const sellersData = [
-    {
-      id: id('user', 'seller-1'),
-      username: 'seller_tech',
-      email: 'seller-tech@seed.local',
+  const seller1 = await prisma.user.create({
+    data: {
+      username: 'seller_tehran',
+      email: 'seller1@marketino.ir',
+      password: hashedPassword,
       firstName: 'علی',
-      lastName: 'رضایی',
-      storeName: 'تکنولند',
-      storeNameEn: 'TechnoLand',
-      slug: 'technoland',
-      description: 'فروش تخصصی کالاهای دیجیتال',
-      phone: '0912000001',
-      storePhone: '0214400001',
+      lastName: 'محمدی',
+      phone: '09121234567',
+      role: UserRole.seller,
+      isActive: true,
+      isVerified: true,
+      emailVerified: true,
+      language: 'fa',
     },
-    {
-      id: id('user', 'seller-2'),
-      username: 'seller_digital',
-      email: 'seller-digital@seed.local',
-      firstName: 'محمد',
+  });
+
+  const seller2 = await prisma.user.create({
+    data: {
+      username: 'seller_isfahan',
+      email: 'seller2@marketino.ir',
+      password: hashedPassword,
+      firstName: 'مریم',
       lastName: 'احمدی',
-      storeName: 'دیجیتال سنتر',
-      storeNameEn: 'Digital Center',
-      slug: 'digital-center',
-      description: 'عرضه محصولات دیجیتال و لوازم جانبی',
-      phone: '0912000002',
-      storePhone: '0214400002',
+      phone: '09131112233',
+      role: UserRole.seller,
+      isActive: true,
+      isVerified: true,
+      emailVerified: true,
+      language: 'fa',
     },
-    {
-      id: id('user', 'seller-3'),
-      username: 'seller_home',
-      email: 'seller-home@seed.local',
-      firstName: 'امیر',
+  });
+
+  // ==================== BUYERS (for reviews) ====================
+  const buyer1 = await prisma.user.create({
+    data: {
+      username: 'buyer1',
+      email: 'buyer1@marketino.ir',
+      password: hashedPassword,
+      firstName: 'رضا',
       lastName: 'کریمی',
-      storeName: 'خانه مدرن',
-      storeNameEn: 'Modern Home',
-      slug: 'modern-home',
-      description: 'محصولات خانه و لوازم هوشمند',
-      phone: '0912000003',
-      storePhone: '0214400003',
-    },
-  ];
-
-  const sellers: SellerWithStore[] = [];
-
-  for (let index = 0; index < sellersData.length; index++) {
-    const sellerData = sellersData[index];
-
-    const user = await prisma.user.upsert({
-      where: { username: sellerData.username },
-      update: {
-        email: sellerData.email,
-        firstName: sellerData.firstName,
-        lastName: sellerData.lastName,
-        role: UserRole.seller,
-        isActive: true,
-        isVerified: true,
-        emailVerified: true,
-        password: hashedPassword,
-        phone: sellerData.phone,
-      },
-      create: {
-        id: sellerData.id,
-        username: sellerData.username,
-        email: sellerData.email,
-        password: hashedPassword,
-        firstName: sellerData.firstName,
-        lastName: sellerData.lastName,
-        phone: sellerData.phone,
-        role: UserRole.seller,
-        isActive: true,
-        isVerified: true,
-        emailVerified: true,
-      },
-    });
-
-    const store = await prisma.store.upsert({
-      where: { ownerId: user.id },
-      update: {
-        name: sellerData.storeName,
-        nameEn: sellerData.storeNameEn,
-        slug: sellerData.slug,
-        description: sellerData.description,
-        status: StoreStatus.approved,
-        isActive: true,
-        isVerified: true,
-        provinceId: province.id,
-        cityId: city.id,
-        phone: sellerData.storePhone,
-        email: sellerData.email,
-      },
-      create: {
-        id: id('store', sellerData.username),
-        ownerId: user.id,
-        name: sellerData.storeName,
-        nameEn: sellerData.storeNameEn,
-        slug: sellerData.slug,
-        description: sellerData.description,
-        descriptionEn: sellerData.storeNameEn,
-        businessType: 'حقیقی',
-        status: StoreStatus.approved,
-        isActive: true,
-        isVerified: true,
-        address: `تهران، خیابان ولیعصر، پلاک ${index + 1}`,
-        phone: sellerData.storePhone,
-        email: sellerData.email,
-        shippingTime: '1 تا 3 روز کاری',
-        workingHours: '09:00 - 20:00',
-        provinceId: province.id,
-        cityId: city.id,
-      },
-    });
-
-    sellers.push({ user, store });
-    console.log(`🏪 Seller ${index + 1}: ${user.username} - Store: ${store.name}`);
-  }
-
-  /*
-   * ------------------------------------------------------
-   * 4. Buyer (1 خریدار)
-   * ------------------------------------------------------
-   */
-
-  const buyers: Buyer[] = [];
-
-  const buyer = await prisma.user.upsert({
-    where: { username: 'buyer' },
-    update: {
-      email: 'buyer@seed.local',
-      firstName: 'کاربر',
-      lastName: 'عادی',
       role: UserRole.buyer,
       isActive: true,
       isVerified: true,
       emailVerified: true,
-      password: hashedPassword,
-    },
-    create: {
-      id: id('user', 'buyer'),
-      username: 'buyer',
-      email: 'buyer@seed.local',
-      password: hashedPassword,
-      firstName: 'کاربر',
-      lastName: 'عادی',
-      phone: '0912000010',
-      role: UserRole.buyer,
-      isActive: true,
-      isVerified: true,
-      emailVerified: true,
+      language: 'fa',
     },
   });
-  buyers.push(buyer);
 
-  console.log(`👤 Buyer: ${buyer.username}`);
+  const buyer2 = await prisma.user.create({
+    data: {
+      username: 'buyer2',
+      email: 'buyer2@marketino.ir',
+      password: hashedPassword,
+      firstName: 'سارا',
+      lastName: 'رضایی',
+      role: UserRole.buyer,
+      isActive: true,
+      isVerified: true,
+      emailVerified: true,
+      language: 'fa',
+    },
+  });
 
-  /*
-   * ------------------------------------------------------
-   * 5. Brands
-   * ------------------------------------------------------
-   */
+  const buyer3 = await prisma.user.create({
+    data: {
+      username: 'buyer3',
+      email: 'buyer3@marketino.ir',
+      password: hashedPassword,
+      firstName: 'امیر',
+      lastName: 'حسینی',
+      role: UserRole.buyer,
+      isActive: true,
+      isVerified: true,
+      emailVerified: true,
+      language: 'fa',
+    },
+  });
 
-  const brandsData = [
-    ['acer', 'ایسر', 'Acer'],
-    ['lenovo', 'لنوو', 'Lenovo'],
-    ['samsung', 'سامسونگ', 'Samsung'],
-    ['xiaomi', 'شیائومی', 'Xiaomi'],
-    ['sony', 'سونی', 'Sony'],
-    ['philips', 'فیلیپس', 'Philips'],
-    ['apple', 'اپل', 'Apple'],
-    ['huawei', 'هوآوی', 'Huawei'],
-    ['nokia', 'نوکیا', 'Nokia'],
-    ['lg', 'الجی', 'LG'],
-    ['panasonic', 'پاناسونیک', 'Panasonic'],
-    ['bosch', 'بوش', 'Bosch'],
-  ];
+  const buyers = [buyer1, buyer2, buyer3];
+  console.log('Created 3 buyers');
 
-  const brands: Record<string, { id: string }> = {};
+  console.log('Created 3 users (superAdmin + 2 sellers)');
 
-  for (const [slug, name, nameEn] of brandsData) {
-    brands[slug] = await prisma.brand.upsert({
-      where: { slug },
-      update: {},
-      create: {
-        id: id('brand', slug),
-        name,
-        nameEn,
-        slug,
-      },
-    });
-  }
+  // ==================== STORES ====================
+  const tehranProvince = provinces.find((p) => p.name === 'تهران')!;
+  const isfahanProvince = provinces.find((p) => p.name === 'اصفهان')!;
 
-  console.log(`🏷️ Brands: ${Object.keys(brands).length}`);
+  const store1 = await prisma.store.create({
+    data: {
+      slug: 'tehran-electronics',
+      name: 'فروشگاه الکترونیک تهران',
+      description: 'تامین‌کننده معتبر لوازم الکترونیکی و دیجیتال',
+      nationalId: '1234567890',
+      businessType: 'حقوقی',
+      commissionRate: 8.5,
+      status: StoreStatus.approved,
+      isActive: true,
+      isVerified: true,
+      address: 'تهران، خیابان ولیعصر، پلاک ۱۲۰',
+      phone: '02188776655',
+      email: 'info@tehranelectronics.ir',
+      taxRate: 9,
+      ownerId: seller1.id,
+      provinceId: tehranProvince.id,
+      cityId: citiesMap['تهران'],
+    },
+  });
 
-  /*
-   * ------------------------------------------------------
-   * 6. Categories - 3 levels
-   * ------------------------------------------------------
-   */
+  const store2 = await prisma.store.create({
+    data: {
+      slug: 'isfahan-home',
+      name: 'خانه و آشپزخانه اصفهان',
+      description: 'محصولات باکیفیت خانه و آشپزخانه',
+      nationalId: '0987654321',
+      businessType: 'حقیقی',
+      commissionRate: 7.0,
+      status: StoreStatus.approved,
+      isActive: true,
+      isVerified: true,
+      address: 'اصفهان، خیابان چهارباغ، کوچه گلستان',
+      phone: '03132221100',
+      email: 'info@isfahanhome.ir',
+      taxRate: 9,
+      ownerId: seller2.id,
+      provinceId: isfahanProvince.id,
+      cityId: citiesMap['اصفهان'],
+    },
+  });
 
-  const categories = [
-    // سطح 1: دسته‌بندی‌های اصلی
-    {
-      id: id('category', 'technology'),
-      slug: 'technology',
-      slugEn: 'technology',
-      name: 'کالای دیجیتال',
-      nameEn: 'Technology',
-      parentId: null,
-      ancestorIds: [],
+  // Store Ratings
+  await prisma.storeRating.create({
+    data: {
+      storeId: store1.id,
+      avgRating: 4.6,
+      ratingTotal: 92,
+      totalReviews: 20,
+      productCount: 3,
+      productQuality: 4.7,
+      saleCount: 45,
+    },
+  });
+  await prisma.storeRating.create({
+    data: {
+      storeId: store2.id,
+      avgRating: 4.4,
+      ratingTotal: 66,
+      totalReviews: 15,
+      productCount: 3,
+      productQuality: 4.5,
+      saleCount: 32,
+    },
+  });
+
+  console.log('Created 2 stores with ratings');
+
+  // ==================== WALLETS ====================
+  await prisma.wallet.create({ data: { userId: seller1.id, balance: 12500000, pendingBalance: 850000 } });
+  await prisma.wallet.create({ data: { userId: seller2.id, balance: 8700000, pendingBalance: 420000 } });
+  await prisma.wallet.create({ data: { isPlatform: true, balance: 2500000, pendingBalance: 0 } });
+
+  // ==================== CATEGORIES (3 levels, ~8 categories) ====================
+  const catElectronics = await prisma.category.create({
+    data: {
+      name: 'الکترونیک',
+      slug: 'electronics',
+      sortOrder: 1,
       isActive: true,
     },
-    {
-      id: id('category', 'home'),
-      slug: 'home',
-      slugEn: 'home',
-      name: 'خانه و آشپزخانه',
-      nameEn: 'Home & Kitchen',
-      parentId: null,
-      ancestorIds: [],
+  });
+  const catMobile = await prisma.category.create({
+    data: {
+      name: 'موبایل و تبلت',
+      slug: 'mobile-tablet',
+      parentId: catElectronics.id,
+      ancestorIds: [catElectronics.id],
+      sortOrder: 1,
       isActive: true,
     },
-    {
-      id: id('category', 'mobile-accessories'),
-      slug: 'mobile-accessories',
-      slugEn: 'mobile-accessories',
+  });
+  const catAccessories = await prisma.category.create({
+    data: {
       name: 'لوازم جانبی موبایل',
-      nameEn: 'Mobile Accessories',
-      parentId: null,
-      ancestorIds: [],
+      slug: 'mobile-accessories',
+      parentId: catMobile.id,
+      ancestorIds: [catElectronics.id, catMobile.id],
+      sortOrder: 1,
       isActive: true,
     },
-
-    // سطح 2: زیردسته‌های کالای دیجیتال
-    {
-      id: id('category', 'technology-laptop'),
-      slug: 'laptop',
-      slugEn: 'laptop',
-      name: 'لپ تاپ',
-      nameEn: 'Laptop',
-      parentId: id('category', 'technology'),
-      ancestorIds: [id('category', 'technology')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-mobile'),
-      slug: 'mobile',
-      slugEn: 'mobile',
-      name: 'موبایل',
-      nameEn: 'Mobile',
-      parentId: id('category', 'technology'),
-      ancestorIds: [id('category', 'technology')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-tablet'),
-      slug: 'tablet',
-      slugEn: 'tablet',
-      name: 'تبلت',
-      nameEn: 'Tablet',
-      parentId: id('category', 'technology'),
-      ancestorIds: [id('category', 'technology')],
-      isActive: true,
-    },
-
-    // سطح 2: زیردسته‌های خانه و آشپزخانه
-    {
-      id: id('category', 'home-audio'),
-      slug: 'audio',
-      slugEn: 'audio',
-      name: 'صوتی و تصویری',
-      nameEn: 'Audio & Visual',
-      parentId: id('category', 'home'),
-      ancestorIds: [id('category', 'home')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'home-appliances'),
-      slug: 'appliances',
-      slugEn: 'appliances',
-      name: 'لوازم خانگی',
-      nameEn: 'Appliances',
-      parentId: id('category', 'home'),
-      ancestorIds: [id('category', 'home')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'home-kitchen'),
-      slug: 'kitchen',
-      slugEn: 'kitchen',
-      name: 'آشپزخانه',
-      nameEn: 'Kitchen',
-      parentId: id('category', 'home'),
-      ancestorIds: [id('category', 'home')],
-      isActive: true,
-    },
-
-    // سطح 2: زیردسته‌های لوازم جانبی
-    {
-      id: id('category', 'accessories-case'),
-      slug: 'case',
-      slugEn: 'case',
-      name: 'قاب و محافظ',
-      nameEn: 'Cases & Protection',
-      parentId: id('category', 'mobile-accessories'),
-      ancestorIds: [id('category', 'mobile-accessories')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'accessories-charger'),
-      slug: 'charger',
-      slugEn: 'charger',
-      name: 'شارژر و کابل',
-      nameEn: 'Chargers & Cables',
-      parentId: id('category', 'mobile-accessories'),
-      ancestorIds: [id('category', 'mobile-accessories')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای لپ تاپ
-    {
-      id: id('category', 'technology-laptop-acer'),
-      slug: 'acer',
-      slugEn: 'acer',
-      name: 'ایسر',
-      nameEn: 'Acer',
-      parentId: id('category', 'technology-laptop'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-laptop')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-laptop-lenovo'),
-      slug: 'lenovo',
-      slugEn: 'lenovo',
-      name: 'لنوو',
-      nameEn: 'Lenovo',
-      parentId: id('category', 'technology-laptop'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-laptop')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-laptop-apple'),
-      slug: 'apple',
-      slugEn: 'apple',
-      name: 'اپل',
-      nameEn: 'Apple',
-      parentId: id('category', 'technology-laptop'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-laptop')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای موبایل
-    {
-      id: id('category', 'technology-mobile-samsung'),
-      slug: 'samsung',
-      slugEn: 'samsung',
-      name: 'سامسونگ',
-      nameEn: 'Samsung',
-      parentId: id('category', 'technology-mobile'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-mobile')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-mobile-xiaomi'),
-      slug: 'xiaomi',
-      slugEn: 'xiaomi',
-      name: 'شیائومی',
-      nameEn: 'Xiaomi',
-      parentId: id('category', 'technology-mobile'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-mobile')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-mobile-huawei'),
-      slug: 'huawei',
-      slugEn: 'huawei',
-      name: 'هوآوی',
-      nameEn: 'Huawei',
-      parentId: id('category', 'technology-mobile'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-mobile')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای تبلت
-    {
-      id: id('category', 'technology-tablet-apple'),
-      slug: 'apple-tablet',
-      slugEn: 'apple-tablet',
-      name: 'اپل',
-      nameEn: 'Apple',
-      parentId: id('category', 'technology-tablet'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-tablet')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'technology-tablet-samsung'),
-      slug: 'samsung-tablet',
-      slugEn: 'samsung-tablet',
-      name: 'سامسونگ',
-      nameEn: 'Samsung',
-      parentId: id('category', 'technology-tablet'),
-      ancestorIds: [id('category', 'technology'), id('category', 'technology-tablet')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای صوتی
-    {
-      id: id('category', 'home-audio-sony'),
-      slug: 'sony',
-      slugEn: 'sony',
-      name: 'سونی',
-      nameEn: 'Sony',
-      parentId: id('category', 'home-audio'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-audio')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'home-audio-lg'),
-      slug: 'lg-audio',
-      slugEn: 'lg-audio',
-      name: 'الجی',
-      nameEn: 'LG',
-      parentId: id('category', 'home-audio'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-audio')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای لوازم خانگی
-    {
-      id: id('category', 'home-appliances-philips'),
-      slug: 'philips',
-      slugEn: 'philips',
-      name: 'فیلیپس',
-      nameEn: 'Philips',
-      parentId: id('category', 'home-appliances'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-appliances')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'home-appliances-bosch'),
-      slug: 'bosch',
-      slugEn: 'bosch',
-      name: 'بوش',
-      nameEn: 'Bosch',
-      parentId: id('category', 'home-appliances'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-appliances')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'home-appliances-panasonic'),
-      slug: 'panasonic',
-      slugEn: 'panasonic',
-      name: 'پاناسونیک',
-      nameEn: 'Panasonic',
-      parentId: id('category', 'home-appliances'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-appliances')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای آشپزخانه
-    {
-      id: id('category', 'home-kitchen-philips'),
-      slug: 'philips-kitchen',
-      slugEn: 'philips-kitchen',
-      name: 'فیلیپس',
-      nameEn: 'Philips',
-      parentId: id('category', 'home-kitchen'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-kitchen')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'home-kitchen-bosch'),
-      slug: 'bosch-kitchen',
-      slugEn: 'bosch-kitchen',
-      name: 'بوش',
-      nameEn: 'Bosch',
-      parentId: id('category', 'home-kitchen'),
-      ancestorIds: [id('category', 'home'), id('category', 'home-kitchen')],
-      isActive: true,
-    },
-
-    // سطح 3: برندهای لوازم جانبی
-    {
-      id: id('category', 'accessories-case-apple'),
-      slug: 'apple-case',
-      slugEn: 'apple-case',
-      name: 'اپل',
-      nameEn: 'Apple',
-      parentId: id('category', 'accessories-case'),
-      ancestorIds: [id('category', 'mobile-accessories'), id('category', 'accessories-case')],
-      isActive: true,
-    },
-    {
-      id: id('category', 'accessories-charger-samsung'),
-      slug: 'samsung-charger',
-      slugEn: 'samsung-charger',
-      name: 'سامسونگ',
-      nameEn: 'Samsung',
-      parentId: id('category', 'accessories-charger'),
-      ancestorIds: [id('category', 'mobile-accessories'), id('category', 'accessories-charger')],
-      isActive: true,
-    },
-  ];
-
-  for (const category of categories) {
-    await prisma.category.upsert({
-      where: { id: category.id },
-      update: {
-        name: category.name,
-        nameEn: category.nameEn,
-        parentId: category.parentId,
-        ancestorIds: category.ancestorIds,
-        isActive: true,
-      },
-      create: category,
-    });
-  }
-
-  console.log(`📁 Categories: ${categories.length}`);
-
-  /*
-   * ------------------------------------------------------
-   * 7. Attributes
-   * ------------------------------------------------------
-   */
-
-  const leafCategories = [
-    id('category', 'technology-laptop-acer'),
-    id('category', 'technology-laptop-lenovo'),
-    id('category', 'technology-laptop-apple'),
-    id('category', 'technology-mobile-samsung'),
-    id('category', 'technology-mobile-xiaomi'),
-    id('category', 'technology-mobile-huawei'),
-    id('category', 'technology-tablet-apple'),
-    id('category', 'technology-tablet-samsung'),
-    id('category', 'home-audio-sony'),
-    id('category', 'home-audio-lg'),
-    id('category', 'home-appliances-philips'),
-    id('category', 'home-appliances-bosch'),
-    id('category', 'home-appliances-panasonic'),
-    id('category', 'home-kitchen-philips'),
-    id('category', 'home-kitchen-bosch'),
-    id('category', 'accessories-case-apple'),
-    id('category', 'accessories-charger-samsung'),
-  ];
-
-  const attributes = [
-    ['ram', 'حافظه رم', 'RAM'],
-    ['storage', 'حافظه داخلی', 'Storage'],
-    ['screen', 'اندازه صفحه', 'Screen Size'],
-    ['cpu', 'پردازنده', 'CPU'],
-    ['color', 'رنگ', 'Color'],
-    ['warranty', 'گارانتی', 'Warranty'],
-    ['battery', 'ظرفیت باتری', 'Battery Capacity'],
-    ['camera', 'دوربین', 'Camera'],
-    ['weight', 'وزن', 'Weight'],
-    ['dimensions', 'ابعاد', 'Dimensions'],
-    ['material', 'جنس', 'Material'],
-    ['connectivity', 'اتصال', 'Connectivity'],
-  ];
-
-  const attrMap: Record<string, string> = {};
-
-  for (const [key, label] of attributes) {
-    const attr = await prisma.attributeDefinition.upsert({
-      where: { key },
-      update: {
-        label,
-        category: {
-          connect: leafCategories.map((categoryId) => ({ id: categoryId })),
-        },
-      },
-      create: {
-        id: uuidv4(),
-        key,
-        label,
-        category: {
-          connect: leafCategories.map((categoryId) => ({ id: categoryId })),
-        },
-      },
-    });
-
-    attrMap[key] = attr.id;
-  }
-
-  console.log(`🏷️ Attributes: ${Object.keys(attrMap).length}`);
-
-  /*
-   * ------------------------------------------------------
-   * 8. Colors
-   * ------------------------------------------------------
-   */
-
-  const colorData = [
-    ['black', 'مشکی', 'Black', '#111111'],
-    ['silver', 'نقره‌ای', 'Silver', '#C0C0C0'],
-    ['blue', 'آبی', 'Blue', '#2563EB'],
-    ['green', 'سبز', 'Green', '#16A34A'],
-    ['white', 'سفید', 'White', '#FFFFFF'],
-    ['gray', 'خاکستری', 'Gray', '#6B7280'],
-    ['gold', 'طلایی', 'Gold', '#FFD700'],
-    ['rose-gold', 'رزگلد', 'Rose Gold', '#B76E79'],
-    ['red', 'قرمز', 'Red', '#DC2626'],
-    ['purple', 'بنفش', 'Purple', '#7C3AED'],
-  ];
-
-  const colors: Record<string, ColorWithName> = {};
-
-  for (const [slug, name, nameEn, hexCode] of colorData) {
-    const color = await prisma.color.upsert({
-      where: { slug },
-      update: {},
-      create: {
-        id: uuidv4(),
-        name,
-        nameEn,
-        hexCode,
-        slug,
-      },
-    });
-    colors[slug] = color;
-  }
-
-  console.log(`🎨 Colors: ${Object.keys(colors).length}`);
-
-  /*
-   * ------------------------------------------------------
-   * 9. Products (12 محصول - 4 تا برای هر فروشنده)
-   * ------------------------------------------------------
-   */
-
-  const products = [
-    // ===== فروشنده 1 (تکنولند) - محصولات دیجیتال =====
-    {
-      slug: 'acer-aspire-5-a515',
-      title: 'لپ تاپ ایسر Aspire 5 A515',
-      titleEn: 'Acer Aspire 5 A515 Laptop',
-      brand: 'acer',
-      category: 'technology-laptop-acer',
-      seller: 0,
-      basePrice: 42500000,
-      originalPrice: 47000000,
-      desc: 'لپ تاپ مناسب کارهای روزمره، برنامه‌نویسی و استفاده اداری با پردازنده قدرتمند Intel Core i7 و نمایشگر 15.6 اینچ Full HD.',
-      specs: ['16GB', '32GB'],
-      specs2: ['512GB SSD', '1TB SSD'],
-      attrs: ['ram', 'storage', 'cpu', 'screen'],
-      cpu: 'Intel Core i7-1165G7',
-      colors: ['silver', 'black'],
-      features: ['پردازنده نسل یازدهم', 'گرافیک مجزا', 'باتری 10 ساعته'],
-    },
-    {
-      slug: 'acer-nitro-v15',
-      title: 'لپ تاپ گیمینگ ایسر Nitro V15',
-      titleEn: 'Acer Nitro V15 Gaming Laptop',
-      brand: 'acer',
-      category: 'technology-laptop-acer',
-      seller: 0,
-      basePrice: 58500000,
-      originalPrice: 64000000,
-      desc: 'لپ تاپ گیمینگ با گرافیک مجزا NVIDIA GeForce RTX 3050، سیستم خنک‌کننده قدرتمند و صفحه نمایش 144Hz مناسب بازی‌های سنگین.',
-      specs: ['16GB', '32GB'],
-      specs2: ['512GB SSD', '1TB SSD'],
-      attrs: ['ram', 'storage', 'cpu', 'screen'],
-      cpu: 'Intel Core i7-12700H',
-      colors: ['black', 'gray'],
-      features: ['RTX 3050', 'صفحه 144Hz', 'خنک‌کننده پیشرفته'],
-    },
-    {
-      slug: 'lenovo-ideapad-3',
-      title: 'لپ تاپ لنوو IdeaPad 3',
-      titleEn: 'Lenovo IdeaPad 3 Laptop',
-      brand: 'lenovo',
-      category: 'technology-laptop-lenovo',
-      seller: 0,
-      basePrice: 36500000,
-      originalPrice: 40000000,
-      desc: 'لپ تاپ اقتصادی و کاربردی برای دانشجویان، کارهای اداری و استفاده روزانه با پردازنده Intel Core i5 و نمایشگر 15.6 اینچ.',
-      specs: ['8GB', '16GB'],
-      specs2: ['256GB SSD', '512GB SSD'],
-      attrs: ['ram', 'storage', 'cpu', 'screen'],
-      cpu: 'Intel Core i5-1135G7',
-      colors: ['gray', 'silver'],
-      features: ['مناسب دانشجویی', 'وزن سبک', 'باتری 8 ساعته'],
-    },
-    {
-      slug: 'samsung-galaxy-s24-fe',
-      title: 'گوشی سامسونگ Galaxy S24 FE',
-      titleEn: 'Samsung Galaxy S24 FE',
-      brand: 'samsung',
-      category: 'technology-mobile-samsung',
-      seller: 0,
-      basePrice: 38500000,
-      originalPrice: 42000000,
-      desc: 'پرچمدار اقتصادی سامسونگ با نمایشگر Dynamic AMOLED 6.7 اینچ، دوربین 50 مگاپیکسلی و عملکرد بسیار سریع با پردازنده Exynos 2400.',
-      specs: ['8GB', '12GB'],
-      specs2: ['128GB', '256GB'],
-      attrs: ['ram', 'storage', 'camera', 'battery'],
-      cpu: 'Exynos 2400',
-      colors: ['green', 'gray', 'blue'],
-      features: ['AMOLED 120Hz', 'دوربین 50MP', 'باتری 4500mAh'],
-    },
-
-    // ===== فروشنده 2 (دیجیتال سنتر) - محصولات دیجیتال =====
-    {
-      slug: 'xiaomi-redmi-note-14',
-      title: 'گوشی شیائومی Redmi Note 14 Pro',
-      titleEn: 'Xiaomi Redmi Note 14 Pro',
-      brand: 'xiaomi',
-      category: 'technology-mobile-xiaomi',
-      seller: 1,
-      basePrice: 15500000,
-      originalPrice: 17500000,
-      desc: 'گوشی اقتصادی با باتری قدرتمند 5000mAh، نمایشگر AMOLED 6.67 اینچ 120Hz و دوربین اصلی 108 مگاپیکسلی.',
-      specs: ['8GB', '12GB'],
-      specs2: ['128GB', '256GB'],
-      attrs: ['ram', 'storage', 'camera', 'battery'],
-      cpu: 'MediaTek Dimensity 7200',
-      colors: ['black', 'blue', 'green'],
-      features: ['AMOLED 120Hz', 'دوربین 108MP', 'باتری 5000mAh'],
-    },
-    {
-      slug: 'xiaomi-poco-x7',
-      title: 'گوشی شیائومی Poco X7 Pro',
-      titleEn: 'Xiaomi Poco X7 Pro',
-      brand: 'xiaomi',
-      category: 'technology-mobile-xiaomi',
-      seller: 1,
-      basePrice: 23500000,
-      originalPrice: 26000000,
-      desc: 'گوشی قدرتمند برای بازی و استفاده روزانه با پردازنده سریع Dimensity 8300 و نمایشگر AMOLED 6.67 اینچ 120Hz.',
-      specs: ['8GB', '12GB'],
-      specs2: ['256GB', '512GB'],
-      attrs: ['ram', 'storage', 'camera', 'battery'],
-      cpu: 'MediaTek Dimensity 8300',
-      colors: ['black', 'green', 'yellow'],
-      features: ['AMOLED 120Hz', 'دوربین 64MP', 'باتری 5100mAh'],
-    },
-    {
-      slug: 'huawei-nova-12',
-      title: 'گوشی هوآوی Nova 12',
-      titleEn: 'Huawei Nova 12',
-      brand: 'huawei',
-      category: 'technology-mobile-huawei',
-      seller: 1,
-      basePrice: 19500000,
-      originalPrice: 22000000,
-      desc: 'گوشی میان‌رده با طراحی زیبا، نمایشگر OLED 6.7 اینچ و دوربین 50 مگاپیکسلی با کیفیت عکاسی فوق‌العاده.',
-      specs: ['8GB', '12GB'],
-      specs2: ['128GB', '256GB'],
-      attrs: ['ram', 'storage', 'camera', 'battery'],
-      cpu: 'Kirin 9000S',
-      colors: ['black', 'white', 'purple'],
-      features: ['OLED 120Hz', 'دوربین 50MP', 'شارژ 66W'],
-    },
-    {
-      slug: 'apple-ipad-air',
-      title: 'تبلت اپل iPad Air M2',
-      titleEn: 'Apple iPad Air M2',
-      brand: 'apple',
-      category: 'technology-tablet-apple',
-      seller: 1,
-      basePrice: 32000000,
-      originalPrice: 35000000,
-      desc: 'تبلت قدرتمند با تراشه M2، صفحه نمایش Liquid Retina 10.9 اینچ و پشتیبانی از Apple Pencil نسل دوم.',
-      specs: ['8GB', '16GB'],
-      specs2: ['64GB', '256GB'],
-      attrs: ['ram', 'storage', 'screen'],
-      cpu: 'Apple M2',
-      colors: ['silver', 'gray', 'gold'],
-      features: ['Liquid Retina', 'Apple Pencil', 'Face ID'],
-    },
-
-    // ===== فروشنده 3 (خانه مدرن) - محصولات خانه =====
-    {
-      slug: 'sony-wh-1000xm5',
-      title: 'هدفون بی‌سیم سونی WH-1000XM5',
-      titleEn: 'Sony WH-1000XM5 Wireless Headphone',
-      brand: 'sony',
-      category: 'home-audio-sony',
-      seller: 2,
-      basePrice: 18500000,
-      originalPrice: 20500000,
-      desc: 'هدفون حرفه‌ای با حذف نویز فعال پیشرفته، کیفیت صدای بالا با پشتیبانی از LDAC و باتری 30 ساعته.',
-      specs: ['مشکی', 'نقره‌ای', 'سفید'],
-      specs2: ['1 سال گارانتی', '2 سال گارانتی'],
-      attrs: ['color', 'warranty', 'connectivity', 'battery'],
-      colors: ['black', 'silver', 'white'],
-      features: ['Noise Cancelling', 'LDAC', 'باتری 30h'],
-    },
-    {
-      slug: 'sony-ult-field-7',
-      title: 'اسپیکر قابل حمل سونی ULT Field 7',
-      titleEn: 'Sony ULT Field 7 Speaker',
-      brand: 'sony',
-      category: 'home-audio-sony',
-      seller: 2,
-      basePrice: 31500000,
-      originalPrice: 35000000,
-      desc: 'اسپیکر قدرتمند قابل حمل با صدای بیس عمیق، مقاوم در برابر آب و گرد و غبار (IP67) و باتری 25 ساعته.',
-      specs: ['مشکی', 'سبز', 'آبی'],
-      specs2: ['1 سال گارانتی', '2 سال گارانتی'],
-      attrs: ['color', 'warranty', 'connectivity', 'battery'],
-      colors: ['black', 'green', 'blue'],
-      features: ['IP67', 'باس عمیق', 'باتری 25h'],
-    },
-    {
-      slug: 'philips-airfryer-hd9270',
-      title: 'سرخ کن بدون روغن فیلیپس HD9270',
-      titleEn: 'Philips HD9270 Airfryer',
-      brand: 'philips',
-      category: 'home-appliances-philips',
-      seller: 2, // ✅ اینجا seller هست نه sender
-      basePrice: 11800000,
-      originalPrice: 13500000,
-      desc: 'سرخ‌کن بدون روغن فیلیپس با ظرفیت 7.3 لیتر، تکنولوژی Rapid Air و صفحه نمایش دیجیتال مناسب خانواده.',
-      specs: ['6.2L', '7.3L'],
-      specs2: ['1 سال گارانتی', '2 سال گارانتی'],
-      attrs: ['screen', 'warranty', 'weight', 'dimensions'],
-      colors: ['black', 'silver'],
-      features: ['Rapid Air', '7.3L ظرفیت', 'دیجیتال'],
-    },
-    {
-      slug: 'philips-7000-blender',
-      title: 'مخلوط کن فیلیپس سری 7000',
-      titleEn: 'Philips 7000 Blender',
-      brand: 'philips',
-      category: 'home-kitchen-philips',
-      seller: 2,
-      basePrice: 9200000,
-      originalPrice: 10500000,
-      desc: 'مخلوط‌کن قدرتمند فیلیپس با تیغه استیل ProBlend، موتور 1400 وات و 12 برنامه هوشمند برای استفاده روزمره.',
-      specs: ['1400W', '1600W'],
-      specs2: ['1 سال گارانتی', '2 سال گارانتی'],
-      attrs: ['cpu', 'warranty', 'weight', 'material'],
-      cpu: '1400W Motor',
-      colors: ['black', 'white'],
-      features: ['ProBlend', '1400W', '12 برنامه'],
-    },
-  ];
-
-  /*
-   * ------------------------------------------------------
-   * 10. Create Products + Images + Variants
-   * ------------------------------------------------------
-   */
-
-  const createdProducts: Product[] = [];
-
-  for (let pIndex = 0; pIndex < products.length; pIndex++) {
-    const p = products[pIndex];
-
-    const product = await prisma.product.upsert({
-      where: { slug: p.slug },
-      update: {
-        title: p.title,
-        titleEn: p.titleEn,
-        description: p.desc,
-        originalPrice: p.originalPrice,
-        status: ProductStatus.approved,
-        condition: ProductCondition.new,
-        isFeatured: pIndex < 4,
-        isDigital: false,
-        viewCount: 500 + pIndex * 137,
-        saleCount: 20 + pIndex * 5,
-        rating: 4.3 + (pIndex % 5) * 0.1,
-        reviewCount: 3 + pIndex,
-        categoryId: uuidv4(),
-        brandId: brands[p.brand].id,
-        storeId: sellers[p.seller].store.id,
-        productTable: {
-          brand: p.brand,
-          category: p.category,
-          availableVariants: 4,
-          features: p.features || [],
-        },
-        productTableEn: {
-          brand: p.brand,
-          category: p.category,
-          availableVariants: 4,
-          features: p.features || [],
-        },
-      },
-      create: {
-        id: uuidv4(),
-        title: p.title,
-        titleEn: p.titleEn,
-        slug: p.slug,
-        slugEn: p.slug,
-        metaTitle: p.title,
-        metaTitleEn: p.titleEn,
-        description: p.desc,
-        descriptionEn: p.desc,
-        originalPrice: p.originalPrice,
-        minPrice: p.basePrice,
-        discountPercent: '15',
-        condition: ProductCondition.new,
-        status: ProductStatus.approved,
-        isFeatured: pIndex < 4,
-        isDigital: false,
-        viewCount: 500 + pIndex * 137,
-        saleCount: 20 + pIndex * 5,
-        rating: 4.3 + (pIndex % 5) * 0.1,
-        reviewCount: 3 + pIndex,
-        productTable: {
-          brand: p.brand,
-          category: p.category,
-          availableVariants: 4,
-          features: p.features || [],
-        },
-        productTableEn: {
-          brand: p.brand,
-          category: p.category,
-          availableVariants: 4,
-          features: p.features || [],
-        },
-        categoryId: id('category', p.category),
-        brandId: brands[p.brand].id,
-        storeId: sellers[p.seller].store.id,
-      },
-    });
-
-    createdProducts.push(product);
-
-    // Images - هر محصول 2 تصویر
-    const startImage = (pIndex * 2) % images.length;
-    const imageCount = 2;
-
-    for (let i = 0; i < imageCount; i++) {
-      const url = images[(startImage + i) % images.length];
-
-      await prisma.productImage.upsert({
-        where: { url: `${url}-${product.id}` },
-        update: {
-          productId: product.id,
-          alt: `${p.title} - تصویر ${i + 1}`,
-          sortOrder: i,
-          isMain: i === 0,
-          url: `${url}-${product.id}`,
-        },
-        create: {
-          id: id('image', `${p.slug}-${i + 1}-${Date.now()}-${Math.random()}`), // ← این خط رو تغییر بدید
-          url: `${url}-${product.id}`,
-          alt: `${p.title} - تصویر ${i + 1}`,
-          sortOrder: i,
-          isMain: i === 0,
-          productId: product.id,
-        },
-      });
-    }
-    for (let v = 0; v < 4; v++) {
-      const firstValue = p.specs[v % 2];
-      const secondValue = p.specs2[Math.floor(v / 2)];
-      const colorKey = p.colors[v % p.colors.length] || 'black';
-      let color = colors[colorKey];
-
-      // اگر رنگ وجود نداشت، از اولین رنگ موجود استفاده کن
-      if (!color) {
-        const firstColorKey = Object.keys(colors)[0];
-        color = colors[firstColorKey];
-        console.warn(`⚠️ Color "${colorKey}" not found, using "${firstColorKey}" instead`);
-      }
-
-      // ادامه کد با color...
-      const variantId = id('variant', `${p.slug}-${v + 1}`);
-
-      // قیمت‌های مختلف برای هر واریانت
-      const variantPrice = p.basePrice + v * 500000 + (v % 2) * 200000;
-
-      const variant = await prisma.productVariant.upsert({
-        where: { id: variantId },
-        update: {
-          name: `${firstValue} / ${secondValue} / ${color.name}`,
-          nameEn: `${firstValue} / ${secondValue} / ${color.nameEn}`,
-          price: variantPrice,
-          quantity: 8 + v * 6 + (v % 3) * 4,
-          colorId: color.id,
-          image: `${images[startImage % images.length]}-${product.id}`,
-          productId: product.id,
-        },
-        create: {
-          id: variantId,
-          name: `${firstValue} / ${secondValue} / ${color.name}`,
-          nameEn: `${firstValue} / ${secondValue} / ${color.nameEn}`,
-          sku: `SEED-${p.slug.toUpperCase()}-${v + 1}`,
-          price: variantPrice,
-          quantity: 8 + v * 6 + (v % 3) * 4,
-          colorId: color.id,
-          image: `${images[startImage % images.length]}-${product.id}`,
-          productId: product.id,
-        },
-      });
-
-      // پاک‌سازی attribute value های قبلی
-      await prisma.variantAttributeValue.deleteMany({
-        where: { variantId: variant.id },
-      });
-
-      const variantAttributes: {
-        attributeId: string;
-        value: string;
-        valueEn: string;
-      }[] = [];
-
-      // ویژگی‌های مختلف بر اساس محصول
-      if (p.attrs.includes('ram')) {
-        variantAttributes.push({
-          attributeId: attrMap.ram,
-          value: firstValue,
-          valueEn: firstValue,
-        });
-      }
-
-      if (p.attrs.includes('storage')) {
-        variantAttributes.push({
-          attributeId: attrMap.storage,
-          value: secondValue,
-          valueEn: secondValue,
-        });
-      }
-
-      if (p.attrs.includes('cpu') && p.cpu) {
-        variantAttributes.push({
-          attributeId: attrMap.cpu,
-          value: `${p.cpu} ${firstValue}`,
-          valueEn: `${p.cpu} ${firstValue}`,
-        });
-      }
-
-      if (p.attrs.includes('screen')) {
-        variantAttributes.push({
-          attributeId: attrMap.screen,
-          value: '15.6 اینچ',
-          valueEn: '15.6 inch',
-        });
-      }
-
-      if (p.attrs.includes('warranty')) {
-        variantAttributes.push({
-          attributeId: attrMap.warranty,
-          value: secondValue,
-          valueEn: secondValue,
-        });
-      }
-
-      if (p.attrs.includes('color')) {
-        variantAttributes.push({
-          attributeId: attrMap.color,
-          value: color.name,
-          valueEn: color.nameEn,
-        });
-      }
-
-      if (p.attrs.includes('battery')) {
-        variantAttributes.push({
-          attributeId: attrMap.battery,
-          value: '4500mAh',
-          valueEn: '4500mAh',
-        });
-      }
-
-      if (p.attrs.includes('camera')) {
-        variantAttributes.push({
-          attributeId: attrMap.camera,
-          value: '50 مگاپیکسل',
-          valueEn: '50MP',
-        });
-      }
-
-      if (p.attrs.includes('weight')) {
-        variantAttributes.push({
-          attributeId: attrMap.weight,
-          value: '1.2 کیلوگرم',
-          valueEn: '1.2 kg',
-        });
-      }
-
-      if (p.attrs.includes('dimensions')) {
-        variantAttributes.push({
-          attributeId: attrMap.dimensions,
-          value: '30x20x2 سانتی‌متر',
-          valueEn: '30x20x2 cm',
-        });
-      }
-
-      if (p.attrs.includes('material')) {
-        variantAttributes.push({
-          attributeId: attrMap.material,
-          value: 'آلومینیوم',
-          valueEn: 'Aluminum',
-        });
-      }
-
-      if (p.attrs.includes('connectivity')) {
-        variantAttributes.push({
-          attributeId: attrMap.connectivity,
-          value: 'Bluetooth 5.3',
-          valueEn: 'Bluetooth 5.3',
-        });
-      }
-
-      for (const attribute of variantAttributes) {
-        await prisma.variantAttributeValue.create({
-          data: {
-            id: id('variant-attr', `${p.slug}-${v + 1}-${attribute.attributeId}`),
-            value: attribute.value,
-            valueEn: attribute.valueEn,
-            variantId: variant.id,
-            attributeId: attribute.attributeId,
-          },
-        });
-      }
-    }
-  }
-
-  console.log(`📦 Products: ${createdProducts.length}`);
-  console.log(`🔀 Variants: ${createdProducts.length * 4}`);
-
-  /*
-   * ------------------------------------------------------
-   * 11. Reviews - هر محصول 3 نظر
-   * ------------------------------------------------------
-   */
-
-  const reviewTexts = [
-    {
-      title: 'کیفیت عالی',
-      body: 'محصول دقیقاً مطابق توضیحات بود و کیفیت ساخت فوق‌العاده‌ای داره. حتماً پیشنهاد می‌کنم.',
-      rating: 5,
-    },
-    {
-      title: 'ارزش خرید بالا',
-      body: 'نسبت به قیمت، عملکرد و کیفیت بسیار مناسبی داره. از خریدم راضی هستم.',
-      rating: 4,
-    },
-    {
-      title: 'پیشنهاد می‌کنم',
-      body: 'بسته‌بندی مناسب بود و محصول بدون مشکل به دستم رسید. کیفیت خوبی داره.',
-      rating: 5,
-    },
-  ];
-
-  const reviewAnswers = [
-    'ممنون از خرید و نظر ارزشمند شما. خوشحالیم که از محصول راضی هستید.',
-    'خوشحالیم که از خریدتان راضی بودید. امیدواریم باز هم از محصولات ما استفاده کنید.',
-    'سپاس از شما بابت خرید و نظر خوبتون. کیفیت برای ما اولویت اول است.',
-  ];
-
-  for (let pIndex = 0; pIndex < createdProducts.length; pIndex++) {
-    const product = createdProducts[pIndex];
-
-    for (let r = 0; r < 3; r++) {
-      const buyerIndex = (pIndex + r) % buyers.length;
-      const buyer = buyers[buyerIndex];
-      const rating = reviewTexts[r].rating;
-
-
-    }
-  }
-
-  console.log(`⭐ Reviews: ${createdProducts.length * 3}`);
-
-  /*
-   * ------------------------------------------------------
-   * 12. Q&A - هر محصول 3 سوال و پاسخ
-   * ------------------------------------------------------
-   */
-
-  const questions = [
-    'آیا این محصول گارانتی دارد و گارانتی آن چند سال است؟',
-    'آیا رنگ و مشخصات محصول دقیقاً مطابق تصاویر است؟',
-    'زمان ارسال محصول معمولاً چقدر است و هزینه ارسال چقدر است؟',
-  ];
-
-  const questionAnswers = [
-    'بله، محصول با گارانتی معتبر ۱۸ ماهه ارائه می‌شود. گارانتی شامل خدمات پس از فروش کامل است.',
-    'بله، مشخصات و رنگ‌ها دقیقاً مطابق اطلاعات درج‌شده در صفحه محصول هستند و کیفیت رنگ‌ها با تصاویر تطابق دارد.',
-    'معمولاً سفارش طی ۱ تا ۳ روز کاری ارسال می‌شود و هزینه ارسال بر اساس وزن و مقصد محاسبه می‌شود.',
-  ];
-
-  for (let pIndex = 0; pIndex < createdProducts.length; pIndex++) {
-    const product = createdProducts[pIndex];
-    const seller = sellers[pIndex % sellers.length];
-
-    for (let q = 0; q < 3; q++) {
-      const buyerIndex = (pIndex + q + 2) % buyers.length;
-      const buyer = buyers[buyerIndex];
-
-      const questionId = id('qna', `${product.id}-q-${q + 1}`);
-      const answerId = id('qna', `${product.id}-a-${q + 1}`);
-
-      await prisma.qna.upsert({
-        where: { id: questionId },
-        update: {
-          content: questions[q],
-          role: UserRole.buyer,
-          status: ReviewApproval.approved,
-          userId: buyer.id,
-          productId: product.id,
-          parentId: null,
-        },
-        create: {
-          id: questionId,
-          content: questions[q],
-          role: UserRole.buyer,
-          status: ReviewApproval.approved,
-          userId: buyer.id,
-          productId: product.id,
-        },
-      });
-
-      await prisma.qna.upsert({
-        where: { id: answerId },
-        update: {
-          content: questionAnswers[q],
-          role: UserRole.seller,
-          status: ReviewApproval.approved,
-          userId: seller.user.id,
-          productId: product.id,
-          parentId: questionId,
-        },
-        create: {
-          id: answerId,
-          content: questionAnswers[q],
-          role: UserRole.seller,
-          status: ReviewApproval.approved,
-          userId: seller.user.id,
-          productId: product.id,
-          parentId: questionId,
-        },
-      });
-    }
-  }
-
-  console.log(`❓ Q&A threads: ${createdProducts.length * 3}`);
-
-  /*
-   * ------------------------------------------------------
-   * 13. StoreRating - امتیاز فروشگاه‌ها
-   * ------------------------------------------------------
-   */
-
-  for (const seller of sellers) {
-    const storeProducts = createdProducts.filter(
-      (product) => product.storeId === seller.store.id,
-    );
-
-    const totalSales = storeProducts.reduce((sum, product) => sum + product.saleCount, 0);
-    const totalReviews = storeProducts.length * 3;
-
-    await prisma.storeRating.upsert({
-      where: { storeId: seller.store.id },
-      update: {
-        avgRating: 4.7,
-        ratingTotal: 14.1,
-        totalReviews: totalReviews,
-        productCount: storeProducts.length,
-        productQuality: 4.8,
-        productQualityTotal: 14.4,
-        productQualityCount: 3,
-        totalResponseRequests: totalReviews,
-        answeredResponses: totalReviews,
-        totalResponseTime: totalReviews * 5,
-        responseRate: 100,
-        responseTime: 5,
-        saleCount: totalSales,
-        returnCount: 0,
-      },
-      create: {
-        id: id('store-rating', seller.store.id),
-        avgRating: 4.7,
-        ratingTotal: 14.1,
-        totalReviews: totalReviews,
-        productCount: storeProducts.length,
-        productQuality: 4.8,
-        productQualityTotal: 14.4,
-        productQualityCount: 3,
-        totalResponseRequests: totalReviews,
-        answeredResponses: totalReviews,
-        totalResponseTime: totalReviews * 5,
-        responseRate: 100,
-        responseTime: 5,
-        saleCount: totalSales,
-        returnCount: 0,
-        storeId: seller.store.id,
-      },
-    });
-  }
-
-  /*
-   * ------------------------------------------------------
-   * 14. Summary
-   * ------------------------------------------------------
-   */
-
-  console.log('');
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('✅ Seed completed successfully!');
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('👑 Super Admin: superadmin');
-  console.log('👤 Buyer: buyer');
-  console.log(`🔐 Password: ${DEFAULT_PASSWORD}`);
-  console.log('');
-  console.log('🏪 Sellers:');
-  sellers.forEach((seller, index) => {
-    console.log(`   ${index + 1}. ${seller.user.username} - ${seller.store.name}`);
   });
-  console.log('');
-  console.log(`📦 Products: ${createdProducts.length} (4 per seller)`);
-  console.log(`🔀 Variants: ${createdProducts.length * 4}`);
-  console.log(`⭐ Reviews: ${createdProducts.length * 3}`);
-  console.log(`❓ Q&A: ${createdProducts.length * 3}`);
-  console.log(`📁 Categories: ${categories.length}`);
-  console.log(`🏷️ Brands: ${Object.keys(brands).length}`);
-  console.log(`🎨 Colors: ${Object.keys(colors).length}`);
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('');
+
+  const catHome = await prisma.category.create({
+    data: {
+      name: 'خانه و آشپزخانه',
+      slug: 'home-kitchen',
+      sortOrder: 2,
+      isActive: true,
+    },
+  });
+  const catKitchen = await prisma.category.create({
+    data: {
+      name: 'لوازم آشپزخانه',
+      slug: 'kitchen-appliances',
+      parentId: catHome.id,
+      ancestorIds: [catHome.id],
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+  const catCookware = await prisma.category.create({
+    data: {
+      name: 'ظروف پخت و پز',
+      slug: 'cookware',
+      parentId: catKitchen.id,
+      ancestorIds: [catHome.id, catKitchen.id],
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
+  const catFashion = await prisma.category.create({
+    data: {
+      name: 'مد و پوشاک',
+      slug: 'fashion',
+      sortOrder: 3,
+      isActive: true,
+    },
+  });
+  const catMen = await prisma.category.create({
+    data: {
+      name: 'پوشاک مردانه',
+      slug: 'men-clothing',
+      parentId: catFashion.id,
+      ancestorIds: [catFashion.id],
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
+  console.log('Created categories (3 levels)');
+
+  // ==================== BRANDS (20) ====================
+  const brandNames = [
+    { name: 'سامسونگ', slug: 'samsung' },
+    { name: 'شیائومی', slug: 'xiaomi' },
+    { name: 'اپل', slug: 'apple' },
+    { name: 'هواوی', slug: 'huawei' },
+    { name: 'سونی', slug: 'sony' },
+    { name: 'ال‌جی', slug: 'lg' },
+    { name: 'پاناسونیک', slug: 'panasonic' },
+    { name: 'بوش', slug: 'bosch' },
+    { name: 'فیلیپس', slug: 'philips' },
+    { name: 'هایسنس', slug: 'hisense' },
+    { name: 'هاکوپیان', slug: 'hakoupian' },
+    { name: 'گراد', slug: 'grad' },
+    { name: 'ماکسیم', slug: 'maxim' },
+    { name: 'پاتن جامه', slug: 'patn-jameh' },
+    { name: 'تولیپ', slug: 'tulip' },
+    { name: 'زرین', slug: 'zarin' },
+    { name: 'پارس خزر', slug: 'pars-khazar' },
+    { name: 'اسنوا', slug: 'snowa' },
+    { name: 'دوو', slug: 'daewoo' },
+    { name: 'جی‌پلاس', slug: 'gplus' },
+  ];
+
+  const brands: { id: string }[] = []
+  for (let i = 0; i < brandNames.length; i++) {
+    const b = await prisma.brand.create({
+      data: {
+        name: brandNames[i].name,
+        slug: brandNames[i].slug,
+        sortOrder: i + 1,
+      },
+    });
+    brands.push(b);
+  }
+  console.log('Created 20 brands');
+
+  // ==================== COLORS (20) ====================
+  const colorData = [
+    { name: 'مشکی', hex: '#000000', slug: 'black' },
+    { name: 'سفید', hex: '#FFFFFF', slug: 'white' },
+    { name: 'قرمز', hex: '#FF0000', slug: 'red' },
+    { name: 'آبی', hex: '#0000FF', slug: 'blue' },
+    { name: 'سبز', hex: '#008000', slug: 'green' },
+    { name: 'زرد', hex: '#FFFF00', slug: 'yellow' },
+    { name: 'نارنجی', hex: '#FFA500', slug: 'orange' },
+    { name: 'بنفش', hex: '#800080', slug: 'purple' },
+    { name: 'صورتی', hex: '#FFC0CB', slug: 'pink' },
+    { name: 'خاکستری', hex: '#808080', slug: 'gray' },
+    { name: 'قهوه‌ای', hex: '#A52A2A', slug: 'brown' },
+    { name: 'طلایی', hex: '#FFD700', slug: 'gold' },
+    { name: 'نقره‌ای', hex: '#C0C0C0', slug: 'silver' },
+    { name: 'سرمه‌ای', hex: '#000080', slug: 'navy' },
+    { name: 'زیتونی', hex: '#808000', slug: 'olive' },
+    { name: 'فیروزه‌ای', hex: '#40E0D0', slug: 'turquoise' },
+    { name: 'بژ', hex: '#F5F5DC', slug: 'beige' },
+    { name: 'کرم', hex: '#FFFDD0', slug: 'cream' },
+    { name: 'ارغوانی', hex: '#800000', slug: 'maroon' },
+    { name: 'آبی آسمانی', hex: '#87CEEB', slug: 'sky-blue' },
+  ];
+
+  const colors: { id: string }[] = []
+  for (const c of colorData) {
+    const color = await prisma.color.create({
+      data: { name: c.name, hexCode: c.hex, slug: c.slug },
+    });
+    colors.push(color);
+  }
+  console.log('Created 20 colors');
+
+  // ==================== ATTRIBUTE DEFINITIONS ====================
+  const attrSize = await prisma.attributeDefinition.create({
+    data: { key: 'size', label: 'سایز' },
+  });
+  const attrMaterial = await prisma.attributeDefinition.create({
+    data: { key: 'material', label: 'جنس' },
+  });
+  const attrWarranty = await prisma.attributeDefinition.create({
+    data: { key: 'warranty', label: 'گارانتی' },
+  });
+  const attrCapacity = await prisma.attributeDefinition.create({
+    data: { key: 'capacity', label: 'ظرفیت' },
+  });
+
+  // Connect attributes to categories (many-to-many)
+  await prisma.category.update({
+    where: { id: catAccessories.id },
+    data: { attributeDefinitions: { connect: [{ id: attrSize.id }, { id: attrMaterial.id }, { id: attrWarranty.id }] } },
+  });
+  await prisma.category.update({
+    where: { id: catCookware.id },
+    data: { attributeDefinitions: { connect: [{ id: attrMaterial.id }, { id: attrCapacity.id }, { id: attrWarranty.id }] } },
+  });
+  await prisma.category.update({
+    where: { id: catMen.id },
+    data: { attributeDefinitions: { connect: [{ id: attrSize.id }, { id: attrMaterial.id }] } },
+  });
+
+  console.log('Created attribute definitions');
+
+  // ==================== PRODUCTS (3 per store = 6) ====================
+  // Store 1 products (Electronics)
+  const product1 = await prisma.product.create({
+    data: {
+      title: 'گوشی موبایل سامسونگ گلکسی A54',
+      slug: 'samsung-galaxy-a54',
+      description: 'گوشی هوشمند سامسونگ با صفحه‌نمایش ۶.۴ اینچی و دوربین سه‌گانه',
+      originalPrice: 18500000,
+      minPrice: 17200000,
+      discountPercent: '7',
+      condition: ProductCondition.new,
+      status: ProductStatus.approved,
+      isFeatured: true,
+      categoryId: catMobile.id,
+      brandId: brands[0].id,
+      storeId: store1.id,
+      rating: 4.5,
+      reviewCount: 3,
+      saleCount: 28,
+    },
+  });
+
+  const product2 = await prisma.product.create({
+    data: {
+      title: 'هندزفری بی‌سیم شیائومی',
+      slug: 'xiaomi-wireless-earbuds',
+      description: 'هندزفری بلوتوثی با کیفیت صدای عالی و باتری طولانی',
+      originalPrice: 1450000,
+      minPrice: 1290000,
+      discountPercent: '11',
+      condition: ProductCondition.new,
+      status: ProductStatus.approved,
+      categoryId: catAccessories.id,
+      brandId: brands[1].id,
+      storeId: store1.id,
+      rating: 4.3,
+      reviewCount: 3,
+      saleCount: 67,
+    },
+  });
+
+  const product3 = await prisma.product.create({
+    data: {
+      title: 'شارژر سریع ۶۵ وات',
+      slug: 'fast-charger-65w',
+      description: 'شارژر دیواری سریع سازگار با اکثر گوشی‌های اندروید',
+      originalPrice: 890000,
+      minPrice: 790000,
+      condition: ProductCondition.new,
+      status: ProductStatus.approved,
+      categoryId: catAccessories.id,
+      brandId: brands[1].id,
+      storeId: store1.id,
+      rating: 4.7,
+      reviewCount: 3,
+      saleCount: 112,
+    },
+  });
+
+  // Store 2 products (Home)
+  const product4 = await prisma.product.create({
+    data: {
+      title: 'سرویس قابلمه ۸ پارچه استیل',
+      slug: 'cookware-set-8pcs',
+      description: 'سرویس قابلمه استیل ضدزنگ با درب شیشه‌ای',
+      originalPrice: 4200000,
+      minPrice: 3850000,
+      discountPercent: '8',
+      condition: ProductCondition.new,
+      status: ProductStatus.approved,
+      isFeatured: true,
+      categoryId: catCookware.id,
+      brandId: brands[15].id,
+      storeId: store2.id,
+      rating: 4.6,
+      reviewCount: 3,
+      saleCount: 19,
+    },
+  });
+
+  const product5 = await prisma.product.create({
+    data: {
+      title: 'کتری برقی پارس خزر',
+      slug: 'pars-khazar-kettle',
+      description: 'کتری برقی ۱.۷ لیتری با بدنه استیل',
+      originalPrice: 1650000,
+      minPrice: 1490000,
+      condition: ProductCondition.new,
+      status: ProductStatus.approved,
+      categoryId: catKitchen.id,
+      brandId: brands[16].id,
+      storeId: store2.id,
+      rating: 4.4,
+      reviewCount: 3,
+      saleCount: 41,
+    },
+  });
+
+  const product6 = await prisma.product.create({
+    data: {
+      title: 'پیراهن مردانه رسمی هاکوپیان',
+      slug: 'hakoupian-men-shirt',
+      description: 'پیراهن رسمی مردانه با پارچه باکیفیت و دوخت عالی',
+      originalPrice: 2850000,
+      minPrice: 2590000,
+      discountPercent: '9',
+      condition: ProductCondition.new,
+      status: ProductStatus.approved,
+      categoryId: catMen.id,
+      brandId: brands[10].id,
+      storeId: store2.id,
+      rating: 4.8,
+      reviewCount: 3,
+      saleCount: 23,
+    },
+  });
+
+  const products = [product1, product2, product3, product4, product5, product6];
+  console.log('Created 6 products');
+
+  // ==================== PRODUCT VARIANTS + ATTRIBUTE VALUES ====================
+  async function createVariant(productId: string, name: string, price: number, quantity: number, colorId: string | null, attrs: { attrId: string; value: string }[]) {
+    const variant = await prisma.productVariant.create({
+      data: {
+        productId,
+        name,
+        price,
+        quantity,
+        colorId,
+        sku: `SKU-${randomUUID().slice(0, 8).toUpperCase()}`,
+      },
+    });
+    for (const a of attrs) {
+      await prisma.variantAttributeValue.create({
+        data: {
+          variantId: variant.id,
+          attributeId: a.attrId,
+          value: a.value,
+        },
+      });
+    }
+    return variant;
+  }
+
+  // Product 1 variants
+  await createVariant(product1.id, 'مشکی - ۱۲۸ گیگ', 17200000, 15, colors[0].id, [
+    { attrId: attrCapacity.id, value: '۱۲۸ گیگابایت' },
+    { attrId: attrWarranty.id, value: '۱۸ ماه گارانتی' },
+  ]);
+  await createVariant(product1.id, 'آبی - ۲۵۶ گیگ', 18900000, 8, colors[3].id, [
+    { attrId: attrCapacity.id, value: '۲۵۶ گیگابایت' },
+    { attrId: attrWarranty.id, value: '۱۸ ماه گارانتی' },
+  ]);
+
+  // Product 2
+  await createVariant(product2.id, 'سفید', 1290000, 40, colors[1].id, [
+    { attrId: attrWarranty.id, value: '۱۲ ماه گارانتی' },
+  ]);
+  await createVariant(product2.id, 'مشکی', 1290000, 35, colors[0].id, [
+    { attrId: attrWarranty.id, value: '۱۲ ماه گارانتی' },
+  ]);
+
+  // Product 3
+  await createVariant(product3.id, 'سفید', 790000, 60, colors[1].id, [
+    { attrId: attrWarranty.id, value: '۶ ماه گارانتی' },
+  ]);
+
+  // Product 4
+  await createVariant(product4.id, 'استیل براق', 3850000, 12, colors[12].id, [
+    { attrId: attrMaterial.id, value: 'استیل ضدزنگ' },
+    { attrId: attrCapacity.id, value: '۸ پارچه' },
+    { attrId: attrWarranty.id, value: '۲۴ ماه گارانتی' },
+  ]);
+
+  // Product 5
+  await createVariant(product5.id, 'استیل', 1490000, 25, colors[12].id, [
+    { attrId: attrMaterial.id, value: 'استیل' },
+    { attrId: attrCapacity.id, value: '۱.۷ لیتر' },
+    { attrId: attrWarranty.id, value: '۱۲ ماه گارانتی' },
+  ]);
+
+  // Product 6
+  await createVariant(product6.id, 'سفید - سایز L', 2590000, 18, colors[1].id, [
+    { attrId: attrSize.id, value: 'L' },
+    { attrId: attrMaterial.id, value: 'پنبه' },
+  ]);
+  await createVariant(product6.id, 'آبی - سایز M', 2590000, 14, colors[3].id, [
+    { attrId: attrSize.id, value: 'M' },
+    { attrId: attrMaterial.id, value: 'پنبه' },
+  ]);
+
+  console.log('Created product variants and attribute values');
+
+  // ==================== PRODUCT IMAGES (10) ====================
+  const productIdsForImages = [product1.id, product1.id, product2.id, product3.id, product4.id, product4.id, product5.id, product6.id, product6.id, product2.id];
+  for (let i = 0; i < 10; i++) {
+    await prisma.productImage.create({
+      data: {
+        productId: productIdsForImages[i],
+        url: images[i],
+        alt: `تصویر محصول ${i + 1}`,
+        useCase: ImageUseCase.PRODUCT,
+        sortOrder: i,
+        isMain: i % 3 === 0,
+      },
+    });
+  }
+  console.log('Created 10 product images');
+
+  // ==================== REVIEWS (3 per product) ====================
+  const reviewBodies = [
+    'کیفیت عالی و ارسال سریع. کاملاً راضی هستم.',
+    'محصول خوبیه ولی بسته‌بندی می‌تونست بهتر باشه.',
+    'ارزش خرید داره. پیشنهاد می‌کنم.',
+  ];
+
+  for (const product of products) {
+    for (let i = 0; i < 3; i++) {
+      await prisma.review.create({
+        data: {
+          rating: 4 + (i % 2),
+          title: `نظر خریدار ${i + 1}`,
+          body: reviewBodies[i],
+          isApproved: true,
+          verifiedPurchase: true,
+          userId: buyers[i].id,
+          productId: product.id,
+        },
+      });
+    }
+  }
+  console.log('Created reviews (3 per product)');
+
+  // ==================== STORE REVIEWS (3 per store) ====================
+  for (const store of [store1, store2]) {
+    for (let i = 0; i < 3; i++) {
+      await prisma.storeReview.create({
+        data: {
+          userId: buyers[i].id,
+          storeId: store.id,
+          rating: 4 + (i % 2),
+          body: `تجربه خرید از این فروشگاه خوب بود. امتیاز ${4 + (i % 2)}`,
+          productQuality: 4 + (i % 2),
+          verifiedPurchase: true,
+          status: StoreStatus.approved,
+        },
+      });
+    }
+  }
+  console.log('Created store reviews');
+
+  // ==================== QnA (2 per product) ====================
+  for (const product of products) {
+    const q1 = await prisma.qna.create({
+      data: {
+        content: 'آیا این محصول گارانتی معتبر دارد؟',
+        role: UserRole.buyer,
+        status: ReviewApproval.approved,
+        userId: seller1.id,
+        productId: product.id,
+      },
+    });
+    await prisma.qna.create({
+      data: {
+        content: 'بله، گارانتی رسمی شرکت ارائه می‌شود.',
+        role: UserRole.seller,
+        status: ReviewApproval.approved,
+        userId: product.storeId === store1.id ? seller1.id : seller2.id,
+        productId: product.id,
+        parentId: q1.id,
+      },
+    });
+  }
+  console.log('Created QnAs');
+
+  // ==================== DISCOUNT CODES (one product variant linked per store) ====================
+  const discount1 = await prisma.discountCode.create({
+    data: {
+      code: 'TEHRAN10',
+      description: '۱۰ درصد تخفیف ویژه فروشگاه تهران',
+      value: 10,
+      type: DiscountType.percentage,
+      status: StatusDiscount.STORE,
+      minOrderAmount: 500000,
+      usageLimit: 100,
+      perUserLimit: 2,
+      isActive: true,
+      startsAt: new Date('2026-01-01'),
+      endsAt: new Date('2026-12-31'),
+      userId: seller1.id,
+    },
+  });
+  await prisma.discountCodeStore.create({
+    data: { discountCodeId: discount1.id, storeId: store1.id },
+  });
+
+  const discount2 = await prisma.discountCode.create({
+    data: {
+      code: 'ISFAHAN15',
+      description: '۱۵ درصد تخفیف خانه و آشپزخانه',
+      value: 15,
+      type: DiscountType.percentage,
+      status: StatusDiscount.STORE,
+      minOrderAmount: 1000000,
+      usageLimit: 50,
+      perUserLimit: 1,
+      isActive: true,
+      startsAt: new Date('2026-01-01'),
+      endsAt: new Date('2026-12-31'),
+      userId: seller2.id,
+    },
+  });
+  await prisma.discountCodeStore.create({
+    data: { discountCodeId: discount2.id, storeId: store2.id },
+  });
+
+  // Link one variant of each store to a discount
+  const variantsStore1 = await prisma.productVariant.findMany({ where: { product: { storeId: store1.id } }, take: 1 });
+  if (variantsStore1[0]) {
+    await prisma.productVariant.update({
+      where: { id: variantsStore1[0].id },
+      data: { discountId: discount1.id },
+    });
+  }
+  const variantsStore2 = await prisma.productVariant.findMany({ where: { product: { storeId: store2.id } }, take: 1 });
+  if (variantsStore2[0]) {
+    await prisma.productVariant.update({
+      where: { id: variantsStore2[0].id },
+      data: { discountId: discount2.id },
+    });
+  }
+
+  console.log('Created discount codes and linked to stores/variants');
+
+  // ==================== SHIPPING METHODS (5) ====================
+  const shippingMethods = await Promise.all([
+    prisma.shippingMethod.create({ data: { name: 'پست ملی', isActive: true } }),
+    prisma.shippingMethod.create({ data: { name: 'تیپاکس', isActive: true } }),
+    prisma.shippingMethod.create({ data: { name: 'ارسال رایگان', isFreeMethod: true, isActive: true } }),
+    prisma.shippingMethod.create({ data: { name: 'پیک موتوری', isActive: true } }),
+    prisma.shippingMethod.create({ data: { name: 'باربری', isActive: true } }),
+  ]);
+  console.log('Created 5 shipping methods');
+
+  // ==================== STORE SHIPPING METHODS (3 per store) ====================
+  for (const store of [store1, store2]) {
+    await prisma.storeShippingMethod.create({
+      data: {
+        storeId: store.id,
+        shippingMethodId: shippingMethods[0].id,
+        isActive: true,
+        minDays: 2,
+        maxDays: 5,
+        defaultPrice: 45000,
+        description: 'ارسال با پست ملی',
+      },
+    });
+    await prisma.storeShippingMethod.create({
+      data: {
+        storeId: store.id,
+        shippingMethodId: shippingMethods[1].id,
+        isActive: true,
+        minDays: 1,
+        maxDays: 3,
+        defaultPrice: 75000,
+        description: 'ارسال سریع تیپاکس',
+      },
+    });
+    await prisma.storeShippingMethod.create({
+      data: {
+        storeId: store.id,
+        shippingMethodId: shippingMethods[2].id,
+        isActive: true,
+        minDays: 3,
+        maxDays: 7,
+        defaultPrice: 0,
+        description: 'ارسال رایگان برای سفارش‌های بالای ۲ میلیون تومان',
+      },
+    });
+  }
+  console.log('Created store shipping methods (3 per store)');
+
+  console.log('Seed completed successfully.');
 }
 
 main()
-  .catch((error) => {
-    console.error('❌ Seed failed:', error);
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

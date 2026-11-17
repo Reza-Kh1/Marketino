@@ -27,10 +27,11 @@ class ProductStoreDto {
   @IsOptional()
   name!: string;
 
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsOptional()
-  nameEn!: string;
+  //  Change Lang
+  // @ApiProperty({ required: false })
+  // @IsString()
+  // @IsOptional()
+  // nameEn!: string;
 
   @ApiProperty({ required: false })
   @IsString()
@@ -66,20 +67,23 @@ class ProductDto {
   @IsOptional()
   title!: string;
 
-  @ApiProperty({ required: false, nullable: true })
-  @IsString()
-  @IsOptional()
-  titleEn!: string | null;
+  //  Change Lang
+  // @ApiProperty({ required: false, nullable: true })
+  // @IsString()
+  // @IsOptional()
+  // titleEn!: string | null;
+
+  // @ApiProperty({ required: false, nullable: true })
+  // @IsString()
+  // @IsOptional()
+  // slugEn!: string | null;
 
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   slug!: string;
 
-  @ApiProperty({ required: false, nullable: true })
-  @IsString()
-  @IsOptional()
-  slugEn!: string | null;
+
 
   @ApiProperty({ type: () => ProductStoreDto, required: false })
   @ValidateNested()
@@ -103,10 +107,11 @@ class ColorDto {
   @IsOptional()
   name!: string;
 
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsOptional()
-  nameEn!: string;
+  //  Change Lang
+  // @ApiProperty({ required: false })
+  // @IsString()
+  // @IsOptional()
+  // nameEn!: string;
 }
 
 // ===== تخفیف =====
@@ -147,10 +152,11 @@ class VariantDto {
   @IsOptional()
   name!: string;
 
-  @ApiProperty({ required: false, nullable: true })
-  @IsString()
-  @IsOptional()
-  nameEn!: string | null;
+  //  Change Lang
+  // @ApiProperty({ required: false, nullable: true })
+  // @IsString()
+  // @IsOptional()
+  // nameEn!: string | null;
 
   @ApiProperty({ required: false })
   @IsUUID()
@@ -245,10 +251,11 @@ class StoreDto {
   @IsOptional()
   storeName!: string;
 
-  @ApiProperty({ required: false, nullable: true })
-  @IsString()
-  @IsOptional()
-  storeNameEn!: string | null;
+  //  Change Lang
+  // @ApiProperty({ required: false, nullable: true })
+  // @IsString()
+  // @IsOptional()
+  // storeNameEn!: string | null;
 
   @ApiProperty({ required: false })
   @IsString()

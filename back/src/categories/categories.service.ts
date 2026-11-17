@@ -16,10 +16,11 @@ export class CategoriesService {
     return this.prisma.category.findMany({
       where: { parentId: null, isActive: true },
       select: {
+        //  Change Lang
+        // nameEn: true,
+        // slugEn: true,
         name: true,
-        nameEn: true,
         slug: true,
-        slugEn: true,
         icon: true,
         id: true,
         image: true,
@@ -27,10 +28,11 @@ export class CategoriesService {
         sortOrder: true,
         children: {
           select: {
+            //  Change Lang
+            // nameEn: true,
+            // slugEn: true,
             name: true,
-            nameEn: true,
             slug: true,
-            slugEn: true,
             icon: true,
             id: true,
             image: true,
@@ -40,10 +42,11 @@ export class CategoriesService {
               where: { isActive: true },
               orderBy: { sortOrder: 'asc' },
               select: {
+                //  Change Lang
+                // nameEn: true,
+                // slugEn: true,
                 name: true,
-                nameEn: true,
                 slug: true,
-                slugEn: true,
                 icon: true,
                 id: true,
                 image: true,
@@ -75,10 +78,11 @@ export class CategoriesService {
         name: true,
         image: true,
         icon: true,
-        nameEn: true,
         slug: true,
-        slugEn: true,
         sortOrder: true,
+        //  Change Lang
+        // nameEn: true,
+        // slugEn: true,
       },
       orderBy: { sortOrder: 'asc' },
     });
@@ -127,7 +131,11 @@ export class CategoriesService {
    */
   async findBySlug(slug: string) {
     const category = await this.prisma.category.findFirst({
-      where: { OR: [{ slug }, { slugEn: slug }] },
+      where: {
+        slug
+        //  Change Lang
+        //  OR: [{ slug }, { slugEn: slug }]
+      },
       include: {
         children: { where: { isActive: true } },
       },
@@ -139,7 +147,13 @@ export class CategoriesService {
       const { ancestorIds } = category;
       const parentCategories = await this.prisma.category.findMany({
         where: { id: { in: ancestorIds } },
-        select: { id: true, name: true, nameEn: true, slug: true, slugEn: true },
+        select: {
+          id: true, name: true,
+          slug: true,
+          //  Change Lang
+          //  nameEn: true,
+          //  slugEn: true
+        },
       });
       const parentMap = new Map(parentCategories.map((c) => [c.id, c]));
       const sortedParents = ancestorIds
@@ -150,10 +164,11 @@ export class CategoriesService {
         {
           id: category.id,
           name: category.name,
-          nameEn: category.nameEn,
           slug: category.slug,
-          slugEn: category.slugEn,
-        },
+          //  Change Lang
+          // nameEn: category.nameEn,
+          // slugEn: category.slugEn,
+        }
       ];
     }
     return { ...category, breadcrumbs };
@@ -161,7 +176,8 @@ export class CategoriesService {
 
   async create(dto: CreateCategoryDto) {
     const slug = this.generateSlug(dto.name);
-    const slugEn = dto.nameEn ? this.generateSlug(dto.nameEn) : null;
+    //  Change Lang
+    // const slugEn = dto.nameEn ? this.generateSlug(dto.nameEn) : null;
     let ancestorIds: string[] = [];
 
     if (dto.parentId) {
@@ -174,7 +190,12 @@ export class CategoriesService {
 
     // اصلاح شد: اضافه شدن ancestorIds به دیتابیس
     return this.prisma.category.create({
-      data: { ...dto, slug, slugEn, ancestorIds },
+      data: {
+        ...dto, slug,
+        ancestorIds
+        //  Change Lang
+        // slugEn,
+      },
     });
   }
 
@@ -184,7 +205,8 @@ export class CategoriesService {
 
     const data: any = { ...dto };
     if (dto.name) data.slug = this.generateSlug(dto.name);
-    if (dto.nameEn) data.slugEn = this.generateSlug(dto.nameEn);
+    //  Change Lang
+    // if (dto.nameEn) data.slugEn = this.generateSlug(dto.nameEn);
 
     const parentChanged = dto.parentId !== undefined && dto.parentId !== category.parentId;
 

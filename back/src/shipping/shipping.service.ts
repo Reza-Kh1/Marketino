@@ -63,7 +63,8 @@ export class ShippingService {
                     select: {
                         id: true,
                         description: true,
-                        descriptionEn: true,
+                        //  Change Lang
+                        // descriptionEn: true,
                         phrase: true,
                         minDays: true,
                         maxDays: true,
@@ -76,7 +77,7 @@ export class ShippingService {
                             select: { deliveryMaxDays: true, price: true }
                         },
                         shippingMethod: {
-                            select: { isFreeMethod: true, name: true, nameEn: true, }
+                            select: { isFreeMethod: true, name: true }
                         }
                     },
                 }
@@ -155,7 +156,7 @@ export class ShippingService {
                         createdAt: true,
                         price: true,
                         deliveryMaxDays: true,
-                        province: { select: { name: true, nameEn: true, id: true } }
+                        province: { select: { name: true, id: true } }
                     },
                     orderBy: { createdAt: 'desc' }
                 }

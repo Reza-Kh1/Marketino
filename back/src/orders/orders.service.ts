@@ -44,7 +44,13 @@ export class OrdersService {
 
         const [address, stores, cartItems, rawDiscount] = await Promise.all([
             this.prisma.address.findFirst({ where: { id: addressId, userId }, include: { city: { select: { name: true } }, province: { select: { name: true } } } }),
-            this.prisma.store.findMany({ where: { id: { in: storeIds } }, select: { id: true, name: true, nameEn: true, commissionRate: true, taxRate: true } }),
+            this.prisma.store.findMany({
+                where: { id: { in: storeIds } }, select: {
+                    id: true, name: true, commissionRate: true, taxRate: true
+                    //  Change Lang
+                    //  nameEn: true,                
+                }
+            }),
             this.prisma.cartItem.findMany({
                 where: { userId, product: { storeId: { in: storeIds } } },
                 select: {
@@ -54,10 +60,24 @@ export class OrdersService {
                             id: true, sku: true, price: true,
                             discount: { select: { status: true, isActive: true, value: true, type: true } },
                             color: { select: { name: true, hexCode: true } },
-                            attributes: { take: 1, select: { value: true, valueEn: true, attribute: { select: { key: true, label: true } } } }
+                            attributes: {
+                                take: 1, select: {
+                                    value: true,
+                                    attribute: { select: { key: true, label: true } }
+                                    //  Change Lang
+                                    // valueEn: true, 
+                                }
+                            }
                         }
                     },
-                    product: { select: { id: true, title: true, titleEn: true, storeId: true } }
+                    product: {
+                        select: {
+                            id: true, title: true,
+                            storeId: true
+                            //  Change Lang
+                            // titleEn: true,
+                        }
+                    }
                 }
             }),
             discountId ? this.prisma.discountCode.findUnique({
@@ -108,7 +128,9 @@ export class OrdersService {
             g.originalPrice = g.originalPrice.add(originalPrice.mul(item.quantity))
             g.productDiscount = g.productDiscount.add(pd.mul(item.quantity))
             g.items.push({
-                sku: item.variant.sku, name: item.product.title, nameEn: item.product.titleEn,
+                sku: item.variant.sku, name: item.product.title,
+                //  Change Lang
+                //  nameEn: item.product.titleEn,
                 price, originalPrice, total: price.mul(item.quantity), quantity: item.quantity, returnedQty: 0,
                 attributes: item.variant.attributes.map((x: any) => ({ key: x.attribute.key, value: x.value, label: x.attribute.label })),
                 productId: item.product.id, storeId, variantId: item.variant.id,
@@ -174,7 +196,9 @@ export class OrdersService {
             return {
                 storeId,
                 shippingCost: R(shippingCost), shippingName: order.shippingName, shippingId: order.shippingId, estimatedDays: String(order.shippingTime),
-                storeName: store.name, storeNameEn: store.nameEn,
+                storeName: store.name,
+                //  Change Lang
+                // storeNameEn: store.nameEn,
                 commission: commissionRate.toDecimalPlaces(2),
                 commissionAmount: R(commissionAmount),
                 commissionDiscountAmount: R(commissionDiscount),
@@ -356,7 +380,8 @@ export class OrdersService {
                         shippingCost: store.shippingCost,
                         shippingName: store.shippingName,
                         storeName: store.storeName,
-                        storeNameEn: store.storeNameEn,
+                        //  Change Lang
+                        // storeNameEn: store.storeNameEn,
                         commission: store.commission,
                         commissionAmount: store.commissionAmount,
                         subtotal: store.subtotal,
@@ -373,7 +398,8 @@ export class OrdersService {
                             create: store.orderItems.map((item) => ({
                                 sku: item.sku,
                                 name: item.name,
-                                nameEn: item.nameEn,
+                                //  Change Lang
+                                // nameEn: item.nameEn,
                                 price: item.price,
                                 originalPrice: item.originalPrice,
                                 total: item.total,
@@ -436,17 +462,23 @@ export class OrdersService {
     }
 
     async getAdminOrder(query: SearchOrders) {
-        const { limit, page = 1, paymentStatus, userId } = query
+        const { limit, page = 1, status, checkoutId, userId, order, orderNumber, storeId, trackingCode, discountCodeId, storeName } = query
         const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
         const skip = (Number(page) - 1) * limitPage;
         const where = {
-            // ...(paymentStatus && paymentStatus !== 'All' && { paymentStatus }),
-            // ...(userId && { userId }),
+            ...(status && status !== 'All' && { status }),
+            ...(storeId && { storeId }),
+            ...(checkoutId && { checkoutId }),
+            ...(discountCodeId && { discountCodeId }),
+            ...(storeName && { storeName }),
+            ...(trackingCode && { trackingCode }),
+            ...(orderNumber && { orderNumber }),
+            ...(userId && { userId }),
         }
         const [orders, total] = await Promise.all([
             this.prisma.order.findMany({
                 where,
-                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+                skip, take: limitPage, orderBy: { createdAt: order }
             }),
             this.prisma.order.count({ where }),
         ]);
@@ -455,17 +487,25 @@ export class OrdersService {
     }
 
     async getAdminChekout(query: SearchCheckouts) {
-        const { limit, page = 1, paymentStatus, userId } = query
+        const { limit, page = 1, userId, checkoutNumber,
+            discountStatus, status, paymentStatus, paymentMethod,
+            discountId, paymentRef, order } = query
         const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
         const skip = (Number(page) - 1) * limitPage;
         const where = {
             ...(paymentStatus && paymentStatus !== 'All' && { paymentStatus }),
+            ...(status && status !== 'All' && { status }),
+            ...(discountStatus && discountStatus !== 'All' && { discountStatus }),
+            ...(paymentMethod && paymentMethod !== 'All' && { paymentMethod }),
             ...(userId && { userId }),
+            ...(paymentRef && { paymentRef }),
+            ...(discountId && { discountId }),
+            ...(checkoutNumber && { checkoutNumber })
         }
         const [checkouts, total] = await Promise.all([
             this.prisma.checkout.findMany({
                 where,
-                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+                skip, take: limitPage, orderBy: { createdAt: order }
             }),
             this.prisma.checkout.count({ where }),
         ]);
@@ -473,16 +513,20 @@ export class OrdersService {
     }
 
     async getStoresOrder(storeId: string, query: SearchOrders) {
-        const { limit, page = 1 } = query
+        const { limit, page = 1, order, orderNumber, discountCodeId, trackingCode, status } = query
         const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
-
+        const where = {
+            storeId,
+            ...(status && status !== 'All' && { status }),
+            ...(discountCodeId && { discountCodeId }),
+            ...(trackingCode && { trackingCode }),
+            ...(orderNumber && { orderNumber }),
+        }
         const skip = (Number(page) - 1) * limitPage;
         const [orders, total] = await Promise.all([
             this.prisma.order.findMany({
-                where: {
-                    storeId
-                },
-                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+                where,
+                skip, take: limitPage, orderBy: { createdAt: order }
             }),
             this.prisma.order.count({ where: { storeId } }),
         ]);
@@ -490,12 +534,13 @@ export class OrdersService {
     }
 
     async getMyChekout(userId: string, query: SearchCheckouts) {
-        const { limit = 1, page = 1, paymentStatus, status } = query
+        const { limit = 1, page = 1, paymentStatus, status, order, checkoutNumber } = query
         const limitPage = Number(limit) || Number(this.configService.get('limit.orders') || 10);
         const skip = (Number(page) - 1) * limitPage;
         const where = {
             userId,
             ...(status && status !== 'All' && { status }),
+            ...(checkoutNumber && { checkoutNumber }),
             ...(paymentStatus && paymentStatus !== 'All' && { paymentStatus })
         }
         const [checkouts, total] = await Promise.all([
@@ -513,7 +558,7 @@ export class OrdersService {
                     totalAmount: true,
                     userId: true
                 },
-                skip, take: limitPage, orderBy: { createdAt: 'desc' }
+                skip, take: limitPage, orderBy: { createdAt: order }
             }),
             this.prisma.checkout.count({ where }),
         ]);
@@ -769,7 +814,8 @@ export class OrdersService {
                             select: {
                                 sku: true,
                                 name: true,
-                                nameEn: true,
+                                //  Change Lang
+                                // nameEn: true,
                                 price: true,
                                 originalPrice: true,
                                 total: true,

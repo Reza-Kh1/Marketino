@@ -18,7 +18,12 @@ export class ColorsService {
    */
   async findAll() {
     return this.prisma.color.findMany({
-      select: { id: true, name: true, nameEn: true, hexCode: true, slug: true },
+      select: {
+        id: true, name: true,
+        hexCode: true, slug: true
+        //  Change Lang
+        // nameEn: true,
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -27,21 +32,25 @@ export class ColorsService {
    * دریافت تمام رنگ‌ها - ادمین
    */
   async findAllAdmin(query: ColorSearchDto) {
-    const { search, limit, order, page = 1 } = query    
+    const { search, limit, order, page = 1 } = query
     const limitPage = Number(limit) || Number(this.configService.get('limit.color'))
     const skip = (Number(page) - 1) * limitPage;
-    const where: any = {};
-    if (search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { nameEn: { contains: query.search, mode: 'insensitive' } },
-      ];
-    }
+    const where = {
+      ...(search && { name: { contains: search, mode: 'insensitive' as const } })
+      //  Change Lang
+      // ...(search && {
+      //   OR: [
+      //     { name: { contains: query.search, mode: 'insensitive' } },
+      //     { nameEn: { contains: query.search, mode: 'insensitive' } },
+      //   ]
+      // })
+    };
+
     const [colors, total] = await this.prisma.$transaction([
       this.prisma.color.findMany({
         where,
         skip,
-        take: limit,
+        take: limitPage,
         orderBy: { createdAt: order },
         include: { _count: { select: { productVariants: true } } },
       }),
@@ -76,7 +85,7 @@ export class ColorsService {
    */
   async update(id: string, dto: UpdateColorDto) {
     const color = await this.prisma.color.findUnique({ where: { id } });
-    if (!color) throw new NotFoundException('رنگ یافت نشد');  
+    if (!color) throw new NotFoundException('رنگ یافت نشد');
     const data: any = { ...dto };
     return this.prisma.color.update({ where: { id }, data });
   }

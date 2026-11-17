@@ -12,21 +12,27 @@ import { ConfigService } from '@nestjs/config';
 import pagination from '@/common/utils/pagination';
 
 export const productSelector: Prisma.ProductSelect = {
-  id: true, title: true, titleEn: true, slug: true, slugEn: true, categoryId: true,
+  id: true, title: true, categoryId: true, slug: true,
   condition: true, status: true, updatedAt: true,
   isFeatured: true, viewCount: true, saleCount: true, rating: true,
   reviewCount: true, storeId: true, brandId: true,
   originalPrice: true, minPrice: true, discountPercent: true,
-  brand: { select: { name: true, nameEn: true, slug: true } },
+  brand: {
+    select: {
+      name: true, slug: true
+    }
+  },
   images: { select: { alt: true, sortOrder: true, url: true }, take: 1, orderBy: { sortOrder: 'asc' } },
-  category: { select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true } },
+  category: {
+    select: {
+      name: true, icon: true, slug: true,
+    }
+  },
 }
 export interface BreadcrumbItem {
   id: string;
   name: string;
-  nameEn: string | null;
   slug: string;
-  slugEn: string | null;
 }
 @Injectable()
 export class ProductsService {
@@ -89,7 +95,6 @@ export class ProductsService {
       ...((condition && condition !== 'all') && { condition: condition as ProductCondition }),
       ...((status && status !== 'all') && { status: status as ProductStatus }),
       ...((featured && featured === 'true') && { isFeatured: true }),
-      // ✅ شرط درست برای discountId
       ...(discountId && discountId !== 'all' && discountId !== 'undefined' && {
         variants: {
           some: { discountId }
@@ -98,9 +103,7 @@ export class ProductsService {
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
-          { titleEn: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
-          { descriptionEn: { contains: search, mode: 'insensitive' } },
         ],
       }),
       ...((minPrice !== undefined || maxPrice !== undefined) && {
@@ -146,11 +149,8 @@ export class ProductsService {
         select: {
           id: true,
           title: true,
-          titleEn: true,
           slug: true,
-          slugEn: true,
           description: true,
-          descriptionEn: true,
           categoryId: true,
           condition: true,
           status: true,
@@ -178,10 +178,8 @@ export class ProductsService {
             select: {
               id: true,
               name: true,
-              nameEn: true,
-              slug: true,
-              slugEn: true,
               parentId: true,
+              slug: true,
             },
           },
           store: { select: { id: true, name: true } },
@@ -267,15 +265,24 @@ export class ProductsService {
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findFirst({
       where: {
-        OR: [{ slug }, { slugEn: slug }],
+        slug,
         status: 'approved',
       },
       select: {
-        condition: true, content: true, contentEn: true, description: true, descriptionEn: true, digitalFile: true, minPrice: true, isDigital: true,
-        isFeatured: true, slug: true, slugEn: true, metaTitle: true, metaTitleEn: true, productTable: true, productTableEn: true, rating: true,
-        saleCount: true, reviewCount: true, originalPrice: true, title: true, titleEn: true, viewCount: true, id: true, discountPercent: true,
-        brand: { select: { name: true, nameEn: true, slug: true } },
-        store: { select: { name: true, nameEn: true, logo: true, slug: true, } },
+        condition: true, content: true,
+
+        description: true, digitalFile: true, minPrice: true, isDigital: true, isFeatured: true, slug: true, metaTitle: true, productTable: true, rating: true,
+        saleCount: true, reviewCount: true, originalPrice: true, title: true, viewCount: true, id: true, discountPercent: true,
+        brand: {
+          select: {
+            name: true, slug: true
+          }
+        },
+        store: {
+          select: {
+            name: true, logo: true, slug: true,
+          }
+        },
         images: {
           select: { alt: true, url: true, sortOrder: true },
           orderBy: { sortOrder: 'asc' },
@@ -290,9 +297,7 @@ export class ProductsService {
           select: {
             id: true,
             name: true,
-            nameEn: true,
             slug: true,
-            slugEn: true,
             ancestorIds: true,
           },
         },
@@ -302,13 +307,16 @@ export class ProductsService {
             discountId: true,
             colorId: true,
             name: true,
-            nameEn: true,
             image: true,
             price: true,
             quantity: true,
             sku: true,
             saleCount: true,
-            color: { select: { hexCode: true, name: true, nameEn: true } },
+            color: {
+              select: {
+                hexCode: true, name: true,
+              }
+            },
             discount: {
               where: { isActive: true },
               select: { type: true, endsAt: true, startsAt: true, value: true, isActive: true },
@@ -351,7 +359,10 @@ export class ProductsService {
       const { ancestorIds } = product.category;
       const parentCategories = await this.prisma.category.findMany({
         where: { id: { in: ancestorIds } },
-        select: { id: true, name: true, nameEn: true, slug: true, slugEn: true },
+        select: {
+          id: true, name: true,
+          slug: true,
+        },
       });
       const parentMap = new Map(parentCategories.map((c) => [c.id, c]));
       const sortedParents = ancestorIds
@@ -362,9 +373,7 @@ export class ProductsService {
         {
           id: product.category.id,
           name: product.category.name,
-          nameEn: product.category.nameEn,
           slug: product.category.slug,
-          slugEn: product.category.slugEn,
         },
       ];
     }
@@ -381,7 +390,9 @@ export class ProductsService {
       include: {
         images: { orderBy: { sortOrder: 'asc' } },
         category: {
-          select: { name: true, nameEn: true, icon: true, slug: true, slugEn: true, }
+          select: {
+            name: true, icon: true, slug: true,
+          }
         },
         variants: {
           include: {
@@ -404,18 +415,15 @@ export class ProductsService {
    * ایجاد محصول جدید
     */
   async create(dto: CreateProductDto) {
-    const slug = this.generateSlug(dto.title);
-    const slugEn = dto.titleEn ? this.generateSlug(dto.titleEn) : null;
+    // const slug = this.generateSlug(dto.title);
     const { images, ...rest } = dto;
     // بررسی یکتا بودن slug
-    const existingSlug = await this.prisma.product.findUnique({ where: { slug } });
+    const existingSlug = await this.prisma.product.findUnique({ where: { slug: dto.slug } });
     if (existingSlug) throw new BadRequestException('محصولی با این عنوان وجود دارد');
 
     return this.prisma.product.create({
       data: {
         ...rest,
-        slug,
-        slugEn,
         storeId: dto.storeId,
         status: 'pending',
         ...(images?.length && {
@@ -432,15 +440,8 @@ export class ProductsService {
    * به‌روزرسانی محصول (فقط فروشنده خود محصول)
     */
   async update(id: string, dto: UpdateProductDto) {
-    const product = await this.findOne(id);
     const { images, ...rest } = dto;
     const data: any = { ...rest };
-    if (dto.title && dto.title !== product.title) {
-      data.slug = this.generateSlug(dto.title);
-    }
-    if (dto.titleEn && dto.titleEn !== product.titleEn) {
-      data.slugEn = this.generateSlug(dto.titleEn);
-    }
     if (images !== undefined) {
       data.images = {
         set: images.map((imgId: string) => ({ url: imgId })),

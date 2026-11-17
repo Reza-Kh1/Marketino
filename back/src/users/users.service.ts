@@ -1,7 +1,3 @@
-/**
- * UsersService - سرویس مدیریت کاربران
- * مدیریت پروفایل، نقش‌ها، فروشندگان و داشبورد
- */
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto, UserFilterDto } from './dto/user.dto';
@@ -38,14 +34,12 @@ export class UsersService {
       where: { role: 'seller' },
       select: {
         id: true,
-        username: true,
         store: { select: { id: true, name: true, slug: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
     return sellers.map(s => ({
       id: s.store?.id,
-      username: s.username,
       storeName: s.store?.name,
       storeSlug: s.store?.slug,
     }));

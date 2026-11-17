@@ -85,22 +85,22 @@ export class TicketService {
     const { page = 1, limit = 10, status, priority } = query;
     const skip = (page - 1) * limit;
     const where: any = { userId };
-    if (status) where.status = status;
-    if (priority) where.priority = priority;
+    if (status && status !== 'ALL') where.status = status;
+    if (priority && priority !== 'ALL') where.priority = priority;
     const [tickets, total] = await Promise.all([
       this.prisma.ticket.findMany({
         where,
         include: {
           order: { select: { id: true, orderNumber: true, totalPrice: true } },
         },
-        skip, take: limit, orderBy: { createdAt: 'desc' },
+        skip, take: Number(limit), orderBy: { createdAt: 'desc' },
       }),
       this.prisma.ticket.count({ where }),
     ]);
 
     return {
       tickets,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: pagination(total, page, limit),
     };
   }
 

@@ -11,10 +11,11 @@ export class BrandDto {
     @MaxLength(200)
     name!: string;
 
-    @ApiPropertyOptional({ description: 'نام انگلیسی' })
-    @IsString()
-    @MaxLength(200)
-    nameEn!: string;
+    //  Change Lang
+    // @ApiPropertyOptional({ description: 'نام انگلیسی' })
+    // @IsString()
+    // @MaxLength(200)
+    // nameEn!: string;
 
     @ApiProperty({ description: 'اسلاگ برند' })
     @IsString()

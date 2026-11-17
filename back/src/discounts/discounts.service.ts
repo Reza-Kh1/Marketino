@@ -45,7 +45,8 @@ export class DiscountsService {
                 select: {
                   slug: true,
                   name: true,
-                  nameEn: true
+                  //  Change Lang
+                  // nameEn: true
                 }
               }
             }
@@ -266,7 +267,8 @@ export class DiscountsService {
     const storeOf = (p: typeof prepared[number], coupon: Decimal, takeFromPrice: boolean) => ({
       storeId: p.store.storeId,
       storeName: p.store.storeName,
-      storeNameEn: p.store.storeNameEn,
+      //  Change Lang
+      // storeNameEn: p.store.storeNameEn,
       storeSlug: p.store.storeSlug,
       subtotal: R(p.subtotal),
       discountAmount: R(coupon),

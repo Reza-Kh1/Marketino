@@ -41,17 +41,18 @@ export class BecomeSellerDto {
   @ApiProperty({ description: 'نام فروشگاه' })
   @IsString()
   @MaxLength(200)
-  storeName: string;
+  storeName!: string;
 
   @ApiPropertyOptional({ description: 'توضیحات فروشگاه (فارسی)' })
   @IsOptional()
   @IsString()
   storeDescription?: string;
 
-  @ApiPropertyOptional({ description: 'توضیحات فروشگاه (انگلیسی)' })
-  @IsOptional()
-  @IsString()
-  storeDescriptionEn?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ description: 'توضیحات فروشگاه (انگلیسی)' })
+  // @IsOptional()
+  // @IsString()
+  // storeDescriptionEn?: string;
 }
 
 export class VerifySellerDto {

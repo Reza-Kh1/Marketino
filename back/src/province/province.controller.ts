@@ -73,7 +73,7 @@ export class ProvinceController {
     summary: 'Get all cities',
     description: 'دریافت لیست تمام شهرها دسترسی: تمام کاربران و دریافت با آیدی '
   })
-  getCity(@Query('idProvince') idProvince: string) {
+  getCity(@Query('idProvince') idProvince?: string ) {
     return this.ProvinceService.getAllCity(idProvince);
   }
 

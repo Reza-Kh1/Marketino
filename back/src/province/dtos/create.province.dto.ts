@@ -11,14 +11,15 @@ export class CreateProvinceDto {
     })
     name!: string;
 
-    @IsOptional()
-    @IsString()
-    @ApiProperty({
-        description: 'نام استان به انگلیسی',
-        example: 'tehran',
-        required: false
-    })
-    nameEn?: string;
+    //  Change Lang
+    // @IsOptional()
+    // @IsString()
+    // @ApiProperty({
+    //     description: 'نام استان به انگلیسی',
+    //     example: 'tehran',
+    //     required: false
+    // })
+    // nameEn?: string;
 }
 
 export class CreateCityDto {
@@ -31,14 +32,15 @@ export class CreateCityDto {
     })
     name!: string;
 
-    @IsOptional()
-    @IsString()
-    @ApiProperty({
-        description: 'نام استان به انگلیسی',
-        example: 'tehran',
-        required: false
-    })
-    nameEn?: string;
+    //  Change Lang
+    // @IsOptional()
+    // @IsString()
+    // @ApiProperty({
+    //     description: 'نام استان به انگلیسی',
+    //     example: 'tehran',
+    //     required: false
+    // })
+    // nameEn?: string;
 
 
     @IsString()

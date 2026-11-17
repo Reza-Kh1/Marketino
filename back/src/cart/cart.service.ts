@@ -20,7 +20,8 @@ export class CartService {
         storesMap.set(storeId, {
           storeId: storeId,
           storeName: item.product.store.name,
-          storeNameEn: item.product.store.nameEn,
+          //  Change Lang
+          // storeNameEn: item.product.store.nameEn,
           storeSlug: item.product.store.slug,
           commissionRate: item.product.store.commissionRate,
           carts: [],
@@ -49,7 +50,7 @@ export class CartService {
       stores,
     };
   }
-  async getCart(userId: string) {    
+  async getCart(userId: string) {
     const items = await this.prisma.cartItem.findMany({
       where: { userId: userId },
       select: {
@@ -62,19 +63,33 @@ export class CartService {
             id: true,
             storeId: true,
             title: true,
-            titleEn: true,
             slug: true,
-            slugEn: true,
-            store: { select: { commissionRate: true, name: true, nameEn: true, slug: true } },
+            store: {
+              select: {
+                commissionRate: true, name: true,
+                //  Change Lang
+                //  nameEn: true,
+                slug: true
+              }
+            },
             images: { select: { alt: true, url: true }, take: 1, orderBy: { createdAt: 'desc' } }
+            //  Change Lang
+            // titleEn: true,
+            // slugEn: true,
           }
         },
         variant: {
           select: {
-            name: true,
-            nameEn: true,
             id: true,
-            color: { select: { name: true, nameEn: true } },
+            name: true,
+            //  Change Lang
+            // nameEn: true,
+            color: {
+              select: {
+                name: true,
+                // nameEn: true
+              }
+            },
             price: true,
             sku: true,
             attributes: { select: { value: true, id: true, attribute: { select: { key: true, label: true, id: true } } }, take: 2 },

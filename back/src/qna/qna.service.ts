@@ -81,11 +81,17 @@ export class QnaService {
           parent: {
             select: { content: true, role: true, userId: true, }
           },
-          product: { select: { id: true, title: true, titleEn: true } }
+          product: {
+            select: {
+              id: true, title: true,
+              //  Change Lang
+              // titleEn: true
+            }
+          }
         }
       }),
       this.prisma.qna.count({ where })
-    ]);    
+    ]);
     return {
       qnas,
       pagination: pagination(total, page, limitPage),
@@ -132,7 +138,8 @@ export class QnaService {
             select: {
               id: true,
               title: true,
-              titleEn: true,
+              //  Change Lang
+              // titleEn: true,
             },
           },
         },

@@ -35,8 +35,9 @@ export class SearchService {
     if (q) {
       where.OR = [
         { title: { contains: q, mode: 'insensitive' } },
-        { titleEn: { contains: q, mode: 'insensitive' } },
         { description: { contains: q, mode: 'insensitive' } },
+        //  Change Lang
+        // { titleEn: { contains: q, mode: 'insensitive' } },
       ];
     }
 

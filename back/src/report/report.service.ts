@@ -24,6 +24,7 @@ export class ReportService {
         title: dto.title,
         orderCode: dto.orderCode,
         nameSeller: dto.nameSeller || '',
+        trackingCode: `REPORT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
         content: dto.content,
         ...(dto.images?.length && {
           images: {

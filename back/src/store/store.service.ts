@@ -94,20 +94,12 @@ export class StoreService {
 
     const where: Prisma.StoreWhereInput = {
       ...(search && {
-        OR: [
-          {
-            name: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-          {
-            nameEn: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-        ],
+        name: { contains: search, mode: 'insensitive' }
+        //  Change Lang
+        // OR: [
+        //   { name: { contains: search, mode: 'insensitive', } },
+        //   { nameEn: { contains: search, mode: 'insensitive' } },
+        // ],
       }),
       ...(status !== undefined && { status }),
       ...(isActive !== undefined && { isActive }),
@@ -125,7 +117,8 @@ export class StoreService {
         select: {
           id: true,
           name: true,
-          nameEn: true,
+          //  Change Lang
+          // nameEn: true,
           slug: true,
           logo: true,
           status: true,
@@ -192,7 +185,8 @@ export class StoreService {
         select: {
           id: true,
           name: true,
-          nameEn: true,
+          //  Change Lang
+          // nameEn: true,
         },
         orderBy: {
           name: 'asc',
@@ -204,20 +198,11 @@ export class StoreService {
       status: StoreStatus.approved,
       isActive: true,
       ...(search && {
-        OR: [
-          {
-            name: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-          {
-            nameEn: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-        ],
+        name: { contains: search, mode: 'insensitive' }
+        // OR: [
+        //   { name: { contains: search, mode: 'insensitive', } },
+        //   { nameEn: { contains: search, mode: 'insensitive', } },
+        // ],
       }),
     }
     const orderBy = this.buildStoreOrderBy(sortBy)
@@ -230,14 +215,27 @@ export class StoreService {
         select: {
           id: true,
           name: true,
-          nameEn: true,
+          //  Change Lang
+          // nameEn: true,
           slug: true,
           banner: true,
           isVerified: true,
           logo: true,
           businessType: true,
-          province: { select: { name: true, nameEn: true } },
-          city: { select: { name: true, nameEn: true } },
+          province: {
+            select: {
+              name: true,
+              //  Change Lang
+              // nameEn: true
+            }
+          },
+          city: {
+            select: {
+              name: true,
+              //  Change Lang
+              // nameEn: true
+            }
+          },
           createdAt: true,
           updatedAt: true,
           rating: {
@@ -298,8 +296,14 @@ export class StoreService {
     const store = await this.prisma.store.findUnique({
       where: { slug },
       select: {
-        bale: true, banner: true, businessType: true, description: true, descriptionEn: true, email: true, hasPhysicalStore: true, instagram: true, isActive: true, isVerified: true, createdAt: true,
-        logo: true, provinceId: true, cityId: true, id: true, name: true, nameEn: true, phone: true, robika: true, slug: true, status: true, telegram: true, workingHours: true, whatsApp: true, shippingTime: true, address: true,
+        bale: true, banner: true, businessType: true, description: true,
+        //  Change Lang
+        // descriptionEn: true,
+        email: true, hasPhysicalStore: true, instagram: true, isActive: true, isVerified: true, createdAt: true,
+        logo: true, provinceId: true, cityId: true, id: true, name: true,
+        //  Change Lang
+        // nameEn: true,
+        phone: true, robika: true, slug: true, status: true, telegram: true, workingHours: true, whatsApp: true, shippingTime: true, address: true,
         rating: {
           select: {
             totalReviews: true,
@@ -349,12 +353,16 @@ export class StoreService {
         },
         province: {
           select: {
-            name: true, nameEn: true
+            name: true,
+            //  Change Lang
+            //  nameEn: true
           }
         },
         city: {
           select: {
-            name: true, nameEn: true
+            name: true,
+            //  Change Lang
+            //  nameEn: true
           }
         },
         _count: {

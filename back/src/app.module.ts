@@ -35,12 +35,14 @@ import { StoreModule } from './store/store.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { ProvinceModule } from './province/province.module';
 import { BankAccountModule } from './bankAccount/bank_account.module';
+import { SettlementQueueModule } from './queues/settlement/settlement-queue.module';
 
 @Module({
   imports: [
     // ماژول‌های برنامه
     RedisModule,
     DiscountQueueModule,
+    SettlementQueueModule,
     PrismaModule,
     EmailModule,
     AuthModule,

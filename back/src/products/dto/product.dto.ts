@@ -25,6 +25,10 @@ export class CreateProductDto {
   @IsString()
   storeId!: string;
 
+  @ApiProperty({ description: 'اسلاگ فروشگاه' })
+  @IsString()
+  slug!: string;
+
   @ApiProperty({
     description: 'مشخصات محصول',
     example: { headers: ['ویژگی', 'مقدار'], rows: [['رنگ', 'مشکی']] },
@@ -32,10 +36,6 @@ export class CreateProductDto {
   @IsOptional()
   @IsObject()
   productTable?: Prisma.InputJsonValue;
-
-  @IsOptional()
-  @IsObject()
-  productTableEn?: Prisma.InputJsonValue;
 
   @ApiProperty({ description: 'وضعیت محصول' })
   @IsOptional()
@@ -47,36 +47,15 @@ export class CreateProductDto {
   @IsString()
   metaTitle?: string;
 
-  @ApiPropertyOptional({ description: 'تایتل بالای صفحه انگلیسی' })
-  @IsOptional()
-  @IsString()
-  metaTitleEn?: string;
-
   @ApiPropertyOptional({ description: 'توضیحات' })
   @IsOptional()
   @IsString()
   content?: string;
 
-  @ApiPropertyOptional({ description: 'توضیحات انگلیسی' })
-  @IsOptional()
-  @IsString()
-  contentEn?: string;
-
-
-  @ApiPropertyOptional({ description: 'عنوان انگلیسی محصول' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  titleEn?: string;
-
   @ApiProperty({ description: 'توضیحات فارسی محصول' })
   @IsString()
   description!: string;
 
-  @ApiPropertyOptional({ description: 'توضیحات انگلیسی محصول' })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
 
   @ApiPropertyOptional({ description: 'برند' })
   @IsOptional()

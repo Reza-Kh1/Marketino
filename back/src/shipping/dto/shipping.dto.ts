@@ -5,11 +5,11 @@ export class CreateShippingMethodDto {
   @ApiProperty({ example: 'ارسال با پست' })
   @IsString()
   name!: string;
-
-  @ApiPropertyOptional({ example: 'Post Shipping' })
-  @IsOptional()
-  @IsString()
-  nameEn?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ example: 'Post Shipping' })
+  // @IsOptional()
+  // @IsString()
+  // nameEn?: string;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
@@ -26,11 +26,11 @@ export class UpdateStoreShippingDto {
   @ApiProperty({ example: 'ارسال با پست' })
   @IsString()
   description!: string;
-
-  @ApiPropertyOptional({ example: 'Post Shipping' })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ example: 'Post Shipping' })
+  // @IsOptional()
+  // @IsString()
+  // descriptionEn?: string;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()

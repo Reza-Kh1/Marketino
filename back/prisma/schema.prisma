@@ -1,7 +1,8 @@
 // update with migration ==>
-// npx prisma format
 // npx prisma migrate dev --name add_wallet_returns_shipping
+// npx prisma migrate dev --name migration_name --create-only
 // npx prisma generate
+// npx prisma format
 // npx prisma migrate reset 
 // npx prisma db push --force-reset
 // in product ==> npx prisma migrate deploy
@@ -15,30 +16,33 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  username       String    @unique
-  email          String    @unique
+  id             String   @id @default(uuid())
+  username       String   @unique
+  email          String   @unique
   password       String?
-  firstName      String?   @map("first_name")
-  lastName       String?   @map("last_name")
+  firstName      String?  @map("first_name")
+  lastName       String?  @map("last_name")
   phone          String?
   avatar         String?
-  role           UserRole  @default(buyer)
-  permissions    String?
-  createdBy      String?   @map("created_by")
-  isActive       Boolean   @default(true) @map("is_active")
-  isVerified     Boolean   @default(false) @map("is_verified")
-  emailVerified  Boolean   @default(false) @map("email_verified")
-  hasSetPassword Boolean   @default(true) @map("has_set_password")
-  googleId       String?   @unique @map("google_id")
-  language       String    @default("fa")
-  lastLogin      DateTime? @map("last_login")
-  resetToken     String?   @map("reset_token")
-  resetExpires   DateTime? @map("reset_expires")
-  verifyToken    String?   @map("verify_token")
-  verifyExpires  DateTime? @map("verify_expires")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  role           UserRole @default(buyer)
+  permissions    String[]
+  createdBy      String?  @map("created_by")
+  isActive       Boolean  @default(true) @map("is_active")
+  isVerified     Boolean  @default(false) @map("is_verified")
+  emailVerified  Boolean  @default(false) @map("email_verified")
+  hasSetPassword Boolean  @default(true) @map("has_set_password")
+
+  googleId      String?   @unique @map("google_id")
+  lastLogin     DateTime? @map("last_login")
+  resetToken    String?   @map("reset_token")
+  resetExpires  DateTime? @map("reset_expires")
+  verifyToken   String?   @map("verify_token")
+  verifyExpires DateTime? @map("verify_expires")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // en
+  language String @default("fa")
 
   addresses            Address[]
   cartItems            CartItem[]
@@ -64,17 +68,13 @@ model User {
 }
 
 model Store {
-  id               String      @id @default(uuid())
-  ownerId          String      @unique @map("owner_id") // اگه بعداً خواستی multi-store بشه، unique رو بردار
-  name             String      @map("name")
-  nameEn           String?     @map("name_en")
+  id String @id @default(uuid())
+
   slug             String      @unique @map("slug")
+  nationalId       String?     @map("national_id") // کد ملی یا شناسه ملی
   logo             String?     @map("logo")
   banner           String?     @map("banner")
-  description      String?     @map("description")
-  descriptionEn    String?     @map("description_en")
   businessType     String?     @map("business_type") // حقیقی / حقوقی
-  nationalId       String?     @map("national_id") // کد ملی یا شناسه ملی
   economicCode     String?     @map("economic_code")
   commissionRate   Decimal     @default(0) @map("commission_rate") @db.Decimal(12, 2)
   status           StoreStatus @default(pending) @map("status")
@@ -93,11 +93,14 @@ model Store {
   taxRate          Decimal     @default(9) @map("tax_rate") @db.Decimal(5, 2)
   workingHours     String?     @map("working_hours")
   hasPhysicalStore Boolean     @default(false) @map("has_physical_store")
+  name             String      @map("name")
+  description      String?     @map("description")
 
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   provinceId String?  @map("province_id")
   cityId     String?  @map("city_id")
+  ownerId    String   @unique @map("owner_id") // اگه بعداً خواستی multi-store بشه، unique رو بردار
 
   province             Province?             @relation(fields: [provinceId], references: [id])
   city                 City?                 @relation(fields: [cityId], references: [id])
@@ -126,45 +129,35 @@ model StoreRating {
   productQualityTotal Float @default(0) @map("product_quality_total")
   productQualityCount Int   @default(0) @map("product_quality_count")
 
-  totalResponseRequests Int   @default(0) @map("total_response_requests")
-  answeredResponses     Int   @default(0) @map("answered_responses")
-  totalResponseTime     Float @default(0) @map("total_response_time")
-  responseRate          Float @default(100) @map("response_rate")
-  responseTime          Float @default(0) @map("response_time")
-
   saleCount   Int      @default(0) @map("sale_count")
   returnCount Int      @default(0) @map("return_count")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  storeId String @unique @map("seller_id")
+  storeId String @unique @map("store_id")
   store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@index([avgRating])
   @@index([totalReviews])
   @@index([productQuality])
-  @@index([answeredResponses])
-  @@index([responseRate])
-  @@index([responseTime])
   @@index([saleCount])
   @@map("store_ratings")
 }
 
 model Category {
-  id                   String                @id @default(uuid())
-  name                 String
-  nameEn               String?               @map("name_en")
-  slug                 String                @unique
-  slugEn               String?               @unique @map("slug_en")
-  parentId             String?               @map("parent_id")
-  icon                 String?
-  image                String?
-  ancestorIds          String[]              @default([])
-  sortOrder            Int                   @default(0) @map("sort_order")
-  isActive             Boolean               @default(true) @map("is_active")
-  metaTitle            String?               @map("meta_title")
-  metaTitleEn          String?               @map("meta_title_en")
-  metaDescription      String?               @map("meta_description")
-  metaDescriptionEn    String?               @map("meta_description_en")
+  id       String  @id @default(uuid())
+  parentId String? @map("parent_id")
+
+  icon        String?
+  image       String?
+  ancestorIds String[] @default([])
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  name            String
+  slug            String  @unique
+  metaTitle       String? @map("meta_title")
+  metaDescription String? @map("meta_description")
+
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
   parent               Category?             @relation("CategoryTree", fields: [parentId], references: [id])
@@ -178,30 +171,20 @@ model Category {
 }
 
 model Brand {
-  id          String    @id @default(uuid())
-  name        String
-  nameEn      String?
-  sortOrder   Int?      @default(0)
-  slug        String    @unique
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  sortOrder   Int?    @default(0)
   logo        String?
+  name        String
   description String?
-  products    Product[]
+
+  products Product[]
 
   @@map("brands")
 }
 
 model Product {
   id              String           @id @default(uuid())
-  title           String           @map("title")
-  titleEn         String?          @map("title_en")
-  slug            String           @unique @map("slug")
-  slugEn          String?          @unique @map("slug_en")
-  metaTitle       String?          @map("meta_title")
-  metaTitleEn     String?          @map("meta_title_en")
-  content         Json?            @map("content")
-  contentEn       Json?            @map("content_en")
-  description     String           @map("description")
-  descriptionEn   String?          @map("description_en")
   originalPrice   Decimal?         @map("original_price") @db.Decimal(12, 2)
   minPrice        Decimal?         @map("min_Price") @db.Decimal(12, 2)
   discountPercent String?          @map("discount_percent")
@@ -215,12 +198,16 @@ model Product {
   rating          Float            @default(0)
   reviewCount     Int              @default(0) @map("review_count")
   productTable    Json?            @map("product_table")
-  productTableEn  Json?            @map("product_table_en")
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   categoryId      String           @map("category_id")
   brandId         String?          @map("brand_id")
   storeId         String?          @map("store_id")
+  title           String           @map("title")
+  slug            String           @unique @map("slug")
+  metaTitle       String?          @map("meta_title")
+  content         Json?            @map("content")
+  description     String           @map("description")
 
   cartItems     CartItem[]
   orderItems    OrderItem[]
@@ -237,7 +224,6 @@ model Product {
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured])
-  @@index([slug, slugEn])
   @@index([minPrice])
   @@index([saleCount])
   @@index([rating])
@@ -246,19 +232,20 @@ model Product {
 }
 
 model ProductVariant {
-  id         String   @id @default(uuid())
-  name       String   @map("name")
-  nameEn     String?  @map("name_en")
-  sku        String?  @unique @map("sku")
-  price      Decimal? @map("price") @db.Decimal(12, 2)
-  quantity   Int      @default(0) @map("quantity")
-  colorId    String?  @map("color_id")
-  image      String?  @map("image")
-  saleCount  Int      @default(0) @map("sale_count")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  discountId String?  @map("discount_id")
-  productId  String   @map("product_id")
+  id         String  @id @default(uuid())
+  discountId String? @map("discount_id")
+  productId  String  @map("product_id")
+  colorId    String? @map("color_id")
+
+  sku       String?  @unique @map("sku")
+  price     Decimal? @map("price") @db.Decimal(12, 2)
+  quantity  Int      @default(0) @map("quantity")
+  image     String?  @map("image")
+  saleCount Int      @default(0) @map("sale_count")
+  name      String   @map("name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   cartItems  CartItem[]
   orderItems OrderItem[]
@@ -282,13 +269,13 @@ model AttributeDefinition {
 }
 
 model VariantAttributeValue {
-  id          String              @id @default(cuid())
-  value       String              @map("value")
-  valueEn     String?             @map("value_en")
-  variantId   String              @map("variant_id")
-  variant     ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  attributeId String              @map("attribute_id")
-  attribute   AttributeDefinition @relation(fields: [attributeId], references: [id])
+  id          String @id @default(cuid())
+  variantId   String @map("variant_id")
+  attributeId String @map("attribute_id")
+  value       String @map("value")
+
+  variant   ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attribute AttributeDefinition @relation(fields: [attributeId], references: [id])
 
   @@unique([variantId, attributeId])
   @@index([attributeId, value])
@@ -296,11 +283,11 @@ model VariantAttributeValue {
 }
 
 model Color {
-  id              String           @id @default(uuid())
-  name            String           @map("name")
-  nameEn          String           @map("name_en")
-  hexCode         String           @map("hex_code")
-  slug            String           @unique @map("slug")
+  id      String @id @default(uuid())
+  hexCode String @map("hex_code")
+  slug    String @unique @map("slug")
+  name    String @map("name")
+
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   productVariants ProductVariant[]
@@ -309,38 +296,43 @@ model Color {
 }
 
 model ProductImage {
-  id              String         @id @default(uuid())
-  url             String         @unique
-  alt             String?
-  useCase         ImageUseCase   @default(PRODUCT) @map("use_case")
-  sortOrder       Int            @default(0) @map("sort_order")
-  isMain          Boolean        @default(false) @map("is_main")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  productId       String?        @map("product_id")
-  reportsId       String?
-  ticketMessageId String?
-  returnRequestId String?
-  product         Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  reports         Reports?       @relation(fields: [reportsId], references: [id])
-  ticketMessage   TicketMessage? @relation(fields: [ticketMessageId], references: [id])
-  returnRequest   ReturnRequest? @relation(fields: [returnRequestId], references: [id])
+  id              String  @id @default(uuid())
+  productId       String? @map("product_id")
+  reportsId       String? @map("reports_id")
+  ticketMessageId String? @map("ticket_message_id")
+  returnRequestId String? @map("return_request_id")
+
+  url       String       @unique @map("url")
+  alt       String?      @map("alt")
+  useCase   ImageUseCase @default(PRODUCT) @map("use_case")
+  sortOrder Int          @default(0) @map("sort_order")
+  isMain    Boolean      @default(false) @map("is_main")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product       Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reports       Reports?       @relation(fields: [reportsId], references: [id])
+  ticketMessage TicketMessage? @relation(fields: [ticketMessageId], references: [id])
+  returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id])
 
   @@index([productId])
   @@map("product_images")
 }
 
 model CartItem {
-  id       String @id @default(uuid())
-  quantity Int    @default(1)
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  productId String @map("product_id")
+  variantId String @map("variant_id")
 
-  userId    String         @map("user_id")
-  productId String         @map("product_id")
-  variantId String         @map("variant_id")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, variantId])
   @@index([userId])
@@ -348,22 +340,25 @@ model CartItem {
 }
 
 model Address {
-  id         String     @id @default(uuid())
+  id     String @id @default(uuid())
+  cityId String
+  userId String @map("user_id")
+
   title      String?
-  fullName   String     @map("full_name")
+  fullName   String  @map("full_name")
   phone      String
   provinceId String
-  cityId     String
   address    String
-  postalCode String?    @map("postal_code")
-  isDefault  Boolean    @default(false) @map("is_default")
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime   @updatedAt @map("updated_at")
-  userId     String     @map("user_id")
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  province   Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
-  city       City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  checkouts  Checkout[]
+  postalCode String? @map("postal_code")
+  isDefault  Boolean @default(false) @map("is_default")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  province  Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  city      City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  checkouts Checkout[]
 
   @@index([userId])
   @@map("addresses")
@@ -375,8 +370,6 @@ model Order {
   status           OrderStatus @default(pending) @map("status")
   shippingCost     Decimal     @default(0) @map("shipping_cost") @db.Decimal(12, 2)
   shippingName     String?     @map("shipping_name")
-  storeName        String      @map("store_name")
-  storeNameEn      String      @map("store_name_en")
   commission       Decimal     @map("commission") @db.Decimal(12, 2)
   commissionAmount Decimal     @default(0) @map("commission_amount") @db.Decimal(12, 2)
   subtotal         Decimal     @map("subtotal") @db.Decimal(13, 2)
@@ -385,17 +378,20 @@ model Order {
   note             String?     @map("note")
   trackingCode     String?     @map("tracking_code")
   taxAmount        Decimal     @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  storeName        String      @map("store_name")
 
-  checkoutId            String    @map("checkout_id")
-  storeId               String    @map("store_id")
-  userId                String    @map("user_id")
-  storeShippingMethodId String?   @map("shipping_method_id")
-  discountCodeId        String?   @map("discount_code_id")
-  deliveredAt           DateTime? @map("delivered_at")
-  cancelledAt           DateTime? @map("cancelled_at")
-  returnDeadline        DateTime? @map("return_deadline")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  checkoutId            String  @map("checkout_id")
+  storeId               String  @map("store_id")
+  userId                String  @map("user_id")
+  storeShippingMethodId String? @map("shipping_method_id")
+  discountCodeId        String? @map("discount_code_id")
+
+  deliveredAt    DateTime? @map("delivered_at")
+  cancelledAt    DateTime? @map("cancelled_at")
+  returnDeadline DateTime? @map("return_deadline")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   checkout            Checkout             @relation(fields: [checkoutId], references: [id])
   store               Store                @relation(fields: [storeId], references: [id])
@@ -418,8 +414,6 @@ model Order {
 model OrderItem {
   id            String   @id @default(uuid())
   sku           String   @map("sku")
-  name          String   @map("name")
-  nameEn        String   @map("name_en")
   price         Decimal  @map("price") @db.Decimal(12, 2)
   originalPrice Decimal? @map("original_price") @db.Decimal(12, 2)
   total         Decimal  @map("total") @db.Decimal(13, 2)
@@ -429,11 +423,14 @@ model OrderItem {
   colorName     String?  @map("color_name")
   colorHex      String?  @map("color_hex")
 
-  orderId     String         @map("order_id")
-  productId   String         @map("product_id")
-  storeId     String         @map("store_id")
-  variantId   String         @map("variant_id")
-  createdAt   DateTime       @default(now()) @map("created_at")
+  orderId   String @map("order_id")
+  productId String @map("product_id")
+  storeId   String @map("store_id")
+  variantId String @map("variant_id")
+  name      String @map("name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
   order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product        @relation(fields: [productId], references: [id])
   store       Store          @relation(fields: [storeId], references: [id])
@@ -465,16 +462,17 @@ model Checkout {
   shippingAddress  String          @map("shipping_address")
   shippingPostal   String          @map("shipping_postal")
 
-  discountId String?       @map("discount_id")
-  userId     String        @map("user_id")
-  addressId  String?       @map("address_id")
-  createdAt  DateTime      @default(now()) @map("created_at")
-  updatedAt  DateTime      @updatedAt @map("updated_at")
-  user       User          @relation(fields: [userId], references: [id])
-  address    Address?      @relation(fields: [addressId], references: [id])
-  discount   DiscountCode? @relation(fields: [discountId], references: [id])
-  orders     Order[]
-  payments   Payment[]
+  discountId String?  @map("discount_id")
+  userId     String   @map("user_id")
+  addressId  String?  @map("address_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user     User          @relation(fields: [userId], references: [id])
+  address  Address?      @relation(fields: [addressId], references: [id])
+  discount DiscountCode? @relation(fields: [discountId], references: [id])
+  orders   Order[]
+  payments Payment[]
 
   @@index([userId])
   @@map("checkouts")
@@ -488,10 +486,12 @@ model Payment {
   gatewayRef   String?       @map("gateway_ref")
   authority    String?
   errorMessage String?       @map("error_message")
-  paidAt       DateTime?     @map("paid_at")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  checkoutId   String        @map("checkout_id")
-  checkout     Checkout      @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  checkoutId String    @map("checkout_id")
+  paidAt     DateTime? @map("paid_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  checkout Checkout @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
 
   @@index([checkoutId])
   @@map("payments")
@@ -502,11 +502,13 @@ model Invoice {
   invoiceNumber String        @unique @map("invoice_number")
   amount        Decimal       @db.Decimal(12, 2)
   status        InvoiceStatus @default(pending)
-  paidAt        DateTime?     @map("paid_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
   orderId       String        @unique @map("order_id")
-  order         Order         @relation(fields: [orderId], references: [id])
+
+  paidAt    DateTime? @map("paid_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
 
   @@map("invoices")
 }
@@ -541,14 +543,15 @@ model ReturnRequest {
 }
 
 model ReturnItem {
-  id              String   @id @default(uuid())
-  returnRequestId String   @map("return_request_id")
-  orderItemId     String   @map("order_item_id")
+  id              String  @id @default(uuid())
+  returnRequestId String  @map("return_request_id")
+  orderItemId     String  @map("order_item_id")
   quantity        Int
   reason          String?
   condition       String? // سالم / آسیب‌دیده / بازکرده و... برای بررسی انبار فروشنده
-  unitRefund      Decimal? @map("unit_refund") @db.Decimal(12, 2)
-  createdAt       DateTime @default(now()) @map("created_at")
+
+  unitRefund Decimal? @map("unit_refund") @db.Decimal(12, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
 
   returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
   orderItem     OrderItem     @relation(fields: [orderItemId], references: [id])
@@ -628,22 +631,33 @@ model WishlistItem {
 
 model Wallet {
   id              String  @id @default(uuid())
-  userId          String  @unique @map("user_id")
+  userId          String? @unique @map("user_id")
+  // موجودی حساب اصلی ولت
   balance         Decimal @default(0) @db.Decimal(18, 2)
+  // موجودی حساب در حال واریز برای زمانی که خریدار چیزی رو خریده ولی خب باید اون دروه مرجوعی کالا بگذره بعدش واریز بشه به حساب فروشنده که میشه بالانس
   pendingBalance  Decimal @default(0) @map("pending_balance") @db.Decimal(18, 2)
+  // پول در حال برداشت وقتی که فروشنده درخواست وجه میکنن باید کل حساب بالانس خالی بشه و وارد این بخش بشه توی یه تراکنش بعدش که ادمین واریز کرد میاد تراکنش رو تایید میزنه واین بخش هم خالی میشه
   withdrawBalance Decimal @default(0) @map("withdraw_balance") @db.Decimal(18, 2)
+  // برای زمانی که محصولی خریداری شده و کاربر میخواد مرجوعی بکنه ادمین میاد اون تراکنش خرید رو به فروزن تغییر میده اینطوری پول فروشنده با بقیه حساب یکی نمیشه تا تعیین تکلیف بشه
   frozenBalance   Decimal @default(0) @map("frozen_balance") @db.Decimal(18, 2)
   isPlatform      Boolean @default(false) @map("is_platform")
 
   bankAccountId String?             @map("bank_account_id")
   updatedAt     DateTime            @updatedAt @map("updated_at")
   createdAt     DateTime            @default(now()) @map("created_at")
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User?               @relation(fields: [userId], references: [id], onDelete: Restrict)
   transactions  WalletTransaction[]
   bankAccounts  BankAccount[]
 
+  @@index([isPlatform])
   @@map("wallets")
 }
+
+// کاربرد ولت برای پلتفرم متفاوته اینجا توضیح میدم
+// balance حساب سیستم یعنی کمیسیون + مالیات 
+// pendingBalance فقط مالیات
+// withdrawBalance جمع تمام تخفیف های سیستم
+// frozenBalance حساب تمام واریزی های سیستم یعنی: واریزی ها به حساب
 
 model WalletTransaction {
   id           String                  @id @default(uuid())
@@ -753,10 +767,9 @@ model DiscountCodeUsage {
 
 model ShippingMethod {
   id           String  @id @default(uuid())
-  name         String  @map("name")
-  nameEn       String? @map("name_en")
   isFreeMethod Boolean @default(false) @map("is_free_method")
   isActive     Boolean @default(true) @map("is_active")
+  name         String  @map("name")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -768,14 +781,13 @@ model ShippingMethod {
 }
 
 model StoreShippingMethod {
-  id            String   @id @default(uuid())
-  isActive      Boolean  @default(true) @map("is_active")
-  description   String?  @map("description")
-  descriptionEn String?  @map("description_en")
-  phrase        String?  @map("phrase")
-  minDays       Int      @map("min_days")
-  maxDays       Int      @map("max_days")
-  defaultPrice  Decimal? @map("default_price") @db.Decimal(12, 2)
+  id           String   @id @default(uuid())
+  isActive     Boolean  @default(true) @map("is_active")
+  phrase       String?  @map("phrase")
+  minDays      Int      @map("min_days")
+  maxDays      Int      @map("max_days")
+  defaultPrice Decimal? @map("default_price") @db.Decimal(12, 2)
+  description  String?  @map("description")
 
   storeId          String
   shippingMethodId String
@@ -796,7 +808,7 @@ model StoreShippingMethod {
 model StoreShippingRate {
   id              String  @id @default(uuid())
   price           Decimal @map("price") @db.Decimal(12, 2)
-  deliveryMaxDays Int     @map("return_days")
+  deliveryMaxDays Int     @map("delivery_max_days")
 
   storeShippingMethodId String
   provinceId            String
@@ -812,9 +824,8 @@ model StoreShippingRate {
 }
 
 model Province {
-  id     String  @id @default(uuid())
-  name   String  @unique @map("name")
-  nameEn String? @map("name_en")
+  id   String @id @default(uuid())
+  name String @unique @map("name")
 
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -827,9 +838,8 @@ model Province {
 }
 
 model City {
-  id     String  @id @default(uuid())
-  name   String  @map("name")
-  nameEn String? @map("name_en")
+  id   String @id @default(uuid())
+  name String @unique @map("name")
 
   provinceId String
   createdAt  DateTime  @default(now())
@@ -887,7 +897,7 @@ model Reports {
   content      String
   title        String
   orderCode    String?
-  trackingCode String?
+  trackingCode String         @unique
   status       ReportsStatus  @default(PENDING)
   createdAt    DateTime       @default(now()) @map("created_at")
   updatedAt    DateTime       @updatedAt @map("updated_at")
@@ -921,20 +931,19 @@ model Qna {
 }
 
 model Banner {
-  id         String         @id @default(uuid())
-  title      String
-  titleEn    String?        @map("title_en")
-  subtitle   String?
-  subtitleEn String?        @map("subtitle_en")
-  image      String
-  link       String?
-  position   BannerPosition @default(home_top)
-  isActive   Boolean        @default(true) @map("is_active")
-  sortOrder  Int            @default(0) @map("sort_order")
-  startsAt   DateTime?      @map("starts_at")
-  endsAt     DateTime?      @map("ends_at")
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @updatedAt @map("updated_at")
+  id        String         @id @default(uuid())
+  image     String
+  link      String?
+  position  BannerPosition @default(home_top)
+  isActive  Boolean        @default(true) @map("is_active")
+  sortOrder Int            @default(0) @map("sort_order")
+  title     String         @map("title")
+  subtitle  String?        @map("subtitle")
+
+  startsAt  DateTime? @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@map("banners")
 }

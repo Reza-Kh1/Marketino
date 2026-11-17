@@ -11,12 +11,6 @@ export class CreateCategoryDto {
   @MaxLength(200)
   name!: string;
 
-  @ApiPropertyOptional({ description: 'نام انگلیسی' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  nameEn?: string;
-
   @ApiPropertyOptional({ description: 'شناسه والد (برای ساختار درختی)' })
   @IsOptional()
   @IsString()
@@ -40,21 +34,28 @@ export class CreateCategoryDto {
   @MaxLength(300)
   metaTitle?: string;
 
-  @ApiPropertyOptional({ description: 'عنوان متا انگلیسی' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  metaTitleEn?: string;
 
   @ApiPropertyOptional({ description: 'توضیحات متا فارسی' })
   @IsOptional()
   @IsString()
   metaDescription?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ description: 'نام انگلیسی' })
+  // @IsOptional()
+  // @IsString()
+  // @MaxLength(200)
+  // nameEn?: string;
 
-  @ApiPropertyOptional({ description: 'توضیحات متا انگلیسی' })
-  @IsOptional()
-  @IsString()
-  metaDescriptionEn?: string;
+  // @ApiPropertyOptional({ description: 'توضیحات متا انگلیسی' })
+  // @IsOptional()
+  // @IsString()
+  // metaDescriptionEn?: string;
+
+  // @ApiPropertyOptional({ description: 'عنوان متا انگلیسی' })
+  // @IsOptional()
+  // @IsString()
+  // @MaxLength(300)
+  // metaTitleEn?: string;
 
   @ApiPropertyOptional({ description: 'آدرس تصویر' })
   @IsOptional()

@@ -17,10 +17,11 @@ export class CreateProductVariantDto {
   @IsString()
   name!: string;
 
-  @ApiPropertyOptional({ description: 'نام انگلیسی تنوع', example: 'Samsung Galaxy S24 - Black' })
-  @IsOptional()
-  @IsString()
-  nameEn?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ description: 'نام انگلیسی تنوع', example: 'Samsung Galaxy S24 - Black' })
+  // @IsOptional()
+  // @IsString()
+  // nameEn?: string;
 
   @ApiPropertyOptional({ description: 'قیمت (تومان)', example: 35000000, minimum: 0 })
   @IsOptional()

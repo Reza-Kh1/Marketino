@@ -33,17 +33,15 @@ export class AppService {
             }, take: 1, select: { price: true, quantity: true, discountId: true, discount: { select: { endsAt: true, isActive: true, value: true, type: true, } } }
           },
           images: { where: { isMain: true }, take: 1 },
-          category: { select: { name: true, nameEn: true, id: true, slug: true, slugEn: true, } },
+          category: { select: { name: true, id: true, slug: true, } },
           store: { select: { id: true, name: true } },
-          brand: { select: { name: true, nameEn: true, slug: true } },
+          brand: { select: { name: true, slug: true } },
           brandId: true,
           id: true,
           slug: true,
-          slugEn: true,
           status: true,
           condition: true,
           description: true,
-          descriptionEn: true,
           categoryId: true,
           updatedAt: true,
           isFeatured: true,
@@ -70,17 +68,15 @@ export class AppService {
             }, take: 1, select: { price: true, quantity: true, discountId: true, discount: { select: { endsAt: true, isActive: true, value: true, type: true, } } }
           },
           images: { where: { isMain: true }, take: 1 },
-          category: { select: { name: true, nameEn: true, id: true, slug: true, slugEn: true, } },
+          category: { select: { name: true, id: true, slug: true } },
           store: { select: { id: true, name: true } },
-          brand: { select: { name: true, nameEn: true, slug: true } },
+          brand: { select: { name: true, slug: true } },
           brandId: true,
           id: true,
           slug: true,
-          slugEn: true,
           status: true,
           condition: true,
           description: true,
-          descriptionEn: true,
           categoryId: true,
           updatedAt: true,
           isFeatured: true,
@@ -134,11 +130,11 @@ export class AppService {
     const [products, categories, sellers] = await Promise.all([
       this.prisma.product.findMany({
         where: { status: 'approved' },
-        select: { slug: true, slugEn: true, updatedAt: true },
+        select: { slug: true, updatedAt: true },
       }),
       this.prisma.category.findMany({
         where: { isActive: true },
-        select: { slug: true, slugEn: true, updatedAt: true },
+        select: { slug: true, updatedAt: true },
       }),
       this.prisma.user.findMany({
         where: { role: 'seller', store: { status: 'approved' }, isActive: true },
@@ -155,13 +151,13 @@ export class AppService {
 
     // محصولات
     for (const p of products) {
-      const slug = isEn && p.slugEn ? p.slugEn : p.slug;
+      const slug = isEn && p.slug;
       urls.push(this.buildUrl(baseUrl, `/products/${slug}`, 'weekly', '0.9', p.updatedAt));
     }
 
     // دسته‌بندی‌ها
     for (const c of categories) {
-      const slug = isEn && c.slugEn ? c.slugEn : c.slug;
+      const slug = isEn && c.slug;
       urls.push(this.buildUrl(baseUrl, `/categories/${slug}`, 'daily', '0.7', c.updatedAt));
     }
 

@@ -38,8 +38,19 @@ export class AddressesService {
     const addresses = await this.prisma.address.findMany({
       where: { userId },
       include: {
-        city: { select: { name: true, nameEn: true } },
-        province: { select: { name: true, nameEn: true } }
+        city: {
+          select: {
+            name: true,
+            //  Change Lang
+            // nameEn: true
+          }
+        },
+        province: {
+          select: {
+            name: true,
+            // nameEn: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -115,8 +126,20 @@ export class AddressesService {
     const address = await this.prisma.address.findFirst({
       where: { userId, isDefault: true },
       include: {
-        province: { select: { name: true, nameEn: true, id: true } },
-        city: { select: { name: true, nameEn: true, id: true } }
+        province: {
+          select: {
+            name: true, id: true
+            //  Change Lang
+            // nameEn: true, 
+          }
+        },
+        city: {
+          select: {
+            name: true, id: true
+            //  Change Lang
+            // nameEn: true, 
+          }
+        }
       }
     });
     return address;

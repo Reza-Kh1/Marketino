@@ -28,7 +28,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   /**
    * ثبت‌نام کاربر جدید
@@ -67,7 +67,7 @@ export class AuthService {
     });
 
     // Send welcome email
-    this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => {});
+    this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => { });
 
     const token = this.generateToken(user);
     const { password, ...userWithoutPassword } = user;
@@ -89,7 +89,6 @@ export class AuthService {
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
-
     const { password, ...userWithoutPassword } = user;
     return { user: userWithoutPassword, token };
   }
@@ -105,6 +104,9 @@ export class AuthService {
           { email: login },
         ],
       },
+      include: {
+        store: { select: { slug: true, id: true } }
+      }
     });
 
     if (!user) return null;
@@ -239,7 +241,7 @@ export class AuthService {
           },
         });
         isNewUser = true;
-        this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => {});
+        this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => { });
       } else {
         // Explicit registration
         if (!dto.username || !dto.password) {
@@ -268,7 +270,7 @@ export class AuthService {
           },
         });
         isNewUser = true;
-        this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => {});
+        this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => { });
       }
     }
 
@@ -475,7 +477,7 @@ export class AuthService {
     // Send password reset email
     const frontendUrl = this.configService.get('FRONTEND_URL', 'http://localhost:3001');
     const resetLink = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
-    this.emailService.sendPasswordResetEmail(user.email, resetLink, user.username, lang).catch(() => {});
+    this.emailService.sendPasswordResetEmail(user.email, resetLink, user.username, lang).catch(() => { });
 
     return { message: 'لینک بازنشانی رمز عبور به ایمیل شما ارسال شد' };
   }

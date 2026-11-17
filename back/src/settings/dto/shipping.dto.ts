@@ -6,10 +6,21 @@ export class CreateShippingMethodDto {
   @IsString()
   name!: string;
 
-  @ApiPropertyOptional({ example: 'Post Shipping' })
-  @IsOptional()
-  @IsString()
-  nameEn?: string;
+  //  Change Lang
+  // @ApiPropertyOptional({ example: 'Post Shipping' })
+  // @IsOptional()
+  // @IsString()
+  // nameEn?: string;
+
+  // @ApiPropertyOptional({ example: '2-3 days' })
+  // @IsOptional()
+  // @IsString()
+  // estimatedDaysEn?: string;
+
+  // @ApiPropertyOptional({ example: 'Express Post Shipping' })
+  // @IsOptional()
+  // @IsString()
+  // descriptionEn?: string;
 
   @ApiPropertyOptional({ example: 'Post Shipping' })
   @IsOptional()
@@ -21,10 +32,7 @@ export class CreateShippingMethodDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'Express Post Shipping' })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
+
 
   @ApiProperty({ example: 25000, minimum: 0 })
   @IsNumber()
@@ -47,10 +55,7 @@ export class CreateShippingMethodDto {
   @IsString()
   estimatedDays?: string;
 
-  @ApiPropertyOptional({ example: '2-3 days' })
-  @IsOptional()
-  @IsString()
-  estimatedDaysEn?: string;
+
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()

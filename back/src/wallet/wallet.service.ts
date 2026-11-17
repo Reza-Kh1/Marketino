@@ -278,7 +278,18 @@ export class WalletService {
         take: limitPage,
         orderBy: { createdAt: order || 'desc' },
         include: {
-          user: { select: { lastName: true, firstName: true, username: true, phone: true, store: { select: { name: true, nameEn: true, phone: true } } } },
+          user: {
+            select: {
+              lastName: true, firstName: true, username: true, phone: true, store: {
+                select: {
+                  name: true,
+                  //  Change Lang
+                  // nameEn: true,
+                  phone: true
+                }
+              }
+            }
+          },
           bankAccounts: {
             select: { iban: true, bankName: true, cardNumber: true, accountHolder: true }
           }

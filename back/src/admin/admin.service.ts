@@ -419,8 +419,9 @@ export class AdminService {
     if (existing) {
       throw new BadRequestException('نام کاربری یا ایمیل قبلاً ثبت شده است');
     }
+    const salt = await bcrypt.genSalt(12);
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(data.password, salt);
 
     const colleague = await this.prisma.user.create({
       data: {
@@ -430,7 +431,7 @@ export class AdminService {
         firstName: data.firstName || '',
         lastName: data.lastName || '',
         role: 'admin',
-        permissions: JSON.stringify(data.permissions),
+        permissions: data.permissions.length ? data.permissions : undefined,
         createdBy: currentUserId,
         isVerified: true,
         isActive: true,
@@ -460,7 +461,7 @@ export class AdminService {
 
     await this.prisma.user.update({
       where: { id: colleagueId },
-      data: { permissions: JSON.stringify(permissions) },
+      data: { permissions: permissions.length ? permissions : undefined },
     });
 
     return { message: 'دسترسی‌های همکار با موفقیت بروزرسانی شد' };
@@ -597,7 +598,7 @@ export class AdminService {
       users: users.map(u => ({
         ...u,
         storeName: u.store?.name,
-        permissions: u.permissions ? JSON.parse(u.permissions) : [],
+        permissions: u.permissions,
         orderCount: u._count.orders,
       })),
       pagination: { ...pagination(total, page, limit) }
@@ -633,7 +634,7 @@ export class AdminService {
       businessType: user.store?.businessType,
       commissionRate: user.store?.commissionRate,
       sellerStatus: user.store?.status,
-      permissions: user.permissions ? JSON.parse(user.permissions) : [],
+      permissions: user.permissions.length ? user.permissions : undefined,
       orderCount: user._count.orders,
       productCount: 0,
     };
@@ -665,7 +666,8 @@ export class AdminService {
         data: {
           ownerId: id,
           name: `${user.firstName || user.username} فروشگاه`,
-          nameEn: `${user.firstName || user.username}'s Store`,
+          //  Change Lang
+          // nameEn: `${user.firstName || user.username}'s Store`,
           slug: `${user.username}-store`,
           status: data.approved ? 'approved' : 'rejected',
           statusReason: data.reason || null,
@@ -739,9 +741,10 @@ export class AdminService {
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
-          { titleEn: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
-          { descriptionEn: { contains: search, mode: 'insensitive' } },
+          //  Change Lang
+          // { titleEn: { contains: search, mode: 'insensitive' } },
+          // { descriptionEn: { contains: search, mode: 'insensitive' } },
         ],
       }),
       ...((minPrice !== undefined || maxPrice !== undefined) && {
@@ -785,13 +788,14 @@ export class AdminService {
       this.prisma.product.findMany({
         where,
         select: {
+          //  Change Lang
+          // titleEn: true,
+          // slugEn: true,
+          // descriptionEn: true,
           id: true,
           title: true,
-          titleEn: true,
           slug: true,
-          slugEn: true,
           description: true,
-          descriptionEn: true,
           categoryId: true,
           condition: true,
           status: true,
@@ -817,11 +821,12 @@ export class AdminService {
           },
           category: {
             select: {
+              //  Change Lang
+              // nameEn: true,
+              // slugEn: true,
               id: true,
               name: true,
-              nameEn: true,
               slug: true,
-              slugEn: true,
               parentId: true,
             },
           },
@@ -929,9 +934,10 @@ export class AdminService {
             select: {
               id: true,
               slug: true,
-              slugEn: true,
               title: true,
-              titleEn: true,
+              //  Change Lang
+              // slugEn: true,
+              // titleEn: true,
             },
           },
           quantity: true,
@@ -939,8 +945,9 @@ export class AdminService {
           id: true,
           variant: {
             select: {
+              //  Change Lang
+              // nameEn: true,
               name: true,
-              nameEn: true,
               id: true,
               image: true,
               price: true,

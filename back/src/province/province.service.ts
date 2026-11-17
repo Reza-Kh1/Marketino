@@ -8,7 +8,12 @@ export class ProvinceService {
   constructor(private readonly prisma: PrismaService) { }
 
   async getAllProvince() {
-    const data = await this.prisma.province.findMany()
+    const data = await this.prisma.province.findMany({
+      select: {
+        id: true,
+        name: true
+      }
+    })
     return data
   }
 
@@ -25,7 +30,7 @@ export class ProvinceService {
     return { success: true }
   }
 
-  async deleteProvince(id: string) {    
+  async deleteProvince(id: string) {
     await this.prisma.province.delete({
       where: {
         id
@@ -41,11 +46,25 @@ export class ProvinceService {
     return { success: true }
   }
 
-  async getAllCity(idProvince: string) {
-    const where: any = {
-      ...(idProvince ? { where: { provinceId: idProvince } } : { include: { province: true } })
+  async getAllCity(idProvince?: string) {
+    const where = {
+      ...(idProvince && { provinceId: idProvince })
     };
-    const data = await this.prisma.city.findMany(where)
+    const data = await this.prisma.city.findMany({
+      where,
+      select: {
+        name: true,
+        id: true,
+        ...(!idProvince && {
+          province: {
+            select: {
+              name: true,
+              id: true
+            }
+          }
+        })
+      }
+    })
     return data
   }
 

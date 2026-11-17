@@ -134,14 +134,21 @@ export class CreateStoreDto {
   @IsString()
   name!: string;
 
-  @ApiPropertyOptional({
-    description: 'نام فروشگاه (انگلیسی)',
-    example: 'Marketino Electronics Store',
-  })
-  @IsOptional()
-  @IsString()
-  nameEn?: string;
-
+  //  Change Lang
+  // @ApiPropertyOptional({
+  //   description: 'نام فروشگاه (انگلیسی)',
+  //   example: 'Marketino Electronics Store',
+  // })
+  // @IsOptional()
+  // @IsString()
+  // nameEn?: string;
+  // @ApiPropertyOptional({
+  //   description: 'توضیحات فروشگاه (انگلیسی)',
+  //   example: 'Specialized electronics store with best prices',
+  // })
+  // @IsOptional()
+  // @IsString()
+  // descriptionEn?: string;
   @ApiProperty({
     description: 'اسلاگ فروشگاه (منحصر‌به‌فرد)',
     example: 'marketino-electronics',
@@ -173,13 +180,7 @@ export class CreateStoreDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({
-    description: 'توضیحات فروشگاه (انگلیسی)',
-    example: 'Specialized electronics store with best prices',
-  })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
+
 
   @ApiPropertyOptional({
     description: 'نوع کسب‌وکار',
@@ -311,14 +312,22 @@ export class UpdateStoreDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({
-    description: 'نام فروشگاه (انگلیسی)',
-    example: 'Marketino Electronics Store',
-  })
-  @IsOptional()
-  @IsString()
-  nameEn?: string;
-
+  //  Change Lang
+  // @ApiPropertyOptional({
+  //   description: 'نام فروشگاه (انگلیسی)',
+  //   example: 'Marketino Electronics Store',
+  // })
+  // @IsOptional()
+  // @IsString()
+  // nameEn?: string;
+  // @ApiPropertyOptional({
+  //   description: 'توضیحات فروشگاه (انگلیسی)',
+  //   example: 'Specialized electronics store with best prices',
+  // })
+  // @IsOptional()
+  // @IsString()
+  // descriptionEn?: string;
+  
   @ApiPropertyOptional({
     description: 'اسلاگ فروشگاه (منحصر‌به‌فرد)',
     example: 'marketino-electronics',
@@ -351,13 +360,7 @@ export class UpdateStoreDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({
-    description: 'توضیحات فروشگاه (انگلیسی)',
-    example: 'Specialized electronics store with best prices',
-  })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
+
 
   @ApiPropertyOptional({
     description: 'نوع کسب‌وکار',
