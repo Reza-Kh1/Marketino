@@ -3,12 +3,10 @@ import { z } from 'zod';
 
 export const storeFormSchema = z.object({
   name: z.string().min(2, 'نام فروشگاه الزامی است'),
-  nameEn: z.string().optional().or(z.literal('')),
   slug: z.string().optional().or(z.literal('')),
   logo: z.string().optional().or(z.literal('')),
   banner: z.string().optional().or(z.literal('')),
   description: z.string().optional().or(z.literal('')),
-  descriptionEn: z.string().optional().or(z.literal('')),
   businessType: z.string().optional().or(z.literal('')),
   nationalId: z.string().optional().or(z.literal('')),
   economicCode: z.string().optional().or(z.literal('')),

@@ -2,7 +2,7 @@ import { Eye, Star, ImageIcon, ShoppingBasket } from 'lucide-react';
 import QuickViewDialog from './QuickViewDialog';
 import ImgTag from '../ImgTag';
 import { ProductEntity } from '@/services/product.service';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import FeaturedBtn from './FeaturedBtn';
 import OffBtn from './OffBtn';
 import { cn } from '@/lib/utils';
@@ -128,7 +128,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               </div>
             </div>
 
-          
+
           </div>
         </div>
       </Link>

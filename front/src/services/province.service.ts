@@ -6,7 +6,6 @@ const BASE_URL_CITY = BASE_URL + "/city";
 export interface CityEntity {
     id: string;
     name: string;
-    nameEn: string;
     provinceId: string;
     province: { id: string; name: string };
     projects: unknown[][];
@@ -16,31 +15,26 @@ export interface CityEntity {
 export interface CityofProvince {
     id: string;
     name: string;
-    nameEn: string;
     provinceId: string;
 }
 
 export interface CreateCityDto {
     name: string;
-    nameEn: string;
     provinceId: string;
 }
 export interface CityEntity {
     id: string;
     name: string;
-    nameEn: string;
     [key: string]: unknown;
 }
 
 export interface ProvinceEntity {
     id: string;
     name: string;
-    nameEn: string;
 }
 
 export interface CreateProvinceDto {
     name: string;
-    nameEn: string;
 }
 
 export const provinceService = {

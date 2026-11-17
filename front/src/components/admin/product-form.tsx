@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '@/i18n/navigation';
-import { Save, Loader2, Trash2, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Save, Loader2, ArrowLeft } from 'lucide-react';
 import InputForm from '../inputs/InputForm';
 import CustomButton from '../CustomButton';
 import SelectCustom from '../inputs/SelectCustom';
-import MotionWrapper from '../motion/MotionWrapper';
 import AdminRichEditor from '../inputs/AdminRichEditor';
 import UploadMedia from '../upload/UploadMedia';
 import { ProductEntity } from '@/services/product.service';
@@ -20,6 +19,7 @@ import ProductVariantsManager from '../product/ProductVariantsManager';
 import { useCategoriesProducts } from '@/hooks/category.hook';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
+import { useSellerList } from '@/hooks/user.hook';
 interface ProductFormProps {
   product?: ProductEntity | null;
   isStore?: boolean
@@ -27,9 +27,8 @@ interface ProductFormProps {
 
 export function ProductForm({ product, isStore = false }: ProductFormProps) {
   const { storeId } = useAuth()
-  const [openEn, setOpenEn] = useState(false)
   const [tableValue, setTableValue] = useState<TableData | null>()
-  const [tableValueEn, setTableValueEn] = useState<TableData | null>()
+  const { data: sellerList, isPending: pendingSeller } = useSellerList()
   const { register, reset, setValue, watch, getValues, handleSubmit } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema), defaultValues: { status: 'pending' }
   });
@@ -38,13 +37,14 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
   const isFeatured = watch('isFeatured')
   const brandId = watch('brandId')
   const status = watch('status')
+  const storeIds = watch('storeId')
   const condition = watch('condition')
   const router = useRouter();
   const isEdit = !!product;
   const [saving, setSaving] = useState(false);
   const { data: dataCategory } = useCategoriesProducts()
-  const { mutate: createProduct } = useCreateProduct()
-  const { mutate: updateProduct } = useUpdateProduct()
+  const { mutate: createProduct, isPending: pendingCreate } = useCreateProduct()
+  const { mutate: updateProduct, isPending: pendingUpdate } = useUpdateProduct()
   const { data: brandsData } = useBrands()
 
   useEffect(() => {
@@ -56,18 +56,21 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
         status: product.status,
         condition: product.condition,
         title: product.title || '',
-        titleEn: product.titleEn || '',
         description: product.description || '',
-        descriptionEn: product.descriptionEn || '',
         brandId: product.brandId || '',
         metaTitle: product.metaTitle || '',
-        metaTitleEn: product.metaTitleEn || '',
         content: product.content ? JSON.parse(product.content) : '',
-        contentEn: product.contentEn ? JSON.parse(product.contentEn) : '',
-        images: product?.images.map((i) => i.url) || []
+        images: product?.images.map((i) => i.url) || [],
+        storeId: isStore && storeId ? storeId : product.storeId,
+        slug: product.slug
       });
       setTableValue(product.productTable)
-      setTableValueEn(product.productTableEn)
+    } else {
+      if (isStore && storeId) {
+        reset({
+          storeId
+        })
+      }
     }
   }, [product, reset]);
 
@@ -80,23 +83,19 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
         status: data.status,
         condition: data.condition,
         title: data.title || null,
-        titleEn: data.titleEn || null,
         description: data.description || null,
-        descriptionEn: data.descriptionEn || null,
         brandId: data.brandId || null,
         categoryId: data.categoryId,
         metaTitle: data.metaTitle || null,
-        metaTitleEn: data.metaTitleEn || null,
         content: data.content ? JSON.stringify(data.content) : null,
-        contentEn: data.contentEn ? JSON.stringify(data.contentEn) : null,
         images: data?.images || [],
         productTable: tableValue || null,
-        productTableEn: tableValueEn || null
+        storeId: storeId ? storeId : storeIds,
+        slug: data.slug
       } as any
       if (isEdit && product?.id) {
         updateProduct({ id: product?.id, data: body })
       } else {
-        if (!storeId) return
         createProduct(body, {
           onSuccess: () => {
             router.refresh()
@@ -109,9 +108,11 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
       setSaving(false);
     }
   };
+
   const onError = (err: any) => {
     console.log(err);
   }
+
   return (
     <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
       {/* Header */}
@@ -123,10 +124,12 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
           </p>
         </div>
         <CustomButton
-          name={saving ? 'در حال ذخیره...' : 'ذخیره محصول'}
-          disabled={saving}
-          type="submit"
+          color='white'
+          type='submit'
+          isPending={pendingCreate || pendingUpdate}
+          name={saving ? 'در حال ذخیره...' : isEdit ? 'بروزرسانی محصول' : 'ایجاد محصول'}
           iconStart={saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          disabled={saving}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -226,26 +229,34 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
               value={brandId}
               label='برند'
             />
-            {
-              product?.slug && (
-                <InputForm
-                  label='اسلاگ'
-                  name='slug'
-                  value={product?.slug}
-                  disabled
-                />
-              )
-            }
-            {
-              product?.store?.name && (
-                <InputForm
-                  label='نام فروشنده'
-                  name='storeName'
-                  value={product?.store?.name}
-                  disabled
-                />
-              )
-            }
+            <InputForm
+              label='اسلاگ'
+              name='slug'
+              register={register}
+              placeholder='tset-slug'
+            />
+            <SelectCustom
+              disable={pendingSeller || isStore || isEdit}
+              children={
+                sellerList?.length
+                  ? sellerList.map((item) => ({
+                    id: item.id,
+                    name: item.storeName,
+                  }))
+                  : []
+              }
+              placeHolder='انتخاب کنید'
+              setValue={e => {
+
+                if (isStore && storeId) {
+                  setValue('storeId', storeId)
+                } else {
+                  setValue('storeId', e)
+                }
+              }}
+              value={storeIds}
+              label='فروشنده'
+            />
           </div>
           <div className="card p-4 space-y-4">
             {!isStore && (
@@ -277,64 +288,13 @@ export function ProductForm({ product, isStore = false }: ProductFormProps) {
         value={tableValue}
         onChange={(newValue) => setTableValue(newValue)}
       />
-      {/* English form */}
-      <div className='w-full'>
-        <CustomButton
-          color='white'
-          className='min-w-sm'
-          onClick={() => setOpenEn(prev => !prev)}
-          name={openEn ? "بستن" : "نمایش فرم های زبان انگلیسی"}
-          iconEnd={openEn ? <ChevronUp /> : <ChevronDown />}
-        />
-        {openEn &&
-          <div className='card p-4 space-y-4 mt-6'>
-            <MotionWrapper preset='fadeUp' duration={2}>
-              <div className='w-full grid grid-cols-1 gap-4'>
-                <InputForm
-                  label='نام محصول (انگلیسی)'
-                  name='titleEn'
-                  placeholder="مثال: گوشی هوشمند X1 Pro 5G"
-                  register={register}
-                />
-                <InputForm
-                  label='عنوان معرفی محصول (نمایش بالای صفحه) (انگلیسی)'
-                  name='metaTitleEn'
-                  placeholder="مثال: گوشی هوشمند X1 Pro 5G"
-                  register={register}
-                />
-                <InputForm
-                  label='توضیحات محصول (انگلیسی)'
-                  name='descriptionEn'
-                  type='textarea'
-                  max={6}
-                  min={6}
-                  placeholder="مثال: گوشی هوشمند X1 Pro 5G"
-                  register={register}
-                />
-                <div>
-                  <label className="block text-sm font-medium">توضیحات محصول</label>
-                  <AdminRichEditor
-                    content={product?.contentEn ? JSON.parse(product?.contentEn) : null}
-                    onChange={val => setValue('contentEn', val)}
-                    placeholder="توضیحات کامل محصول را اینجا بنویسید..."
-                  />
-                </div>
-              </div>
-            </MotionWrapper>
-            <ProductTable
-              english
-              value={tableValueEn}
-              onChange={(newValue) => setTableValueEn(newValue)}
-            />
-          </div>
-        }
-      </div >
 
       {/* Bottom Actions */}
       < div className="flex items-center gap-4 pt-4 border-t border-border" >
         <CustomButton
           color='white'
           type='submit'
+          isPending={pendingCreate || pendingUpdate}
           name={saving ? 'در حال ذخیره...' : isEdit ? 'بروزرسانی محصول' : 'ایجاد محصول'}
           iconStart={saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
           disabled={saving}

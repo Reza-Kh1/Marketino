@@ -20,7 +20,6 @@ import {
   hasRealVariants,
 } from "@/lib/utils-product";
 import CustomButton from "../CustomButton";
-import { useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 import { useAddToCart, useCart } from "@/hooks/cart.hook";
 
@@ -39,7 +38,6 @@ export default function ProductBuyBox({
   countdownSlot,
   productId,
 }: ProductBuyBoxProps) {
-  const locale = useLocale();
   const colors = useMemo(() => getUniqueColors(variants), [variants]);
   const attributeGroups = useMemo(() => getVariantAttributeGroups(variants), [variants]);
   const { mutate: addToCart, isPending } = useAddToCart();
@@ -113,7 +111,7 @@ export default function ProductBuyBox({
       {showVariantPicker && colors.length > 1 && (
         <div className="space-y-2 sm:space-y-3">
           <label className="text-xs sm:text-sm flex items-center gap-1.5 font-bold">
-            رنگ انتخابی:
+           انتخاب رنگ :
             <span className="text-cyan-600 dark:text-cyan-400 font-medium">
               {colors?.find((c) => c?.colorId === selectedColorId)?.name}
             </span>
@@ -162,7 +160,7 @@ export default function ProductBuyBox({
 
           return (
             <div key={group.key} className="space-y-2 sm:space-y-3">
-              <span className="text-xs sm:text-sm font-bold">انتخاب {group.label}:</span>
+              <span className="text-xs sm:text-sm font-bold mb-2 inline-block">انتخاب {group.label} : </span>
               <div className="flex flex-wrap gap-2 sm:gap-3">
                 {options.map(({ value, inStock: optionInStock }) => (
                   <button
@@ -286,7 +284,7 @@ export default function ProductBuyBox({
           onClick={addCart}
           isPending={isPending}
           classDiv="w-full"
-          className={cn(locale === "en" ? "ml-auto" : "mr-auto")}
+          className={cn("mr-auto")}
           name={inStock ? (checkCart(selectedVariant?.id) ? "در سبد شماست" : "افزودن به سبد") : "ناموجود"}
           disabled={!inStock || checkCart(selectedVariant?.id)}
           iconEnd={<ShoppingCart className="w-4 h-4" />}

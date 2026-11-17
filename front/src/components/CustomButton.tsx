@@ -4,8 +4,7 @@ import React from 'react'
 import MotionWrapper from './motion/MotionWrapper'
 import { useFormStatus } from 'react-dom'
 import TooltipCustom from './TooltipCustom'
-import { Link } from '@/i18n/navigation'
-
+import Link from 'next/link';
 type CustomButtonType = {
     dataVariantId?: string
     dataQuantity?: string

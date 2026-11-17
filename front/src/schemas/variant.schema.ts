@@ -17,7 +17,6 @@ export const CreateVariantSchema = z.object({
     name: z.string()
         .min(1, "نام الزامی است")
         .max(200, "نام نباید بیشتر از 200 کاراکتر باشد"),
-    nameEn: z.string().optional(),
     price: z.number()
         .min(0, "قیمت نمی‌تواند منفی باشد"),
     quantity: z.number()
@@ -33,7 +32,6 @@ export const CreateVariantSchema = z.object({
 // اسکیما ویرایش Variant
 export const UpdateVariantSchema = z.object({
     name: z.string().optional(),
-    nameEn: z.string().optional(),
     price: z.number().optional(),
     quantity: z.number().optional(),
     colorId: z.string().optional(),

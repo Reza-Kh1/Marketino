@@ -5,20 +5,15 @@ import { UploadCloud, Image as ImageIcon, CheckCircle2, Pencil, X, Upload, Puzzl
 import { Button } from "@/components/ui/button";
 import EditorImage from "./EditorImage";
 import { toast } from "sonner";
-// import SelectCustom from "../admin/components/SelectCustom";
-// import { useDeleteMedia, useUploadImage } from "@/hooks/media.hook";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import EditorFiles from "./EditorFiles";
-// import DialogDelete from "../admin/components/DialogDelete";
 import UploadNotic from "./UploadNotic";
 import SelectCustom from "../inputs/SelectCustom";
 import TooltipCustom from "../TooltipCustom";
 import ImgTag from "../ImgTag";
 import DialogDelete from "../DialogDelete";
 import { useDeleteMedia } from "@/hooks/media.hook";
-import { file } from "zod";
-// import ImgTag from "../ImgTag/ImgTag";
 
 export interface FileProgress {
     id: string;
@@ -428,7 +423,7 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className="p-2.5 bg-zinc-900 relative border border-zinc-850 rounded-xl flex items-center justify-between gap-4"
+                            className="p-2.5 bg-accent relative border border-zinc-850 rounded-xl flex items-center justify-between gap-4"
                         >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className="w-9 h-9 rounded-lg overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center">
@@ -439,8 +434,8 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                                     }
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-zinc-200 truncate dir-ltr text-right">{item.fileName}</p>
-                                    <p className="text-[10px] text-zinc-500 font-mono">{(item.fileSize / 1024).toFixed(1)} KB</p>
+                                    <p className="text-xs font-medium  text-accent-foreground dark:text-zinc-200 truncate dir-ltr text-right">{item.fileName}</p>
+                                    <p className="text-[10px] text-accent-foreground dark:text-zinc-500 font-mono">{(item.fileSize / 1024).toFixed(1)} KB</p>
                                 </div>
                             </div>
                             {item.status === "processing" ? (
@@ -466,7 +461,7 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                                     </div>
                                 </div>
                             ) :
-                                <div className="flex items-center gap-2 ">
+                                <div className="flex items-center gap-2">
                                     {item.status === 'completed' ?
                                         <>
                                             <TooltipCustom placeHolder="کپی لینک فایل">
@@ -483,7 +478,7 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                                                 <CheckCircle2 className="w-4.5 h-4.5 hover:text-emerald-700 transition-all text-emerald-400" />
                                             </TooltipCustom>
                                             <TooltipCustom placeHolder={'حذف از دیتابیس'}>
-                                                <Trash2 onClick={() => setDeleteModal({ key: item.key || '', open: true, fileId: item.id })} className=" text-admin-destructive w-4.5 h-4.5 cursor-pointer transition-all hover:text-slate-700" />
+                                                <Trash2 onClick={() => setDeleteModal({ key: item.key || '', open: true, fileId: item.id })} className="w-4.5 h-4.5 cursor-pointer transition-all hover:text-slate-700" />
                                             </TooltipCustom>
                                         </>
                                         : <>
@@ -556,9 +551,9 @@ export default function UploadMedia({ type, limit = 1, setUrlMedias, title, help
                             >
                                 <div className="relative">
                                     <ImgTag alt={item.id} width={300} height={300} classPlus=" w-full h-40" src={item.key} />
-                                    <button type="button" onClick={() => setDeleteModal({ key: item.key || '', open: true, fileId: item.id })} className="absolute top-2 right-2 bg-bg-admin-dark/80 rounded-full p-2 cursor-pointer hover:bg-bg-admin-dark transition-all">
+                                    <button type="button" onClick={() => setDeleteModal({ key: item.key || '', open: true, fileId: item.id })} className="w-8 h-8 p-3 bg-amber-50/70 flex justify-center items-center dark:bg-black/50 absolute top-1 right-1 bg-bg-admin-dark/80 rounded-full cursor-pointer hover:bg-bg-admin-dark transition-all">
                                         <TooltipCustom placeHolder={'حذف از دیتابیس'}>
-                                            <Trash2 className="w-6 h-6 text-admin-destructive" />
+                                            <Trash2 className="w-5 h-5" />
                                         </TooltipCustom>
                                     </button>
                                 </div>

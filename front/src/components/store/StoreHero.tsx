@@ -12,7 +12,7 @@ import ImgTag from '../ImgTag';
 import { Store } from '@/services/store.service';
 import { ShareBtn } from '../product/ShareBtn';
 import TooltipCustom from '../TooltipCustom';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import Breadcrumb from '../product/Breadcrumb';
 
 interface StoreHeroProps {
@@ -41,8 +41,8 @@ export default function StoreHero({ store }: StoreHeroProps) {
         <div className="absolute top-0 right-0 left-0 z-10 mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
           <Breadcrumb
             itemsCustom={[
-              { id: '2', name: 'فروشگاه', nameEn: 'store', slug: '/store', slugEn: '/store' },
-              { id: store.id, name: store.name, nameEn: store.name, slug: store.slug, slugEn: store.slug },
+              { id: '2', name: 'فروشگاه',  slug: '/store'},
+              { id: store.id, name: store.name, slug: store.slug },
             ]}
           />
         </div>
@@ -94,11 +94,6 @@ export default function StoreHero({ store }: StoreHeroProps) {
                   </span>
                 )}
               </div>
-              {store.nameEn && (
-                <p className="text-xs font-semibold text-muted-foreground/80 tracking-wide" dir="ltr">
-                  {store.nameEn}
-                </p>
-              )}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground pt-1">
                 {rating && (
                   <span className="inline-flex items-center gap-1.5 font-bold text-foreground">

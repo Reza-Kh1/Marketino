@@ -1,13 +1,11 @@
 'use client'
 import { useState } from 'react';
-import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Star, Eye, ShoppingBag, Sparkles, CheckCircle2, ImageIcon, ArrowLeft, ShoppingBasket, X, Percent } from 'lucide-react';
 import ImgTag from '../ImgTag';
 import CustomButton from '../CustomButton';
 import { ProductEntity } from '@/services/product.service';
 import FeaturedBtn from './FeaturedBtn';
-import OffBtn from './OffBtn';
 
 export default function QuickViewDialog({ product }: { product: ProductEntity }) {
   if (!product) return null;
@@ -115,11 +113,6 @@ export default function QuickViewDialog({ product }: { product: ProductEntity })
                   <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
                     {product.title}
                   </h2>
-                  {product.titleEn && (
-                    <span className="text-[11px] text-slate-400 font-mono dir-ltr block mt-0.5">
-                      {product.titleEn}
-                    </span>
-                  )}
                 </div>
 
                 {/* امتیاز و فروشگاه */}

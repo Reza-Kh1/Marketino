@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Link } from '@/i18n/navigation';
-import { useLocale } from 'next-intl';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
   ChevronLeft,
@@ -38,20 +37,18 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 // تغییر: نوع پارامتر به CategorysTypes
-function getCategoryName(cat: CategorysTypes, locale: string) {
-  return locale === 'en' && cat.nameEn ? cat.nameEn : cat.name;
+function getCategoryName(cat: CategorysTypes) {
+  return cat.name;
 }
 
 // تغییر: نوع پارامتر به CategorysTypes
-function getCategorySlug(cat: CategorysTypes, locale: string) {
-  return locale === 'en' && cat.slugEn ? cat.slugEn : cat.slug;
+function getCategorySlug(cat: CategorysTypes) {
+  return cat.slug;
 }
 
 export default function CategoryMenu({ className }: { className?: string }) {
-  const locale = useLocale();
-  const isRtl = locale === 'fa';
   const { data: categoriesData } = useCategories()
-  
+
   // Desktop
   const [desktopOpen, setDesktopOpen] = useState(false);
   // تغییر: نوع به CategorysTypes
@@ -131,7 +128,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
                       )}
                     >
                       {/* <Icon className={cn('w-5 h-5 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} /> */}
-                      <span className="flex-1 truncate">{getCategoryName(cat, locale)}</span>
+                      <span className="flex-1 truncate">{getCategoryName(cat)}</span>
                       {hasChildren(cat) && (
                         <ChevronLeft className={cn('w-4 h-4', isActive ? 'text-primary' : 'opacity-40')} />
                       )}
@@ -146,10 +143,10 @@ export default function CategoryMenu({ className }: { className?: string }) {
                   <>
                     <div className="flex items-center justify-between mb-5">
                       <h3 className="font-bold text-lg text-foreground">
-                        {getCategoryName(hoveredMain, locale)}
+                        {getCategoryName(hoveredMain)}
                       </h3>
                       <Link
-                        href={`/products?category=${getCategorySlug(hoveredMain, locale)}`}
+                        href={`/products?category=${getCategorySlug(hoveredMain)}`}
                         onClick={() => setDesktopOpen(false)}
                         className="text-sm font-medium text-primary hover:underline"
                       >
@@ -162,11 +159,11 @@ export default function CategoryMenu({ className }: { className?: string }) {
                         {hoveredMain.children!.map((child: CategorysTypes) => (
                           <div key={child.id}>
                             <Link
-                              href={`/products?category=${getCategorySlug(child, locale)}`}
+                              href={`/products?category=${getCategorySlug(child)}`}
                               onClick={() => setDesktopOpen(false)}
                               className="font-semibold text-[15px] text-foreground hover:text-primary transition-colors block mb-2"
                             >
-                              {getCategoryName(child, locale)}
+                              {getCategoryName(child)}
                             </Link>
 
                             {hasChildren(child) && (
@@ -174,11 +171,11 @@ export default function CategoryMenu({ className }: { className?: string }) {
                                 {child.children!.map((grand: CategorysTypes) => (
                                   <Link
                                     key={grand.id}
-                                    href={`/products?category=${getCategorySlug(grand, locale)}`}
+                                    href={`/products?category=${getCategorySlug(grand)}`}
                                     onClick={() => setDesktopOpen(false)}
                                     className="block text-sm text-muted-foreground hover:text-primary transition-colors py-0.5"
                                   >
-                                    {getCategoryName(grand, locale)}
+                                    {getCategoryName(grand)}
                                   </Link>
                                 ))}
                               </div>
@@ -188,7 +185,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
                       </div>
                     ) : (
                       <Link
-                        href={`/products?category=${getCategorySlug(hoveredMain, locale)}`}
+                        href={`/products?category=${getCategorySlug(hoveredMain)}`}
                         onClick={() => setDesktopOpen(false)}
                         className="inline-flex items-center gap-2 text-[15px] text-primary font-semibold hover:underline mt-2"
                       >
@@ -221,7 +218,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
 
       {/* ========== Drawer موبایل (شبیه دیجی‌کالا) ========== */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
+        <div className="fixed inset-0 z-100 lg:hidden">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-[6px] animate-fade-in"
@@ -244,7 +241,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
             {/* بدنه: سایدبار راست + محتوا */}
             <div className="flex flex-1 overflow-hidden">
               {/* سایدبار دسته‌های اصلی (ثابت سمت راست) */}
-              <div className="w-[88px] sm:w-24 border-l border-border bg-muted/30 overflow-y-auto shrink-0">
+              <div className="w-22 sm:w-24 border-l border-border bg-muted/30 overflow-y-auto shrink-0">
                 {categoriesData?.map((cat: CategorysTypes) => {
                   const Icon = cat.icon ? iconMap[cat.icon] : Grid3X3;
                   const isActive = activeMainId === cat.id;
@@ -262,7 +259,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
                     >
                       {/* خط اکتیو */}
                       {isActive && (
-                        <div className="absolute right-0 top-2 bottom-2 w-[3px] rounded-l-full bg-primary" />
+                        <div className="absolute right-0 top-2 bottom-2 w-0.75 rounded-l-full bg-primary" />
                       )}
 
                       <div
@@ -281,7 +278,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
                           isActive && 'font-bold'
                         )}
                       >
-                        {getCategoryName(cat, locale)}
+                        {getCategoryName(cat)}
                       </span>
                     </button>
                   );
@@ -300,10 +297,10 @@ export default function CategoryMenu({ className }: { className?: string }) {
                     {/* عنوان دسته اصلی */}
                     <div className="flex items-center justify-between mb-4 px-1">
                       <h3 className="font-bold text-[15px] text-foreground">
-                        {getCategoryName(activeMain, locale)}
+                        {getCategoryName(activeMain)}
                       </h3>
                       <Link
-                        href={`/products?category=${getCategorySlug(activeMain, locale)}`}
+                        href={`/products?category=${getCategorySlug(activeMain)}`}
                         onClick={() => setMobileOpen(false)}
                         className="text-xs font-semibold text-primary hover:underline"
                       >
@@ -321,7 +318,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
                             return (
                               <Link
                                 key={child.id}
-                                href={`/products?category=${getCategorySlug(child, locale)}`}
+                                href={`/products?category=${getCategorySlug(child)}`}
                                 onClick={() => setMobileOpen(false)}
                                 className="flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-primary/5 transition-colors"
                               >
@@ -329,19 +326,19 @@ export default function CategoryMenu({ className }: { className?: string }) {
                                   {child.image ? (
                                     <img
                                       src={child.image}
-                                      alt={getCategoryName(child, locale)}
+                                      alt={getCategoryName(child)}
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-primary/15 to-violet-500/10">
                                       <span className="text-base font-bold text-primary/70">
-                                        {getCategoryName(child, locale)[0]}
+                                        {getCategoryName(child)[0]}
                                       </span>
                                     </div>
                                   )}
                                 </div>
                                 <span className="font-medium text-sm text-foreground">
-                                  {getCategoryName(child, locale)}
+                                  {getCategoryName(child)}
                                 </span>
                               </Link>
                             );
@@ -352,7 +349,6 @@ export default function CategoryMenu({ className }: { className?: string }) {
                             <AccordionItem
                               key={child.id}
                               category={child}
-                              locale={locale}
                               onClose={() => setMobileOpen(false)}
                             />
                           );
@@ -360,7 +356,7 @@ export default function CategoryMenu({ className }: { className?: string }) {
                       </div>
                     ) : (
                       <Link
-                        href={`/products?category=${getCategorySlug(activeMain, locale)}`}
+                        href={`/products?category=${getCategorySlug(activeMain)}`}
                         onClick={() => setMobileOpen(false)}
                         className="flex flex-col items-center justify-center py-16 gap-3 text-primary"
                       >
@@ -391,11 +387,9 @@ export default function CategoryMenu({ className }: { className?: string }) {
 // تغییر: نوع props به CategorysTypes
 function AccordionItem({
   category,
-  locale,
   onClose,
 }: {
   category: CategorysTypes;
-  locale: string;
   onClose: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -412,20 +406,20 @@ function AccordionItem({
           {category.image ? (
             <img
               src={category.image}
-              alt={getCategoryName(category, locale)}
+              alt={getCategoryName(category)}
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-primary/15 to-violet-500/10">
               <span className="text-base font-bold text-primary/70">
-                {getCategoryName(category, locale)[0]}
+                {getCategoryName(category)[0]}
               </span>
             </div>
           )}
         </div>
 
         <span className="flex-1 text-right font-medium text-sm text-foreground">
-          {getCategoryName(category, locale)}
+          {getCategoryName(category)}
         </span>
 
         <ChevronLeft
@@ -440,7 +434,7 @@ function AccordionItem({
       <div
         className={cn(
           'overflow-hidden transition-all duration-300 ease-in-out',
-          open ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+          open ? 'max-h-125 opacity-100' : 'max-h-0 opacity-0'
         )}
       >
         {/* فقط یک خط جداکننده */}
@@ -450,7 +444,7 @@ function AccordionItem({
           {category.children!.map((grand: CategorysTypes) => (
             <Link
               key={grand.id}
-              href={`/products?category=${getCategorySlug(grand, locale)}`}
+              href={`/products?category=${getCategorySlug(grand)}`}
               onClick={onClose}
               className="flex flex-col items-center gap-1.5 group py-1.5"
             >
@@ -458,19 +452,19 @@ function AccordionItem({
                 {grand.image ? (
                   <img
                     src={grand.image}
-                    alt={getCategoryName(grand, locale)}
+                    alt={getCategoryName(grand)}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-primary/10 to-violet-500/10">
                     <span className="text-sm font-bold text-primary/60">
-                      {getCategoryName(grand, locale)[0]}
+                      {getCategoryName(grand)[0]}
                     </span>
                   </div>
                 )}
               </div>
               <span className="text-[11px] font-medium text-center text-foreground/90 group-hover:text-primary transition-colors line-clamp-2 leading-tight px-0.5">
-                {getCategoryName(grand, locale)}
+                {getCategoryName(grand)}
               </span>
             </Link>
           ))}

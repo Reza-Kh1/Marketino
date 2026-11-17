@@ -12,6 +12,7 @@ import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Subscript from '@tiptap/extension-subscript';
+import ResizeImage from 'tiptap-extension-resize-image';
 import Superscript from '@tiptap/extension-superscript';
 import Image from '@tiptap/extension-image';
 import { Details, DetailsSummary, DetailsContent } from '@tiptap/extension-details';
@@ -20,6 +21,7 @@ import { TableOfContents, getHierarchicalIndexes } from '@tiptap/extension-table
 import ShowMoreContent from './ShowMoreContent';
 import './../inputs/editor.css'
 export const tiptapExtensions = [
+    ResizeImage,
     UniqueID.configure({
         types: ['heading', 'paragraph'],
         attributeName: 'id',
@@ -105,6 +107,8 @@ export function extractHeadings(content: unknown): { id: string; level: number; 
 }
 
 export default function RichContentViewer({ content, className }: RichContentViewerProps) {
+    console.log(content);
+
     let json: any = content;
     const headings = extractHeadings(content);
     if (typeof json === 'string') {

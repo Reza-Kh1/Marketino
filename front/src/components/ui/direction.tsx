@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { Direction } from "radix-ui"
-import { useLocale } from "next-intl";
 
 function DirectionProvider({
   dir,

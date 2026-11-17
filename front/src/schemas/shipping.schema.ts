@@ -8,7 +8,6 @@ export const createShippingMethodFormSchema = z.object({
     .string()
     .min(1, "نام روش ارسال نمی‌تواند خالی باشد")
     .max(100, "نام روش ارسال حداکثر ۱۰۰ کاراکتر باشد"),
-  nameEn: z.string().optional(),
   isActive: z.boolean().optional(),
   isFreeMethod: z.boolean().optional(),
 });
@@ -28,7 +27,6 @@ export type ShippingMethodSchema = z.infer<typeof shippingMethodSchema>;
 // ==========================================
 export const updateStoreShippingFormSchema = z.object({
   description: z.string().min(1, "توضیحات نمی‌تواند خالی باشد"),
-  descriptionEn: z.string().optional(),
   isActive: z.boolean().default(true),
   phrase: z.string().optional(),
   minDays: z

@@ -5,9 +5,6 @@ export const cityFormSchema = z.object({
         .string()
         .min(1, "نام شهر نمی‌تواند خالی باشد")
         .max(50, "نام شهر حداکثر 50 کاراکتر باشد"),
-    nameEn: z
-        .string()
-        .optional(),
     provinceId: z.string().min(1, "استان نمی‌تواند خالی باشد")
 });
 
@@ -23,10 +20,7 @@ export const provinceFormSchema = z.object({
     name: z
         .string()
         .min(1, "نام استان نمی‌تواند خالی باشد")
-        .max(50, "نام استان حداکثر 50 کاراکتر باشد"),
-    nameEn: z
-        .string()
-        .optional(),
+        .max(50, "نام استان حداکثر 50 کاراکتر باشد")
 });
 
 export type ProvinceFormSchema = z.infer<typeof provinceFormSchema>;

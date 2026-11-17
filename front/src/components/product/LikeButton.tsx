@@ -5,9 +5,11 @@ import MotionWrapper from "../motion/MotionWrapper";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useWishlistItem } from "@/hooks/wishList.hook";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LikeButton({ productId, isCard = false }: { productId: string, isCard?: boolean }) {
   const { isInWishlist, isLoading, toggleWishlist } = useWishlistItem(productId)
+  const { user } = useAuth()
   const [isHovered, setIsHovered] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -21,7 +23,7 @@ export default function LikeButton({ productId, isCard = false }: { productId: s
   const addWishList = () => {
     toggleWishlist()
   }
-
+  if (!user) return null
   return (
     <>
       {isCard ?
@@ -60,13 +62,14 @@ export default function LikeButton({ productId, isCard = false }: { productId: s
                 onClick={addWishList}
                 aria-pressed={liked}
                 aria-label="افزودن به علاقه‌مندی‌ها"
-                className={`p-3 cursor-pointer rounded-xl border dark:bg-slate-900/50 transition-all hover:shadow-lg hover:shadow-pink-800/20 ${liked
-                  ? "dark:border-pink-800 border-red-500 text-red-500 dark:text-pink-800 shadow-[0_0_15px_rgba(236,72,153,0.3)]"
-                  : "border-slate-200 dark:border-slate-800 text-slate-400 hover:text-pink-500 hover:border-pink-500/50"
+                className={`p-3 cursor-pointer rounded-xl border dark:bg-slate-900/50 transition-all hover:shadow-lg hover:shadow-pink-800/20 
+                  ${liked
+                    ? "dark:border-pink-800 border-red-500 text-red-500 dark:text-pink-800 shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+                    : "border-slate-200 dark:border-slate-800 text-slate-400 hover:text-pink-500 hover:border-pink-500/50"
                   }`}
               >
                 {isLoading ? <div className="spinner" /> :
-                  <Heart className={`w-5 h-5 `} />
+                  <Heart className={`w-5 h-5 ${liked && 'fill-red-500'}`} />
                 }
               </button>
             </MotionWrapper>

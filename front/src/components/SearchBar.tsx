@@ -1,8 +1,8 @@
 'use client'
 import { useCategories } from '@/hooks/category.hook';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 export default function SearchBar() {
   const { data: categoryData } = useCategories({ parentId: 'true' })
@@ -14,7 +14,7 @@ export default function SearchBar() {
   }
   return (
     <div className="mt-8 relative max-w-2xl mx-auto">
-      <div className="relative flex items-center min-h-12 sm:h-14 md:h-16 rounded-2xl bg-white dark:bg-card border-2 border-border/60 shadow-lg shadow-black/[0.04] dark:shadow-black/20 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all duration-300">
+      <div className="relative flex items-center min-h-12 sm:h-14 md:h-16 rounded-2xl bg-white dark:bg-card border-2 border-border/60 shadow-lg shadow-black/4 dark:shadow-black/20 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all duration-300">
         <Search className="absolute rtl:right-3 sm:rtl:right-4 ltr:left-3 sm:ltr:left-4 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
         <input
           value={value}

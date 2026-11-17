@@ -9,18 +9,14 @@ export interface CategorysProduct {
     name: string;
     image: string | null;
     icon: string | null;
-    nameEn: string;
     slug: string;
-    slugEn: string | null;
     sortOrder: number;
 }
 
 export interface CategorySingleType {
     id: string;
     name: string;
-    nameEn: string;
     slug: string;
-    slugEn: string;
     parentId: string | null;
     icon: string;
     image: string;
@@ -28,9 +24,7 @@ export interface CategorySingleType {
     sortOrder: number;
     isActive: boolean;
     metaTitle: string | null;
-    metaTitleEn: string | null;
     metaDescription: string;
-    metaDescriptionEn: string;
     createdAt: string;
     updatedAt: string;
     children: CategorysTypes[];
@@ -40,24 +34,19 @@ export interface CategorySingleType {
 export interface CategorysTypes {
     id: string;
     name: string;
-    nameEn: string | null;
     slug: string;
-    slugEn: string | null;
     parentId: string | null;
     icon: string | null;
     image: string | null;
     ancestorIds: string[];
     description: string | null;
-    descriptionEn: string | null;
     sortOrder: number;
     isFeatured: boolean
     isDigital: boolean
     isActive: boolean;
     metaTitle: string | null;
-    metaTitleEn: string | null;
     metaDescription: string | null;
     status: string
-    metaDescriptionEn: string | null;
     createdAt: Date;
     updatedAt: Date;
     children?: CategorysTypes[];
@@ -66,16 +55,12 @@ export interface CategorysTypes {
 
 export interface FormCategoryDTO {
     name: string;
-    nameEn: string;
     description?: string;
-    descriptionEn?: string;
     parentId?: string;
     icon?: string;
     sortOrder?: number;
     metaTitle?: string;
-    metaTitleEn?: string;
     metaDescription?: string;
-    metaDescriptionEn?: string;
 }
 
 export const categoryService = {

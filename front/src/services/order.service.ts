@@ -52,7 +52,6 @@ export interface UpdateOrder {
 export interface OrderItemType {
     sku: string;
     name: string;
-    nameEn: string;
     price: string;
     originalPrice: string;
     total: string;
@@ -75,7 +74,6 @@ export interface OrderType {
     shippingCost: string;
     shippingName: string;
     storeName: string;
-    storeNameEn: string;
     subtotal: string;
     totalPrice: string;
     discountAmount: string;

@@ -2,12 +2,11 @@
 import React, { useState } from 'react'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import MotionWrapper from './motion/MotionWrapper'
-import LoginForm from '@/app/[locale]/login/LoginForm'
+import LoginForm from '@/app/login/LoginForm'
 import { DoorOpen } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import CustomButton from './CustomButton'
-import RegisterFormBuyer from '@/app/[locale]/register/buyer/RegisterFormBuyer'
+import RegisterFormBuyer from '@/app/register/buyer/RegisterFormBuyer'
 
 type isLoginUserType = {
     open: boolean
@@ -16,7 +15,6 @@ type isLoginUserType = {
 
 export default function IsLoginUser({ open, setOpen }: isLoginUserType) {
     const [showForm, setShowForm] = useState<'login' | 'seller' | 'buyer' | null>(null)
-    const t = useTranslations('auth')
     const closeModal = () => {
         setOpen(false);
         setShowForm(null);
@@ -25,9 +23,10 @@ export default function IsLoginUser({ open, setOpen }: isLoginUserType) {
         <Dialog onOpenChange={closeModal} open={open}>
             <DialogContent
                 className={cn(
-                    "bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right flex flex-col justify-between max-h-[95vh] sm:max-h-[85vh]",
+                    "bg-accent backdrop-blur-xl border-admin-border text-right flex flex-col justify-between max-h-[95vh] sm:max-h-[85vh]",
                     showForm ? 'max-w-7xl! w-full' : 'max-w-xl w-full'
                 )}
+                dir="rtl"
             >
                 {/* 1. بخش هدر مودال */}
                 <DialogHeader className="shrink-0">
@@ -51,13 +50,13 @@ export default function IsLoginUser({ open, setOpen }: isLoginUserType) {
                             <MotionWrapper staggerChildren={0.2} preset='slideUpBlur' className="mt-6 pt-4 w-full border-t border-border text-center space-y-2">
                                 {showForm === 'login' ? (
                                     <div>
-                                        <span className="text-muted-foreground text-sm">{t('no_account')}</span>{' '}
-                                        <button type='button' onClick={() => setShowForm('buyer')} className="cursor-pointer text-primary font-bold hover:underline text-sm">{t('register_as_buyer')}</button>
+                                        <span className="text-muted-foreground text-sm">حساب کاربری ندارید؟</span>{' '}
+                                        <button type='button' onClick={() => setShowForm('buyer')} className="cursor-pointer text-primary font-bold hover:underline text-sm">ثبت‌ نام</button>
                                     </div>
                                 ) : showForm === 'buyer' ? (
                                     <div>
-                                        <span className="text-muted-foreground text-sm">{t('have_account')}</span>{' '}
-                                        <button type='button' onClick={() => setShowForm('login')} className="cursor-pointer text-primary font-bold hover:underline text-sm">{t('login_link')}</button>
+                                        <span className="text-muted-foreground text-sm">قبلاً ثبت‌نام کرده‌اید؟</span>{' '}
+                                        <button type='button' onClick={() => setShowForm('login')} className="cursor-pointer text-primary font-bold hover:underline text-sm">ورود</button>
                                     </div>
                                 ) : null}
                             </MotionWrapper>

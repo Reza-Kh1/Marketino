@@ -6,7 +6,6 @@ const BASE_URL = "/colors";
 export interface ColorEntity {
     id: string;
     name: string;
-    nameEn: string;
     hexCode: string;
     slug: string;
     createdAt: string;
@@ -23,14 +22,12 @@ export interface ColorResponse {
 
 export interface CreateColorDTO {
     name: string;
-    nameEn: string;
     hexCode: string;
     slug: string;
 }
 
 export interface UpdateColorDTO {
     name?: string;
-    nameEn?: string;
     hexCode?: string;
     slug?: string;
 }

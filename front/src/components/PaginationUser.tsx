@@ -1,4 +1,4 @@
-import { Link } from '@/i18n/navigation'
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { PaginationType } from '@/lib/api'
 import MotionWrapper from './motion/MotionWrapper'

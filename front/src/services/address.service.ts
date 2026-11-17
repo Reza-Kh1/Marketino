@@ -16,12 +16,10 @@ export interface AddressType {
     updatedAt: string;
     city:{
         name:string
-        nameEn:string
         id:string
     }
     province:{
         name:string
-        nameEn:string
         id:string
     }
 }

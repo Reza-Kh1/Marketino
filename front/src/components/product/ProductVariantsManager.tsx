@@ -22,7 +22,6 @@ import { format } from 'date-fns-jalali';
 
 export const VariantFormSchema = z.object({
   name: z.string().min(1, 'نام تنوع الزامی است'),
-  nameEn: z.string().optional(),
   price: z.number('قیمت باید عدد باشد').min(0, 'قیمت نمی‌تواند منفی باشد'),
   quantity: z.number('موجودی باید عدد باشد').min(0, 'موجودی نمی‌تواند منفی باشد'),
   colorId: z.string().optional(),
@@ -58,7 +57,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
     resolver: zodResolver(VariantFormSchema),
     defaultValues: {
       name: '',
-      nameEn: '',
       price: 0,
       quantity: 0,
       colorId: '',
@@ -76,7 +74,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
       discountId: '',
       image: '',
       name: '',
-      nameEn: '',
       price: 0,
       quantity: 0
     })
@@ -107,7 +104,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
       discountId: value.discountId || '',
       image: value.image || '',
       name: value.name,
-      nameEn: value.nameEn || '',
       price: Number(value.price),
       quantity: value.quantity
     })
@@ -124,7 +120,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
     const rawAttributes = getValues('attributes') || [];
     const body = {
       name: getValues('name'),
-      nameEn: getValues('nameEn'),
       price: getValues('price'),
       quantity: getValues('quantity'),
       colorId: getValues('colorId'),
@@ -219,13 +214,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
             register={register}
             error={errors.name}
             placeholder="مثال: قرمز - سایز XL"
-          />
-          <InputForm
-            name='nameEn'
-            label='نام تنوع (انگلیسی)'
-            register={register}
-            error={errors.nameEn}
-            placeholder="e.g. Red - XL"
           />
           <InputForm
             name='price'
@@ -495,9 +483,6 @@ export default function ProductVariantsManager({ productId, categoryId }: Produc
                         <div className="space-y-1.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-base text-slate-900 dark:text-white truncate">{v.name}</span>
-                            {v.nameEn && (
-                              <span className="text-xs text-slate-500 dark:text-slate-400 dir-ltr truncate">({v.nameEn})</span>
-                            )}
                           </div>
                           <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500 dark:text-slate-400">
                             {v.color && (

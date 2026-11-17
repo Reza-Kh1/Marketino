@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TicketMessage } from '@/services/ticket.service';
-import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import ImgTag from '../ImgTag';
 import { useDeleteMedia } from '@/hooks/media.hook';
 import TooltipCustom from '../TooltipCustom';
@@ -53,7 +51,6 @@ export default function ChatPage({ ticketData, pendinBtn, isPending, openChat, o
     const fileInputRef = useRef<HTMLInputElement>(null);
     const uploadControllers = useRef<Record<string, AbortController>>({});
     const fakeProgressTimers = useRef<Record<string, NodeJS.Timeout>>({});
-    const tCommon = useTranslations('common');
     const { mutate: useMutetDeleteMedia, isPending: isPendingDelete } = useDeleteMedia();
     const lastMessageRef = useRef<HTMLDivElement>(null);
     const [showImg, setShowImg] = useState<string | null>(null)
@@ -387,7 +384,7 @@ export default function ChatPage({ ticketData, pendinBtn, isPending, openChat, o
                                                     </p>
                                                     <div className="flex items-center gap-1 text-[10px] text-sky-200/70 mt-1">
                                                         {new Date(message.createdAt).toLocaleTimeString(
-                                                            tCommon('lan'),
+                                                            'fa',
                                                             { hour: '2-digit', minute: '2-digit' }
                                                         )}
                                                         <CheckCheck className="w-3.5 h-3.5 text-sky-300" />

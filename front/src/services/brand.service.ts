@@ -5,7 +5,6 @@ const BASE_URL = "/brand";
 export interface BrandType {
     id: string;
     name: string;
-    nameEn: string;
     slug: string;
     logo: string | null;
     description: string | null;
@@ -18,7 +17,6 @@ export interface BrandType {
 export interface FormBrandDTO {
     sortOrder: number;
     name: string;
-    nameEn: string;
     slug: string;
     logo: string | null;
     description: string | null;

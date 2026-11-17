@@ -49,7 +49,6 @@ export interface DiscountType {
         id: string
         store?: {
             name: string
-            nameEn: string
             slug: string
         }
     }

@@ -15,12 +15,10 @@ export interface AllProductsEntity {
 export interface VariantType {
     id: string;
     name: string;
-    nameEn: string | null;
     sku: string;
     price: number;
     quantity: number;
     attributes: Record<string, any> | null;
-    attributesEn: Record<string, any> | null;
     image: string | null;
     createdAt: string;
     updatedAt: string;
@@ -30,11 +28,9 @@ export interface VariantType {
 
 export interface FormVariantDTO {
     name: string;
-    nameEn: string | null;
     price: number;
     quantity: number;
     attributes: Record<string, any> | null;
-    attributesEn: Record<string, any> | null;
     image: string | null;
     discountId: string | null;
     productId: string;
@@ -43,19 +39,14 @@ export interface FormVariantDTO {
 export interface StoreProduct {
     id: string
     name: string
-    nameEn: string
 }
 
 export interface ProductEntity {
     productTable: TableData
-    productTableEn: TableData
     id: string;
     title: string;
-    titleEn: string;
     slug: string;
-    slugEn: string | null;
     description: string | null;
-    descriptionEn: string | null;
     price: number;
     discountPrice: number | null;
     quantity: number;
@@ -71,9 +62,7 @@ export interface ProductEntity {
     rating: number;
     reviewCount: number;
     metaTitle: string | null;
-    metaTitleEn: string | null;
     content: string | null;
-    contentEn: string | null;
     createdAt: string;
     updatedAt: string;
     storeId: string;
@@ -87,9 +76,7 @@ export interface ProductEntity {
 }
 export interface FormProductDTO {
     title: string;
-    titleEn: string;
     description: string;
-    descriptionEn: string;
     price: number;
     discountPrice: number;
     discountStart: string;
@@ -102,9 +89,7 @@ export interface FormProductDTO {
     condition: 'new' | 'used' | 'refurbished';
     categoryId: string;
     metaTitle: string;
-    metaTitleEn: string;
     metaDescription: string;
-    metaDescriptionEn: string;
 }
 
 export const ProductService = {
@@ -121,7 +106,7 @@ export const ProductService = {
         return apiClient.get<AllProductsEntity>(`${BASE_URL}/admin?${queryString}`)
     },
     approveProduct: (id: string) => apiClient.patch<Product>(`${BASE_URL}/admin/${id}/approve`),
-    featureProduct: (id: string) => {        
+    featureProduct: (id: string) => {
         return apiClient.patch<Product>(`${BASE_URL}/admin/${id}/feature`)
     },
     getBySlug: (slug: string) => {

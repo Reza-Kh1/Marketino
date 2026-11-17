@@ -1,8 +1,8 @@
 import { calculateProductSoldPercent } from '@/lib/utils-product'
-import {  ProductStore, ProductVariant } from '@/types/types'
+import { ProductStore, ProductVariant } from '@/types/types'
 import { Flame, Sparkles, Zap } from 'lucide-react'
 
-export default function Featured({ seller, discount, variants }: { seller:ProductStore, discount: number | null, variants?: ProductVariant[] }) {
+export default function Featured({ discount, variants }: { discount: number | null, variants?: ProductVariant[] }) {
   const { percent } = calculateProductSoldPercent(variants || [])
   return (
     <div className="relative overflow-hidden rounded-2xl border border-cyan-500/20 dark:border-cyan-500/30 bg-linear-to-r from-slate-50 via-cyan-50/40 to-indigo-50/60 dark:from-slate-950 dark:via-[#070b18] dark:to-indigo-950/80 p-3.5 sm:p-5 backdrop-blur-xl shadow-lg dark:shadow-[0_0_30px_rgba(6,182,212,0.12)] mb-6 transition-colors duration-300">

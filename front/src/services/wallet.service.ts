@@ -26,7 +26,7 @@ export interface WalletEntity {
     }[] | null;
     user: {
         lastName: string, firstName: string, username: string, phone: string,
-        store: { name: string, nameEn: string, phone: string }
+        store: { name: string, phone: string }
     } | null;
 }
 

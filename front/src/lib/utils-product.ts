@@ -55,7 +55,7 @@ export function getAttributeValue(variant: ProductVariant, key: string): string 
 export function getUniqueColors(variants: ProductVariant[]) {
   const map = new Map<string, ProductVariant["color"] & { colorId: string }>();
   for (const v of variants) {
-    if (!map.has(v.colorId)) {
+    if (!map.has(v.colorId) && v.color) {
       map.set(v.colorId, { ...v.color, colorId: v.colorId });
     }
   }

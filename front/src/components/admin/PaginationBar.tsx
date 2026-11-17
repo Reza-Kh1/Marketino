@@ -1,10 +1,10 @@
 'use client'
 import MotionWrapper from '../motion/MotionWrapper'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-import { Link, usePathname } from '@/i18n/navigation'
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '../ui/button'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { PaginationType } from '@/lib/api'
 type PaginationBarType = {
     pagination?: PaginationType

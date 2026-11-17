@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useTranslations, useFormatter } from "next-intl";
 
 interface CountdownProps {
   targetDate?: Date | undefined;
@@ -18,9 +17,6 @@ const getValidDate = (input: any): Date | null => {
 };
 
 export default function Countdown({ targetDate }: CountdownProps) {
-  const t = useTranslations("Countdown");
-  const format = useFormatter();
-
   const [isMounted, setIsMounted] = useState(false);
   const targetTime = useMemo(() => {
     const validDate = getValidDate(targetDate);
@@ -68,12 +64,12 @@ export default function Countdown({ targetDate }: CountdownProps) {
   }, [targetTime]);
 
   const formatNumber = (num: number) => {
-    return format.number(num, { minimumIntegerDigits: 2, numberingSystem: "latn" });
+    return num.toLocaleString('fa-IR', { minimumIntegerDigits: 2, numberingSystem: 'latn' });
   };
 
   if (!isMounted) {
     return (
-      <div className="flex items-center gap-1 sm:gap-1.5 ltr:flex-row rtl:flex-row opacity-50 animate-pulse">
+      <div className="flex items-center gap-1 sm:gap-1.5 flex-row opacity-50 animate-pulse">
         <div className="w-8 h-9 sm:w-10 sm:h-11 bg-slate-200 dark:bg-slate-800 rounded-md sm:rounded-lg border border-slate-300 dark:border-slate-700" />
         <span className="text-cyan-500 dark:text-cyan-100 font-bold text-xs sm:text-sm">:</span>
         <div className="w-8 h-9 sm:w-10 sm:h-11 bg-slate-200 dark:bg-slate-800 rounded-md sm:rounded-lg border border-slate-300 dark:border-slate-700" />
@@ -86,13 +82,13 @@ export default function Countdown({ targetDate }: CountdownProps) {
   if (isExpired) {
     return (
       <div className="text-[10px] sm:text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/30 dark:border-rose-500/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg">
-        {t("expired")}
+        مهلت پیشنهاد به پایان رسید!
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1 sm:gap-2">
+    <div className="flex items-center gap-1 sm:gap-2" dir="rtl">
       <div className="flex items-center gap-1 sm:gap-1.5 [direction:ltr]">
         {timeLeft.days > 0 && (
           <>
@@ -101,7 +97,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
                 {formatNumber(timeLeft.days)}
               </span>
               <span className="text-[7px] sm:text-[9px] text-slate-400 dark:text-slate-500 -mt-0.5 sm:-mt-1 font-medium">
-                {t("days")}
+                روز
               </span>
             </div>
             <span className="text-slate-300 dark:text-cyan-500 font-bold text-[10px] sm:text-sm animate-pulse">:</span>
@@ -113,7 +109,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
             {formatNumber(timeLeft.hours)}
           </span>
           <span className="text-[7px] sm:text-[9px] text-slate-400 dark:text-slate-500 -mt-0.5 sm:-mt-1 font-medium">
-            {t("hours")}
+            ساعت
           </span>
         </div>
 
@@ -124,7 +120,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
             {formatNumber(timeLeft.minutes)}
           </span>
           <span className="text-[7px] sm:text-[9px] text-slate-400 dark:text-slate-500 -mt-0.5 sm:-mt-1 font-medium">
-            {t("minutes")}
+            دقیقه
           </span>
         </div>
 
@@ -136,7 +132,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
             {formatNumber(timeLeft.seconds)}
           </span>
           <span className="text-[7px] sm:text-[9px] text-slate-400 dark:text-slate-500 -mt-0.5 sm:-mt-1 font-medium relative z-10">
-            {t("seconds")}
+            ثانیه
           </span>
         </div>
       </div>

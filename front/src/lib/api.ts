@@ -10,6 +10,7 @@
 import { BrandType } from "@/services/brand.service";
 import { MediaUseCase } from "@/services/media.service";
 import { ProductEntity } from "@/services/product.service";
+import { UserDto } from "@/services/user.service";
 
 const MOCK_MODE = false;
 
@@ -20,12 +21,10 @@ const MOCK_MODE = false;
 export interface VariantType {
   id: string;
   name: string;
-  nameEn: string | null;
   sku: string;
   price: number;
   quantity: number;
   attributes: any | null; // Json
-  attributesEn: any | null; // Json
   image: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -54,7 +53,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   storeId: string;
-  seller?: User;
+  seller?: UserDto;
   categoryId: string;
   category?: Category;
   image?: string;

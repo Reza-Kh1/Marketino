@@ -102,7 +102,6 @@ export default function ShippingSettings() {
         resolver: zodResolver(createShippingMethodFormSchema),
         defaultValues: {
             name: '',
-            nameEn: '',
             isActive: true,
             isFreeMethod: false,
         },
@@ -124,7 +123,6 @@ export default function ShippingSettings() {
         setIdShipping(method);
         reset({
             name: method.name,
-            nameEn: method.nameEn ?? '',
             isActive: method.isActive ?? true,
             isFreeMethod: method.isFreeMethod ?? false,
         });
@@ -142,7 +140,6 @@ export default function ShippingSettings() {
     const resetForm = () => {
         reset({
             name: '',
-            nameEn: '',
             isActive: true,
             isFreeMethod: false,
         });
@@ -196,13 +193,7 @@ export default function ShippingSettings() {
                                         required
                                         error={errors.name}
                                     />
-                                    <InputForm
-                                        name="nameEn"
-                                        register={register}
-                                        placeholder="مثلاً: Express Post"
-                                        label="نام روش (انگلیسی)"
-                                        error={errors.nameEn}
-                                    />
+
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border/40">
@@ -327,11 +318,6 @@ export default function ShippingSettings() {
                                                     <div className="space-y-1 min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <span className="font-bold text-sm">{method.name}</span>
-                                                            {method.nameEn && (
-                                                                <span className="text-xs text-muted-foreground dir-ltr">
-                                                                    ({method.nameEn})
-                                                                </span>
-                                                            )}
                                                             <span
                                                                 className={cn(
                                                                     'text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0',

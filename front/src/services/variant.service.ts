@@ -8,7 +8,6 @@ export interface AttributeDefinition {
     label: string;
     category: {
         name: string
-        nameEn: string
         id: string
     }[];
 }
@@ -27,7 +26,6 @@ export interface VariantAttribute {
 export interface VariantEntity {
     id: string;
     name: string;
-    nameEn: string | null;
     price: number;
     quantity: number;
     colorId: string;
@@ -63,7 +61,6 @@ export interface VariantAttributeInput {
 
 export interface CreateVariantDTO {
     name: string;
-    nameEn?: string;
     price: number;
     quantity: number;
     colorId?: string;
@@ -75,14 +72,12 @@ export interface CreateVariantDTO {
 
 export interface UpdateVariantDTO {
     name?: string;
-    nameEn?: string;
     price?: number;
     quantity?: number;
     colorId?: string;
     image?: string;
     discountId?: string;
     attributes?: Record<string, any> | null;
-    attributesEn?: Record<string, any> | null;
 }
 
 export const variantService = {

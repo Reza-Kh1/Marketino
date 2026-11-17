@@ -7,7 +7,6 @@ const BASE_URL_SHIPPING_RATE = BASE_URL_SHIPPING + "/rate";
 export interface ShippingMethodType {
     id: string;
     name: string;
-    nameEn?: string | null;
     isActive: boolean;
     isFreeMethod: boolean;
     createdAt: string;
@@ -16,7 +15,6 @@ export interface ShippingMethodType {
 
 export interface CreateShippingMethodDto {
     name: string;
-    nameEn?: string;
     isActive?: boolean;
     isFreeMethod?: boolean;
 }
@@ -24,7 +22,6 @@ export interface CreateShippingMethodDto {
 export interface ShippingStoreMethodType {
     id: string;
     description: string;
-    descriptionEn?: string;
     isActive: boolean;
     phrase?: string;
     minDays: number;
@@ -38,7 +35,6 @@ export interface ShippingStoreMethodType {
 
 export interface UpdateStoreShippingDto {
     description: string;
-    descriptionEn?: string;
     isActive: boolean;
     phrase?: string;
     minDays: number;
@@ -53,7 +49,6 @@ export interface CreateStoreShippingDto extends UpdateStoreShippingDto {
 export interface storeShippingMethods {
     id: string,
     description: string,
-    descriptionEn: string,
     phrase: string,
     minDays: number
     maxDays: number
@@ -65,7 +60,6 @@ export interface storeShippingMethods {
     shippingMethod: {
         isFreeMethod: string
         name: string
-        nameEn: string
     }
 }
 
@@ -79,7 +73,7 @@ export interface ShippingStoreRateType {
     createdAt: string,
     price: number,
     deliveryMaxDays: number,
-    province: { name: string, nameEn: string, id: string }
+    province: { name: string, id: string }
 }
 
 

@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import MotionWrapper from "../motion/MotionWrapper";
 import { useAuth } from "@/lib/auth-context";
 import IsLoginUser from "../IsLoginUser";
-import { useLocale, useTranslations } from "next-intl";
 import { useCreateQnA } from "@/hooks/qna.hook";
 
 type QNAFormType = {
@@ -19,8 +18,6 @@ type QNAFormType = {
 
 export default function QNAForm({ minimal = false, productId, answer = false, parentId }: QNAFormType) {
     const { user } = useAuth();
-    const locale = useLocale();
-    const isEn = locale === 'en';
     const [openDialog, setOpenDialog] = useState<boolean>(false);
     const [isLogin, setIsLogin] = useState(false);
     const { mutate, isPending } = useCreateQnA()
@@ -30,30 +27,30 @@ export default function QNAForm({ minimal = false, productId, answer = false, pa
 
     const titles = {
         dialogTitle: answer
-            ? (isEn ? "Submit New Answer" : "ثبت پاسخ جدید")
-            : (isEn ? "Ask a New Question" : "ثبت پرسش جدید"),
+            ? ("ثبت پاسخ جدید")
+            : ("ثبت پرسش جدید"),
 
         btnName: answer
-            ? (isEn ? "Answer this question" : "پاسخ")
-            : (isEn ? "Ask a Question" : "ثبت پرسش جدید"),
+            ? ("پاسخ")
+            : ("ثبت پرسش جدید"),
 
         label: answer
-            ? (isEn ? "Your Answer" : "متن پاسخ شما")
-            : (isEn ? "Your Question" : "متن پرسش شما"),
+            ? ("متن پاسخ شما")
+            : ("متن پرسش شما"),
 
         placeholder: answer
-            ? (isEn ? "Write a clear and helpful answer to this question..." : "پاسخ خود را به این پرسش به صورت دقیق و راهنما بنویسید...")
-            : (isEn ? "Ask any question about specs, features, or details..." : "سوال یا ابهام خود را درباره ویژگی‌ها، عملکرد یا مشخصات این محصول بپرسید..."),
+            ? ("پاسخ خود را به این پرسش به صورت دقیق و راهنما بنویسید...")
+            : ("سوال یا ابهام خود را درباره ویژگی‌ها، عملکرد یا مشخصات این محصول بپرسید..."),
 
         submitBtn: answer
-            ? (isEn ? "Submit Answer" : "ثبت و ارسال پاسخ")
-            : (isEn ? "Submit Question" : "ثبت و ارسال پرسش"),
+            ? ("ثبت و ارسال پاسخ")
+            : ("ثبت و ارسال پرسش"),
 
-        cancelBtn: isEn ? "Cancel" : "انصراف",
+        cancelBtn: "انصراف",
 
         toastSuccess: answer
-            ? (isEn ? "Your answer has been submitted and will be published after review." : "پاسخ شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.")
-            : (isEn ? "Your question has been submitted and will be published after review." : "پرسش شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.")
+            ? ("پاسخ شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.")
+            : ("پرسش شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.")
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -85,7 +82,7 @@ export default function QNAForm({ minimal = false, productId, answer = false, pa
                     onClick={handleOpenModal}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
                 >
-                    <Reply className={`w-3.5 h-3.5 ${isEn ? '' : 'rotate-180'}`} />
+                    <Reply className={`w-3.5 h-3.5 rotate-180`} />
                     <span>{titles.btnName}</span>
                 </button>
             ) : (
@@ -94,12 +91,12 @@ export default function QNAForm({ minimal = false, productId, answer = false, pa
                     classDiv="w-full"
                     color="borderNeon"
                     name={titles.btnName}
-                    iconStart={answer ? <Reply className={`w-4 h-4 ${isEn ? '' : 'rotate-180'}`} /> : <MessageSquare className="w-4 h-4" />}
+                    iconStart={answer ? <Reply className={`w-4 h-4 rotate-180`} /> : <MessageSquare className="w-4 h-4" />}
                 />
             )}
             <IsLoginUser open={isLogin} setOpen={setIsLogin} />
             <Dialog onOpenChange={(val) => setOpenDialog(val)} open={openDialog}>
-                <DialogContent className={`max-w-2xl! w-full bg-admin-bg-sidebar backdrop-blur-xl border-admin-border ${isEn ? 'text-left' : 'text-right'}`}>
+                <DialogContent className={`max-w-2xl! w-full bg-accent backdrop-blur-xl border-admin-border text-right`}>
                     <DialogHeader>
                         <DialogTitle className="text-admin-text-primary text-xl font-bold">
                             <MotionWrapper delay={0.1} preset='slideUpBlur'>
@@ -130,7 +127,7 @@ export default function QNAForm({ minimal = false, productId, answer = false, pa
                                 onClick={handleSubmit}
                                 name={titles.submitBtn}
                                 isPending={isPending}
-                                iconStart={<Send className={`w-4 h-4 ${isEn ? '-rotate-0' : 'rotate-45'}`} />}
+                                iconStart={<Send className={`w-4 h-4 rotate-45`} />}
                             />
                             <CustomButton
                                 color="blueLow"

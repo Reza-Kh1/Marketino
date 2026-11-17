@@ -8,14 +8,10 @@ const BASE_URL = "/stores";
 export interface Store {
   id: string;
   ownerId: string;
-  name: string;
-  nameEn: string | null;
-  slug: string;
+  name: string;  slug: string;
   logo: string | null;
   banner: string | null;
-  description: string | null;
-  descriptionEn: string | null;
-  businessType: string | null;
+  description: string | null;  businessType: string | null;
   nationalId: string | null;
   economicCode: string | null;
   commissionRate: number;
@@ -25,8 +21,8 @@ export interface Store {
   isVerified: boolean;
   provinceId: string | null
   cityId: string | null
-  province: { name: string, nameEn: string } | null
-  city: { name: string, nameEn: string } | null
+  province: { name: string, } | null
+  city: { name: string } | null
   address: string | null;
   phone: string | null;
   email: string | null;
@@ -87,14 +83,10 @@ export interface StoreReview {
 }
 
 export interface FormStoreDTO {
-  name: string;
-  nameEn?: string;
-  slug?: string;
+  name: string;  slug?: string;
   logo?: string;
   banner?: string;
-  description?: string;
-  descriptionEn?: string;
-  businessType?: string;
+  description?: string;  businessType?: string;
   nationalId?: string;
   economicCode?: string;
   province?: string;
@@ -124,9 +116,7 @@ export interface FormStoreReviewDTO {
 export interface StoreResponseEntity {
   id: string;
   banner: string | null
-  name: string;
-  nameEn: string | null;
-  slug: string;
+  name: string;  slug: string;
   logo: string | null;
   status: 'pending' | 'approved' | 'rejected';
   statusReason: string | null;
@@ -134,8 +124,8 @@ export interface StoreResponseEntity {
   isVerified: boolean;
   businessType: string | null;
   commissionRate: number;
-  province?: { name: true, nameEn: true }
-  city?: { name: true, nameEn: true }
+  province?: { name: true, }
+  city?: { name: true }
   createdAt: Date;
   updatedAt: Date;
   owner: {

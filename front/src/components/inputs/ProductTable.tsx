@@ -19,12 +19,7 @@ const DEFAULT_DATA: TableData = {
   rows: [["", ""]],
 };
 
-const DEFAULT_DATA_En: TableData = {
-  headers: ["Title 1", "Title 2"],
-  rows: [["", ""]],
-};
-
-export default function ProductTable({ value, onChange, english }: ProductTableProps) {
+export default function ProductTable({ value, onChange }: ProductTableProps) {
   const parseValue = (val?: TableData | string): TableData => {
     if (!val) return DEFAULT_DATA;
 
@@ -47,9 +42,8 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
   const isDefaultOrEmpty = (data: TableData): boolean => {
     // چک کردن با مقادیر دیفالت فارسی و انگلیسی
     const isDefaultFa = JSON.stringify(data) === JSON.stringify(DEFAULT_DATA);
-    const isDefaultEn = JSON.stringify(data) === JSON.stringify(DEFAULT_DATA_En);
 
-    if (isDefaultFa || isDefaultEn) return true;
+    if (isDefaultFa) return true;
 
     // اگر همه سلول‌های ردیف‌ها خالی باشند هم می‌توان آن را خالی (null) در نظر گرفت
     const isAllCellsEmpty = data.rows.every(row => row.every(cell => cell.trim() === ""));
@@ -60,7 +54,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
     if (value) {
       return parseValue(value)
     }
-    return english ? DEFAULT_DATA_En : DEFAULT_DATA
+    return DEFAULT_DATA
   });
   const [isSaved, setIsSaved] = useState(false);
 
@@ -82,8 +76,8 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
 
   // پاک کردن کامل جدول
   const clearTable = () => {
-    if (confirm(english ? "Are you sure you want to clear the table?" : "آیا از پاک کردن کامل جدول اطمینان دارید؟")) {
-      const emptyData = english ? DEFAULT_DATA_En : DEFAULT_DATA;
+    if (confirm("آیا از پاک کردن کامل جدول اطمینان دارید؟")) {
+      const emptyData = DEFAULT_DATA;
       setLocalData(emptyData);
       onChange(null); // بلافاصله مقدار null به کامپوننت پدر ارسال می‌شود
     }
@@ -147,7 +141,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-          {english ? 'Product Specifications Table' : 'جدول مشخصات محصول'}
+          جدول مشخصات محصول
         </h3>
 
         <div className="flex items-center gap-2">
@@ -158,7 +152,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
             title="خالی کردن جدول"
           >
             <Eraser className="w-3.5 h-3.5" />
-            {english ? 'Clear Table' : ' خالی کردن'}
+            خالی کردن
           </button>
           <button
             type="button"
@@ -166,7 +160,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
             className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
           >
             <Plus className="w-3.5 h-3.5" />
-            {english ? 'Add column' : 'افزودن ستون'}
+            افزودن ستون
           </button>
 
           <button
@@ -175,7 +169,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
             className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
           >
             <Plus className="w-3.5 h-3.5" />
-            {english ? 'Add row' : 'افزودن ردیف'}
+            افزودن ردیف
           </button>
 
           <button
@@ -189,12 +183,12 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
             {isSaved ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                {english ? 'It was applied.' : ' اعمال شد'}
+                اعمال شد
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
-                {english ? 'Save table changes' : ' ثبت تغییرات جدول'}
+                ثبت تغییرات جدول
               </>
             )}
           </button>
@@ -207,20 +201,20 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
               {localData.headers.map((header, colIdx) => (
-                <th key={colIdx} className="p-2 min-w-[140px]">
+                <th key={colIdx} className="p-2 min-w-35">
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={header}
                       onChange={(e) => updateHeader(colIdx, e.target.value)}
-                      placeholder={english ? 'Title Column' : "عنوان ستون"}
+                      placeholder={"عنوان ستون"}
                       className="w-full bg-transparent font-medium text-gray-700 dark:text-gray-200 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5 text-xs transition"
                     />
                     {localData.headers.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeColumn(colIdx)}
-                        title={english ? 'Delete column' : "حذف ستون"}
+                        title={"حذف ستون"}
                         className="text-gray-400 hover:text-red-500 transition p-1 rounded"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -245,7 +239,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
                       type="text"
                       value={cell}
                       onChange={(e) => updateCell(rowIdx, colIdx, e.target.value)}
-                      placeholder={english ? 'subject' : "مقدار..."}
+                      placeholder={"مقدار..."}
                       className="w-full bg-transparent text-gray-600 dark:text-gray-300 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 rounded px-2 py-1 text-xs focus:outline-none transition"
                     />
                   </td>
@@ -254,7 +248,7 @@ export default function ProductTable({ value, onChange, english }: ProductTableP
                   <button
                     type="button"
                     onClick={() => removeRow(rowIdx)}
-                    title={english ? "Delete row" : "حذف ردیف"}
+                    title={"حذف ردیف"}
                     className="text-gray-400 hover:text-red-500 transition p-1"
                   >
                     <Trash2 className="w-4 h-4" />

@@ -8,7 +8,7 @@ import MoreQnaDetails from "./MoreQnaDetails";
 import MoreReviewDetail from "./MoreReviewDetail";
 
 export default function TabsProduct(product: ProductDetail) {
-    const { productTable, productTableEn, qnas, reviews, _count, id } = product
+    const { productTable, qnas, reviews, _count, id } = product
     return (
         <section className="mt-10 sm:mt-16">
             <Tabs defaultValue="desc" className="w-full dir-rtl">
@@ -87,7 +87,7 @@ export default function TabsProduct(product: ProductDetail) {
                 <TabsContent value="specs" className="pt-6 sm:pt-8 focus-visible:outline-none">
                     <div className="max-w-4xl space-y-4">
                         {productTable && productTable.headers && productTable.headers.length > 0 ? (
-                            <div className="w-full overflow-x-auto rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 backdrop-blur-md shadow-sm">
+                            <div className="w-full overflow-x-auto rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/30 backdrop-blur-md shadow-sm">
                                 <table className="w-full text-xs sm:text-sm text-right border-collapse">
                                     <thead>
                                         <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-950/40 text-slate-700 dark:text-cyan-400 font-bold">

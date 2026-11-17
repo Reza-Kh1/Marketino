@@ -1,7 +1,6 @@
 // hooks/use-qna.ts
 import { qnaService, QnAEntity, CreateQnaDTO, UpdateQnaDTO, SearchQnaDTO, QnaResponse } from "@/services/qna.service";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import React from "react";
 import { toast } from "sonner";
 
 const QNA_KEYS = {

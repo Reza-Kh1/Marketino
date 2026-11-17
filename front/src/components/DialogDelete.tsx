@@ -14,7 +14,7 @@ interface DialogDeleteType {
 export default function DialogDelete({ closeModal, onDelete, open, isPending, helpText, btnName, title }: DialogDeleteType) {
     return (
         <Dialog open={open} onOpenChange={closeModal}>
-            <DialogContent showCloseButton={false} className="max-w-md bg-(--admin-bg-sidebar) backdrop-blur-xl border-(--admin-destructive)/20">
+            <DialogContent showCloseButton={false} className="max-w-md bg-accent backdrop-blur-xl border-(--admin-destructive)/20">
                 <DialogHeader>
                     <MotionWrapper delay={0.2} preset='fadeUp' className=''>
                         <DialogTitle className="text-admin-text-primary"> {title ?? 'تأیید حذف'}</DialogTitle>

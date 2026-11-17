@@ -1,15 +1,8 @@
-// types.ts
-// دقیقاً منطبق با شکلی که findBySlug از بک‌اند برمی‌گردونه
-// (reviews / qnas / productTable / content / breadcrumbs از قبل هندل شدن، اینجا نیستن)
-
-import { number } from "zod"
 
 export interface BreadcrumbsType {
     id: string
     name: string
-    nameEn: string
     slug: string
-    slugEn: string
 }
 
 export interface PagePropsType {
@@ -21,13 +14,11 @@ export interface PagePropsType {
 
 export interface ProductBrand {
     name: string;
-    nameEn: string | null;
     slug: string;
 }
 
 export interface ProductStore {
     name: string;
-    nameEn: string;
     slug: string
     storeName:string
 }
@@ -41,7 +32,6 @@ export interface ProductImage {
 export interface VariantColor {
     hexCode: string;
     name: string;
-    nameEn: string | null;
 }
 
 export interface VariantDiscount {
@@ -65,7 +55,6 @@ export interface ProductVariant {
     discountId: string | null;
     colorId: string;
     name: string;
-    nameEn: string | null;
     image: string | null;
     price: string; // مقدار عددی به‌صورت رشته
     quantity: number;
@@ -103,15 +92,10 @@ export interface QnasType {
 export interface ProductDetail {
     id: string;
     title: string;
-    titleEn: string | null;
     content: string | null
-    contentEn: string | null
     slug: string;
-    slugEn: string | null;
     description: string | null;
-    descriptionEn: string | null;
     productTable: { rows: string[][], headers: string[] }
-    productTableEn: { rows: string[][], headers: string[] }
     originalPrice: string;
     minPrice: string;
     reviews: ReviewsType[]
@@ -128,7 +112,6 @@ export interface ProductDetail {
     images: ProductImage[];
     isFeatured: boolean;
     metaTitle: string | null;
-    metaTitleEn: string | null;
     digitalFile: string | null;
     variants: ProductVariant[];
     _count: { reviews: number, qnas: number }
@@ -136,9 +119,7 @@ export interface ProductDetail {
     category: {
         id: string;
         name: string;
-        nameEn: string;
         slug: string;
-        slugEn: string;
         ancestorIds: string[];
     };
 }

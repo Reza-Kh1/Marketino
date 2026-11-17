@@ -29,7 +29,7 @@ export default function SelectCustom({ setValue, disable, value, placeHolder, la
                 </label>
             }
             <Select disabled={disable} onValueChange={handleValueChange} value={value ?? ''} >
-                <SelectTrigger className={cn('w-full dark:border-accent border-accent-foreground/20  min-h-10 cursor-pointer rounded-lg bg-background', error && "border-red-500 focus:ring-red-500/20 focus:border-red-500")}>
+                <SelectTrigger className={cn('w-full border border-[rgb(32 33 33)]  min-h-10 cursor-pointer rounded-lg bg-background', error && "border-red-500 focus:ring-red-500/20 focus:border-red-500")}>
                     <SelectValue placeholder={placeHolder} />
                     {iconValue}
                 </SelectTrigger>

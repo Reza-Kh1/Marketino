@@ -4,7 +4,6 @@ import {
     WalletEntity,
     WalletAllEntity,
     AllTransaction,
-    WalletTransactionEntity,
     WalletSearchDto,
     TransactionSearchDto,
     CompleteOrFailTransactionDto

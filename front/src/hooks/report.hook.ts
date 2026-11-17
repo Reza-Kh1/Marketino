@@ -14,7 +14,6 @@ import {
 } from "@tanstack/react-query";
 
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
 
 const REPORT_KEYS = {
     all: ["reports"] as const,
@@ -66,7 +65,6 @@ export function useReport(id?: string) {
 export function useCreateReport() {
 
     const queryClient = useQueryClient();
-    const t = useTranslations("report.toast");
 
     return useMutation({
 
@@ -78,7 +76,7 @@ export function useCreateReport() {
             queryClient.invalidateQueries({
                 queryKey: REPORT_KEYS.lists()
             });
-            toast.success(t("createSuccess"));
+            toast.success("گزارش با موفقیت ثبت شد");
         },
 
         onError: (error: any) => {
@@ -87,7 +85,7 @@ export function useCreateReport() {
 
             const list = Array.isArray(messages)
                 ? messages
-                : [messages ?? t("createError")];
+                : [messages ?? "خطایی در ثبت گزارش رخ داد"];
 
             list.forEach((msg) => {
                 toast.error(msg, {
@@ -101,7 +99,6 @@ export function useCreateReport() {
 export function useDeleteReport() {
 
     const queryClient = useQueryClient();
-    const t = useTranslations("report.toast");
 
     return useMutation({
 
@@ -113,7 +110,7 @@ export function useDeleteReport() {
             queryClient.invalidateQueries({
                 queryKey: REPORT_KEYS.lists()
             });
-            toast.success(t("createSuccess"));
+            toast.success("گزارش با موفقیت حذف شد");
         },
 
         onError: (error: any) => {
@@ -122,7 +119,7 @@ export function useDeleteReport() {
 
             const list = Array.isArray(messages)
                 ? messages
-                : [messages ?? t("createError")];
+                : [messages ?? "خطایی در حذف گزارش رخ داد"];
 
             list.forEach((msg) => {
                 toast.error(msg, {
@@ -136,7 +133,6 @@ export function useDeleteReport() {
 export function useUpdateReportStatus() {
 
     const queryClient = useQueryClient();
-    const t = useTranslations("report.toast");
 
     return useMutation({
 
@@ -153,7 +149,7 @@ export function useUpdateReportStatus() {
             queryClient.invalidateQueries({
                 queryKey: REPORT_KEYS.lists()
             });
-            toast.success(t("updateSuccess"));
+            toast.success("وضعیت گزارش با موفقیت بروزرسانی شد");
         },
 
         onError: (error: any) => {
@@ -162,7 +158,7 @@ export function useUpdateReportStatus() {
 
             const list = Array.isArray(messages)
                 ? messages
-                : [messages ?? t("updateError")];
+                : [messages ?? "خطایی در بروزرسانی وضعیت گزارش رخ داد"];
             list.forEach((msg) => {
                 toast.error(msg, {
                     position: "top-center"

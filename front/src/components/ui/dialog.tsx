@@ -6,7 +6,6 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
-import { useLocale } from "next-intl"
 
 function Dialog({
   ...props
@@ -56,7 +55,6 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
-  const dir = useLocale()
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -73,7 +71,7 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className={cn("absolute top-4 bg-secondary", dir === 'en' ? 'right-4' : 'left-4')}
+              className={cn('absolute top-4 bg-secondary left-4')}
               size="icon-sm"
             >
               <XIcon

@@ -12,8 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Store } from '@/services/store.service';
-import { Link } from '@/i18n/navigation';
-
+import Link from 'next/link';
 interface StoreContactCardProps {
   store: Store & { website?: string; whatsapp?: string };
   className?: string;

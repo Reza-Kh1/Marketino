@@ -1,7 +1,7 @@
 import { apiClient } from "@/lib/api-client";
-import { Order } from "./order.service";
 import { UserType } from "./user.service";
 import { PaginationType, ProductImage, SearchDefualtType } from "@/lib/api";
+import { OrderType } from "./order.service";
 
 const BASE_URL = "/tickets";
 
@@ -34,7 +34,7 @@ export interface Ticket {
     userId: string;
     orderId: string | null;
     user?: UserType;
-    order?: Order;
+    order?: OrderType;
     ticketMessages: TicketMessage[]
 }
 

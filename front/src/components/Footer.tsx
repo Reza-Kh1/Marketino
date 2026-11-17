@@ -1,5 +1,5 @@
 'use client';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, ChevronLeft, Instagram, Twitter, Linkedin, Shield, Truck, RefreshCw, Headphones } from 'lucide-react';
 
@@ -44,16 +44,16 @@ function CopyrightYear() {
 
 export default function Footer() {
   return (
-    <footer className="relative bg-gradient-to-b from-card to-muted/50 border-t border-border/50">
+    <footer className="relative bg-linear-to-b from-card to-muted/50 border-t border-border/50">
       {/* Top wave decoration */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-l from-transparent via-primary/20 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-l from-transparent via-primary/20 to-transparent" />
 
       <div className="max-w-7xl mx-auto px-4 py-10 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-10">
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-block">
-              <span className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="text-xl sm:text-2xl font-black bg-linear-to-r from-indigo-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
                 بازارچه
               </span>
             </Link>
@@ -111,7 +111,7 @@ export default function Footer() {
         </div>
 
         {/* Trust Bar */}
-        <div className="mt-10 sm:mt-14 p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-border/50">
+        <div className="mt-10 sm:mt-14 p-4 sm:p-6 rounded-2xl bg-linear-to-r from-primary/5 via-accent/5 to-primary/5 border border-border/50">
           <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {TRUST_ITEMS.map((item, i) => (
               <div key={i} className="flex items-center gap-2 sm:gap-3">

@@ -33,12 +33,11 @@ export interface UserType {
     lastLogin: string
     createdAt: string
     updatedAt: string
-    permissions: null | string
+    permissions: string[]
 }
 
 export interface SellerListType {
     id: string
-    username: string
     storeName: string
     storeSlug: string
 }

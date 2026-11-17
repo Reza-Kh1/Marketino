@@ -6,7 +6,6 @@ import CustomButton from "../CustomButton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import MotionWrapper from "../motion/MotionWrapper";
 import { useAuth } from "@/lib/auth-context";
-import LoginForm from "@/app/[locale]/login/LoginForm";
 import IsLoginUser from "../IsLoginUser";
 import { toast } from "sonner";
 import { useCreateReview } from "@/hooks/review.hook";
@@ -79,7 +78,7 @@ export default function ReviewForm({ productId, store = false, storeId }: Review
             />
             <IsLoginUser open={isLogin} setOpen={setIsLogin} />
             <Dialog onOpenChange={() => setOpenDialog(false)} open={opendDialog}>
-                <DialogContent className="max-w-4xl! bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right">
+                <DialogContent className="max-w-4xl! bg-accent backdrop-blur-xl border-admin-border text-right">
                     <DialogHeader>
                         <DialogTitle className="text-admin-text-primary text-xl font-bold">
                             <MotionWrapper className='' delay={0.1} preset='slideUpBlur'>
@@ -104,7 +103,7 @@ export default function ReviewForm({ productId, store = false, storeId }: Review
                                     >
                                         <Star
                                             className={`w-7 h-7 transition-colors ${star <= (hoverRating || rating)
-                                                ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+                                                ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_3px_rgba(251,191,36,0.5)]"
                                                 : "text-slate-300 dark:text-slate-700"
                                                 }`}
                                         />

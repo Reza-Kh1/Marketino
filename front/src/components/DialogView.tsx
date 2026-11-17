@@ -37,7 +37,7 @@ export default function DialogView({ open, onOpenChange, children, title, desc, 
             if (onOpenChange) { onOpenChange(val) }
             if (setOpen) { setOpen(!open) }
         }}>
-            <DialogContent className="max-w-4xl! bg-admin-bg-sidebar backdrop-blur-xl border-admin-border text-right">
+            <DialogContent className="max-w-4xl!   bg-accent backdrop-blur-xl border-admin-border text-right">
                 <DialogHeader>
                     <DialogTitle className="text-admin-text-primary text-xl font-bold">
                         <MotionWrapper className='' delay={0.3} preset='slideUpBlur'>

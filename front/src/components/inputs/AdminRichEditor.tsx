@@ -249,16 +249,16 @@ export default function AdminRichEditor({
 
 
     if (!editor) {
-        return <div className={`border border-accent rounded-xl bg-admin-bg-sidebar ${height} flex items-center justify-center`}><div className="animate-spin w-6 h-6 border-2 border-admin-primary border-t-transparent rounded-full" /></div>;
+        return <div className={`border border-accent rounded-xl bg-accent ${height} flex items-center justify-center`}><div className="animate-spin w-6 h-6 border-2 border-admin-primary border-t-transparent rounded-full" /></div>;
     }
 
     return (
         <div className={cn(
-            "border mt-4 border-accent rounded-xl overflow-hidden bg-admin-bg-sidebar transition-all duration-200 flex flex-col",
-            isFullscreen && "fixed inset-0 z-20 overflow-hidden w-screen h-screen rounded-none bg-white dark:bg-background" // 🟢 استایل تمام صفحه
+            "border mt-4 border-accent rounded-xl overflow-hidden bg-accent transition-all duration-200 flex flex-col",
+            isFullscreen && "fixed inset-0 -top-4 z-50 overflow-hidden w-screen h-screen rounded-none bg-white dark:bg-background" // 🟢 استایل تمام صفحه
         )}>
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-accent bg-admin-bg-sidebar z-10">
+            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-accent   bg-accent z-10">
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1">
@@ -421,13 +421,13 @@ export default function AdminRichEditor({
                     <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('italic') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-3.5 w-3.5" /></Button>
                     <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('underline') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon className="h-3.5 w-3.5" /></Button>
                     <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('highlight') && 'bg-admin-primary/20')} onClick={() => editor.chain().focus().toggleHighlight({ color: currentHighlight }).run()}><Highlighter className="h-3.5 w-3.5" /></Button>
-                    <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('link') && 'bg-admin-primary/20')} onClick={() => { const url = window.prompt('لینک را وارد کنید', editor.getAttributes('link').href || ''); if (url === null) return; url === '' ? editor.chain().focus().unsetLink().run() : editor.chain().focus().setLink({ href: url }).run(); }}><LinkIcon className="h-3.5 w-3.5" /></Button>
+                    {/* <Button type="button" variant="ghost" size="sm" className={cn('h-7 w-7 p-0', editor.isActive('link') && 'bg-admin-primary/20')} onClick={() => { const url = window.prompt('لینک را وارد کنید', editor.getAttributes('link').href || ''); if (url === null) return; url === '' ? editor.chain().focus().unsetLink().run() : editor.chain().focus().setLink({ href: url }).run(); }}><LinkIcon className="h-3.5 w-3.5" /></Button> */}
                 </BubbleMenu>
                 <EditorContent editor={editor} />
             </div>
 
             {/* Status Bar */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-t border-accent text-xs text-admin-text-muted bg-admin-bg-sidebar">
+            <div className="flex items-center justify-between px-3 py-1.5 border-t border-accent text-xs text-admin-text-muted   bg-accent">
                 <span>{editor.storage.characterCount.words()} کلمه | {editor.storage.characterCount.characters()} کاراکتر</span>
                 {isFullscreen && <span className=" text-blue/50">حالت تمام صفحه فعال است</span>}
             </div>

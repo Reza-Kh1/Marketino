@@ -3,7 +3,6 @@ import { CartType } from "@/types/types";
 const BASE_URL = "/cart";
 
 export interface AllCartsEntity {
-    // carts: CartType[]
     stores: StoreCartsType[]
     totalItems: number
     totalPrice: number
@@ -11,9 +10,7 @@ export interface AllCartsEntity {
 
 export interface StoreCartsType {
     storeId: string;
-    storeName: string;
-    storeNameEn: string;
-    storeSlug: string;
+    storeName: string; storeSlug: string;
     carts: {
         id: string;
         quantity: number;
@@ -22,14 +19,8 @@ export interface StoreCartsType {
         product: {
             id: string;
             storeId: string;
-            title: string;
-            titleEn: string;
-            slug: string;
-            slugEn: string;
-            store: {
-                name: string;
-                nameEn: string;
-                slug: string;
+            title: string; slug: string; store: {
+                name: string; slug: string;
             };
             images: {
                 alt: string | null;
@@ -37,12 +28,9 @@ export interface StoreCartsType {
             }[];
         };
         variant: {
-            name: string;
-            nameEn: string;
-            id: string;
+            name: string; id: string;
             color: {
                 name: string;
-                nameEn: string;
             };
             price: string;
             sku: string;

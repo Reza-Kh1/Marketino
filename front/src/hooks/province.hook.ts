@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { provinceService, ProvinceEntity, CreateProvinceDto, CreateCityDto } from '@/services/province.service';
+import { provinceService, CreateProvinceDto, CreateCityDto } from '@/services/province.service';
 import { toast } from 'sonner';
 
 const CITY_KEYS = {
