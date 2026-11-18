@@ -3,15 +3,14 @@ import { EmailService } from "@/email/email.service";
 import { PrismaService } from "@/prisma/prisma.service";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { CheckoutItemDto, CreateCheckoutDto, SearchCheckouts, SearchOrders, UpdateCheckoutDto, updateStoreOrderDto } from "./dto/order.dto";
-import { OrderStatus, PaymentStatus, Prisma, UserRole } from "@prisma/client";
+import { AdminMarkPaymentDto, CheckoutItemDto, CreateCheckoutDto, SearchCheckouts, SearchOrders, UpdateCheckoutDto, updateStoreOrderDto } from "./dto/order.dto";
+import { OrderStatus, PaymentMethod, PaymentStatus, Prisma, UserRole } from "@prisma/client";
 import pagination from "@/common/utils/pagination";
 
 @Injectable()
 export class OrdersService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly emailService: EmailService,
         private readonly configService: ConfigService,
     ) { }
 
@@ -129,8 +128,6 @@ export class OrdersService {
             g.productDiscount = g.productDiscount.add(pd.mul(item.quantity))
             g.items.push({
                 sku: item.variant.sku, name: item.product.title,
-                //  Change Lang
-                //  nameEn: item.product.titleEn,
                 price, originalPrice, total: price.mul(item.quantity), quantity: item.quantity, returnedQty: 0,
                 attributes: item.variant.attributes.map((x: any) => ({ key: x.attribute.key, value: x.value, label: x.attribute.label })),
                 productId: item.product.id, storeId, variantId: item.variant.id,
@@ -589,6 +586,7 @@ export class OrdersService {
             }));
             if (!items.length) throw new BadRequestException('این سفارش قابل لغو نیست.');
             await Promise.all(items.flatMap(({ productId, variantId, quantity }) => [
+
                 tx.productVariant.update({
                     where: { id: variantId },
                     data: { quantity: { increment: quantity }, saleCount: { decrement: quantity } },
@@ -639,168 +637,212 @@ export class OrdersService {
         return { success: true };
     }
 
-    async updatePaymentCheckout(checkoutId: string) {
-        return this.prisma.$transaction(async (tx) => {
-            // پرداخت فقط یک بار از pending به paid تغییر می‌کند
-            const checkout = await tx.checkout.update({
-                where: {
-                    id: checkoutId,
-                    paymentStatus: 'pending',
-                },
-                data: {
-                    paymentStatus: 'paid',
-                },
-                select: {
-                    id: true,
-                    checkoutNumber: true,
-                    taxAmount: true,
-                    salesProfit: true,
-                    orders: {
-                        select: {
-                            id: true,
-                            returnDeadline: true,
-                            totalPrice: true,
-                            commissionAmount: true,
-                            taxAmount: true,
-                            store: {
-                                select: {
-                                    owner: {
-                                        select: {
-                                            id: true,
-                                            wallet: {
-                                                select: {
-                                                    id: true,
-                                                },
-                                            },
-                                        },
+    /**
+     * هسته مشترک: pending → paid + ledger + sale_settlement
+     * فقط داخل $transaction صدا زده شود.
+     * Idempotent: where paymentStatus = pending
+     */
+    private async finalizePaidCheckout(
+        tx: Prisma.TransactionClient,
+        checkoutId: string,
+        method: PaymentMethod,
+        paymentRef?: string | null,
+    ) {
+        // 1) قفل اتمیک: فقط یک بار از pending به paid
+        const checkout = await tx.checkout.update({
+            where: {
+                id: checkoutId,
+                paymentStatus: 'pending', // ← idempotency
+            },
+            data: {
+                paymentStatus: 'paid',
+                paymentMethod: method,
+                paymentRef: paymentRef ?? null,
+                status: 'confirmed', // اختیاری؛ اگر نمی‌خواهید status را عوض کنید حذف کنید
+            },
+            select: {
+                id: true,
+                checkoutNumber: true,
+                taxAmount: true,
+                salesProfit: true,
+                totalAmount: true,
+                orders: {
+                    select: {
+                        id: true,
+                        returnDeadline: true,
+                        totalPrice: true,
+                        commissionAmount: true,
+                        taxAmount: true,
+                        // اگر payoutAmount را به schema اضافه کردید اینجا بخوانید
+                        store: {
+                            select: {
+                                owner: {
+                                    select: {
+                                        id: true,
+                                        wallet: { select: { id: true } },
                                     },
                                 },
                             },
                         },
                     },
                 },
-            });
-            const superAdmin = await tx.user.findFirst({ where: { role: 'superAdmin' }, select: { id: true, wallet: { select: { id: true } } } })
-            if (!checkout.orders.length || !superAdmin?.id || !superAdmin?.wallet?.id) {
-                throw new BadRequestException('سفارشی برای این پرداخت پیدا نشد.');
+            },
+        });
+
+        const superAdmin = await tx.user.findFirst({
+            where: { role: 'superAdmin' },
+            select: { id: true, wallet: { select: { id: true } } },
+        });
+
+        if (!checkout.orders.length || !superAdmin?.id || !superAdmin.wallet?.id) {
+            throw new BadRequestException('سفارشی برای این پرداخت پیدا نشد.');
+        }
+
+        const fallbackDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        for (const order of checkout.orders) {
+            const seller = order.store.owner;
+            const wallet = seller.wallet;
+            if (!wallet) {
+                throw new BadRequestException(`کیف پول فروشنده سفارش ${order.id} پیدا نشد.`);
             }
-            const deadLine = new Date(
-                Date.now() + 7 * 24 * 60 * 60 * 1000,
-            );
 
-            for (const order of checkout.orders) {
-                const seller = order.store.owner;
-                const wallet = seller.wallet;
-                const deadLine = order.returnDeadline
-                if (!wallet) {
-                    throw new BadRequestException(`کیف پول فروشنده سفارش ${order.id} پیدا نشد.`,);
-                }
-                // const settlementDate = new Date(deadLine);
-                // settlementDate.setDate(settlementDate.getDate() + 1);
+            const total = new Prisma.Decimal(order.totalPrice);
+            const commission = new Prisma.Decimal(order.commissionAmount);
+            const tax = new Prisma.Decimal(order.taxAmount);
+            // توجه: این فرمول فعلی شماست. بعداً بهتر است از payoutAmount ذخیره‌شده استفاده شود.
+            const sellerAmount = total.minus(commission).minus(tax);
 
-                const total = new Prisma.Decimal(order.totalPrice);
-                const commission = new Prisma.Decimal(order.commissionAmount,);
-                const tax = new Prisma.Decimal(order.taxAmount);
-                const sellerAmount = total.minus(commission).minus(tax);
+            if (total.lte(0) || commission.lt(0) || tax.lt(0) || sellerAmount.lt(0)) {
+                throw new BadRequestException(`مبالغ مالی سفارش ${order.id} معتبر نیستند.`);
+            }
 
-                if (total.lte(0) || commission.lt(0) || tax.lt(0) || sellerAmount.lt(0)) {
-                    throw new BadRequestException(`مبالغ مالی سفارش ${order.id} معتبر نیستند.`);
-                }
+            const settlementDate = order.returnDeadline ?? fallbackDeadline;
 
-                // فقط سهم خالص فروشنده وارد موجودی در انتظار می‌شود
-                await tx.wallet.update({
-                    where: { id: wallet.id },
-                    data: {
-                        pendingBalance: { increment: sellerAmount },
-                    },
-                });
+            // سهم خالص فروشنده → pending
+            await tx.wallet.update({
+                where: { id: wallet.id },
+                data: { pendingBalance: { increment: sellerAmount } },
+            });
 
-                // 1. سهم خالص فروشنده؛ منتظر موعد تسویه
+            // 1. sale_settlement (صف ۶ساعته/ساعتی این را تسویه می‌کند)
+            await tx.walletTransaction.create({
+                data: {
+                    type: 'sale_settlement',
+                    status: 'pending',
+                    amount: sellerAmount,
+                    trackingCode: this.generateTrackingCode('SET'),
+                    userId: seller.id,
+                    walletId: wallet.id,
+                    orderId: order.id,
+                    settlementDate,
+                },
+            });
+
+            // 2. کمیسیون (ردیفی، بدون حرکت موجودی)
+            if (commission.gt(0)) {
                 await tx.walletTransaction.create({
                     data: {
-                        type: 'sale_settlement',
-                        status: 'pending',
-                        amount: sellerAmount,
-                        trackingCode: this.generateTrackingCode('SET'),
+                        type: 'commission',
+                        status: 'completed',
+                        amount: commission,
+                        trackingCode: this.generateTrackingCode('COM'),
                         userId: seller.id,
                         walletId: wallet.id,
                         orderId: order.id,
-                        settlementDate: deadLine
                     },
                 });
-                // 2. کمیسیون؛ ردیف توضیحی صورتحساب، بدون کسر مجدد از کیف پول
-                if (commission.gt(0)) {
-                    await tx.walletTransaction.create({
-                        data: {
-                            type: 'commission',
-                            status: 'completed',
-                            amount: commission,
-                            trackingCode: this.generateTrackingCode('COM'),
-                            userId: seller.id,
-                            walletId: wallet.id,
-                            orderId: order.id,
-                        },
-                    });
-                }
-
-                // 3. مالیات؛ ردیف توضیحی صورتحساب
-                if (tax.gt(0)) {
-                    await tx.walletTransaction.create({
-                        data: {
-                            type: 'tax',
-                            status: 'completed',
-                            amount: tax,
-                            trackingCode: this.generateTrackingCode('TAX'),
-                            userId: seller.id,
-                            walletId: wallet.id,
-                            orderId: order.id,
-                        },
-                    });
-                }
             }
-            await tx.walletTransaction.createMany({
-                data: [
-                    {
-                        amount: checkout.salesProfit,
-                        type: 'deposit',
-                        trackingCode: this.generateTrackingCode('DES'),
-                        status: 'completed',
-                        userId: superAdmin?.id,
-                        walletId: superAdmin.wallet.id,
-                        description: ` سود سفارش ${checkout.checkoutNumber} `,
-                    },
-                    {
-                        amount: checkout.taxAmount,
-                        type: 'tax',
-                        trackingCode: this.generateTrackingCode('TAX'),
-                        status: 'completed',
-                        userId: superAdmin?.id,
-                        walletId: superAdmin.wallet.id,
-                        description: ` مالیات سفارش ${checkout.checkoutNumber} `,
-                    },
-                ]
-            })
-            await tx.wallet.update({
-                where: {
-                    id: superAdmin.wallet.id
-                },
-                data: {
-                    balance: { increment: checkout.salesProfit },
-                    pendingBalance: { increment: checkout.taxAmount },
-                }
-            })
-            await tx.order.updateMany({
-                where: { checkoutId: checkoutId },
-                data: { status: 'confirmed' }
-            })
-            await tx.checkout.update({
-                where: { id: checkoutId },
-                data: { status: 'confirmed' }
-            })
 
-            return { success: true, };
+            // 3. مالیات (ردیفی)
+            if (tax.gt(0)) {
+                await tx.walletTransaction.create({
+                    data: {
+                        type: 'tax',
+                        status: 'completed',
+                        amount: tax,
+                        trackingCode: this.generateTrackingCode('TAX'),
+                        userId: seller.id,
+                        walletId: wallet.id,
+                        orderId: order.id,
+                    },
+                });
+            }
+        }
+
+        // پلتفرم: سود + مالیات
+        await tx.walletTransaction.createMany({
+            data: [
+                {
+                    amount: checkout.salesProfit,
+                    type: 'deposit',
+                    trackingCode: this.generateTrackingCode('DES'),
+                    status: 'completed',
+                    userId: superAdmin.id,
+                    walletId: superAdmin.wallet.id,
+                    description: `سود سفارش ${checkout.checkoutNumber}`,
+                },
+                {
+                    amount: checkout.taxAmount,
+                    type: 'tax',
+                    trackingCode: this.generateTrackingCode('TAX'),
+                    status: 'completed',
+                    userId: superAdmin.id,
+                    walletId: superAdmin.wallet.id,
+                    description: `مالیات سفارش ${checkout.checkoutNumber}`,
+                },
+            ],
         });
+
+        await tx.wallet.update({
+            where: { id: superAdmin.wallet.id },
+            data: {
+                balance: { increment: checkout.salesProfit },
+                pendingBalance: { increment: checkout.taxAmount }, // رفتار فعلی شما
+            },
+        });
+
+        // رکورد Payment (برای audit)
+        await tx.payment.create({
+            data: {
+                amount: checkout.totalAmount,
+                method,
+                status: 'paid',
+                gatewayRef: paymentRef ?? null,
+                checkoutId: checkout.id,
+                paidAt: new Date(),
+            },
+        });
+
+        // status سفارش‌ها
+        await tx.order.updateMany({
+            where: { checkoutId: checkout.id },
+            data: { status: 'confirmed' },
+        });
+
+        return checkout;
     }
+
+    /** پرداخت آنلاین (درگاه / کیف پول) — endpoint فعلی */
+    async updatePaymentCheckout(checkoutId: string, method: PaymentMethod = 'zarinpal', paymentRef?: string) {
+        if (!['zarinpal', 'card', 'wallet'].includes(method)) {
+            throw new BadRequestException('روش پرداخت آنلاین نامعتبر است');
+        }
+        return this.prisma.$transaction((tx) =>
+            this.finalizePaidCheckout(tx, checkoutId, method, paymentRef),
+        );
+    }
+
+    /** ادمین: ثبت پرداخت حضوری یا کارت‌به‌کارت */
+    async adminMarkPayment(
+        checkoutId: string,
+        dto: AdminMarkPaymentDto,
+    ) {
+        return this.prisma.$transaction((tx) =>
+            this.finalizePaidCheckout(tx, checkoutId, dto.method, dto.paymentRef ?? dto.note),
+        );
+    }
+
 
     async getDetailCheckout(id: string) {
         const data = await this.prisma.checkout.findUnique({

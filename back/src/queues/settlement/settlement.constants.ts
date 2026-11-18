@@ -3,7 +3,7 @@ export const SETTLEMENT_SCAN_JOB = 'settle-due-scan';
 export const SETTLEMENT_SCHEDULER_ID = 'settle-due-scan-scheduler';
 
 /** هر چند وقت یک‌بار ردیف‌های سررسیدشده بررسی شود (وقتی چیزی سررسید نشده = یک کوئری ایندکس‌دار) */
-export const SETTLEMENT_SCAN_EVERY_MS = 60 * 60 * 1000; // ۱ ساعت
+export const SETTLEMENT_SCAN_EVERY_MS =6 * 60 * 60 * 1000; // ۱ ساعت
 
 /** تعداد ردیف در هر batch و سقف batch در هر اجرا */
 export const SETTLEMENT_BATCH = 200;

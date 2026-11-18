@@ -18,11 +18,13 @@ import { AuthGuard } from '@nestjs/passport';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import {
-  RegisterDto, LoginDto, ChangePasswordDto,
+  RegisterDto, LoginDto,
   ForgotPasswordDto, ResetPasswordDto,
   SendEmailOtpDto, SendPhoneOtpDto,
   VerifyEmailOtpDto, VerifyPhoneOtpDto,
   RegisterSellerOtpDto,
+  VerifyResetCodeDto,
+  VerifyEmailDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -31,7 +33,7 @@ import { Public } from '../common/decorators/public.decorator';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   /**
    * ثبت‌نام کاربر جدید
@@ -86,38 +88,6 @@ export class AuthController {
     return { success: true, message: 'با موفقیت خارج شدید' };
   }
 
-  /**
-   * تغییر رمز عبور
-   */
-  @UseGuards(JwtAuthGuard)
-  @Post('change-password')
-  @ApiOperation({ summary: 'تغییر رمز عبور' })
-  async changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(userId, dto);
-  }
-
-  /**
-   * فراموشی رمز عبور
-   */
-  @Public()
-  @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'فراموشی رمز عبور' })
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(dto.email);
-  }
-
-  /**
-   * بازنشانی رمز عبور
-   */
-  @Public()
-  @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'بازنشانی رمز عبور با توکن' })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.token, dto.newPassword);
-  }
-
   // ============================================
   // 🆕 OTP ENDPOINTS
   // ============================================
@@ -125,14 +95,14 @@ export class AuthController {
   /**
    * ارسال کد OTP به ایمیل
    */
-  @Public()
-  @Post('send-email-otp')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'ارسال کد تأیید به ایمیل' })
-  @ApiBody({ type: SendEmailOtpDto })
-  async sendEmailOTP(@Body() dto: SendEmailOtpDto) {
-    return this.authService.sendEmailOTP(dto);
-  }
+  // @Public()
+  // @Post('send-email-otp')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'ارسال کد تأیید به ایمیل' })
+  // @ApiBody({ type: SendEmailOtpDto })
+  // async sendEmailOTP(@Body() dto: SendEmailOtpDto) {
+  //   return this.authService.sendEmailOTP(dto);
+  // }
 
   /**
    * ارسال کد OTP به شماره تلفن
@@ -195,7 +165,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'ورود با گوگل - ریدایرکت' })
-  async googleAuth() {}
+  async googleAuth() { }
 
   /**
    * Callback گوگل پس از احراز هویت
@@ -217,5 +187,58 @@ export class AuthController {
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     return res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'درخواست کد بازیابی رمز عبور', description: 'یک کد ۶ رقمی به ایمیل کاربر ارسال می‌شود.' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({ status: 200, description: 'کد بازیابی ارسال شد.' })
+  @ApiResponse({ status: 400, description: 'ایمیل نامعتبر است.' })
+  @ApiResponse({ status: 429, description: 'تعداد درخواست‌ها بیش از حد مجاز.' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Post('verify-reset-code')
+  @ApiOperation({ summary: 'بررسی صحت کد بازیابی', description: 'کد ارسال شده به ایمیل را اعتبارسنجی می‌کند.' })
+  @ApiBody({ type: VerifyResetCodeDto })
+  @ApiResponse({ status: 200, description: 'کد معتبر است.' })
+  @ApiResponse({ status: 400, description: 'کد نامعتبر یا منقضی شده.' })
+  @ApiResponse({ status: 429, description: 'تعداد تلاش بیش از حد.' })
+  async verifyResetCode(@Body() body: VerifyResetCodeDto) {
+    return this.authService.verifyResetCode(body.email, body.code);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @ApiOperation({ summary: 'تنظیم رمز عبور جدید', description: 'با استفاده از کد معتبر، رمز عبور جدید تنظیم می‌شود.' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 200, description: 'رمز عبور با موفقیت تغییر کرد.' })
+  @ApiResponse({ status: 400, description: 'کد نامعتبر یا رمز ضعیف.' })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    return this.authService.resetPasswordWithCode(body.email, body.code, body.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('send-verify-email')
+  @ApiOperation({ summary: 'ارسال کد تأیید ایمیل', description: 'برای کاربر لاگین‌شده، کد تأیید به ایمیل ارسال می‌شود.' })
+  @ApiResponse({ status: 200, description: 'کد تأیید ارسال شد.' })
+  @ApiResponse({ status: 401, description: 'توکن نامعتبر است.' })
+  @ApiResponse({ status: 429, description: 'تعداد درخواست بیش از حد.' })
+  async sendVerify(@CurrentUser('id') userId: string) {
+    return this.authService.sendVerifyEmail(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('verify-email')
+  @ApiOperation({ summary: 'تأیید ایمیل با کد', description: 'کد ارسال شده را بررسی و ایمیل را تأیید می‌کند.' })
+  @ApiBody({ type: VerifyEmailDto })
+  @ApiResponse({ status: 200, description: 'ایمیل تأیید شد.' })
+  @ApiResponse({ status: 400, description: 'کد نامعتبر.' })
+  @ApiResponse({ status: 401, description: 'توکن نامعتبر است.' })
+  async verifyEmail(@CurrentUser('id') userId: string, @Body() body: VerifyEmailDto) {
+    return this.authService.confirmVerifyEmail(userId, body.code);
   }
 }

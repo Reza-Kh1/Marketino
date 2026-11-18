@@ -1,39 +1,204 @@
-/**
- * AuthService - سرویس احراز هویت
- * مدیریت ثبت‌نام، ورود، تغییر رمز، ورود با گوگل و OTP
- */
+
 import {
   Injectable,
   UnauthorizedException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
 import {
-  RegisterDto, LoginDto, ChangePasswordDto,
+  RegisterDto, LoginDto,
   SendEmailOtpDto, SendPhoneOtpDto,
   VerifyEmailOtpDto, VerifyPhoneOtpDto,
   RegisterSellerOtpDto,
 } from './dto/auth.dto';
+import { EmailQueueService } from '@/queues/email/email-queue.service';
+import { OtpRateService } from '@/queues/email/otp-rate.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-    private readonly emailService: EmailService,
+    private readonly emailQueue: EmailQueueService,
+    private readonly otpRate: OtpRateService,
   ) { }
 
-  /**
-   * ثبت‌نام کاربر جدید
-   * نام کاربری و ایمیل باید یکتا باشند
-   */
+  private async upsertOtp(contact: string, purpose: 'auth' | 'reset' | 'verify', code: string) {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // باطل کردن قبلی‌ها
+    await this.prisma.otpCode.updateMany({
+      where: { contact, purpose, used: false },
+      data: { used: true },
+    });
+    return this.prisma.otpCode.create({
+      data: {
+        contact,
+        code,
+        type: 'email',
+        purpose,
+        expiresAt,
+      },
+    });
+  }
+
+  // ---- فراموشی رمز: فقط کد ۶ رقمی ----
+  async forgotPassword(email: string, lang = 'fa') {
+    const normalized = email.toLowerCase().trim();
+
+    // rate limit قبل از هر DB
+    await this.otpRate.assertCanSend(normalized, 'reset');
+
+    // یک کوئری: فقط id لازم است؛ وجود/عدم وجود را لو نده
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalized },
+      select: { id: true },
+    });
+
+    // پاسخ یکسان (security)
+    const publicMsg = { message: 'اگر این ایمیل ثبت شده باشد، کد بازنشانی ارسال می‌شود', expiresIn: 300 };
+
+    if (!user) {
+      // برای جلوگیری از email enumeration، cooldown را هم اعمال کنید
+      await this.otpRate.markSent(normalized, 'reset');
+      return publicMsg;
+    }
+
+    const code = this.generateOTP();
+    await this.upsertOtp(normalized, 'reset', code);
+    await this.emailQueue.enqueueOtp({ to: normalized, code, purpose: 'reset', lang });
+    await this.otpRate.markSent(normalized, 'reset');
+
+    return publicMsg;
+  }
+
+  /** مرحله ۲: تأیید کد → اجازه تنظیم رمز */
+  async verifyResetCode(email: string, code: string) {
+    const normalized = email.toLowerCase().trim();
+
+    const otp = await this.prisma.otpCode.findFirst({
+      where: {
+        contact: normalized,
+        code,
+        purpose: 'reset',
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otp) {
+      await this.otpRate.registerFailedAttempt(normalized, 'reset');
+      throw new BadRequestException('کد نامعتبر یا منقضی شده است');
+    }
+
+    await this.otpRate.clearAttempts(normalized, 'reset');
+    // کد را هنوز used نمی‌کنیم تا در resetPassword مصرف شود
+    // (یا می‌توانید یک ticket کوتاه در Redis بگذارید)
+    return { valid: true, message: 'کد تأیید شد؛ رمز جدید را وارد کنید' };
+  }
+
+  /** مرحله ۳: تنظیم رمز جدید با همان کد */
+  async resetPasswordWithCode(email: string, code: string, newPassword: string) {
+    const normalized = email.toLowerCase().trim();
+
+    return this.prisma.$transaction(async (tx) => {
+      const otp = await tx.otpCode.findFirst({
+        where: {
+          contact: normalized,
+          code,
+          purpose: 'reset',
+          used: false,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!otp) throw new BadRequestException('کد نامعتبر یا منقضی شده است');
+
+      const user = await tx.user.findUnique({
+        where: { email: normalized },
+        select: { id: true },
+      });
+      if (!user) throw new BadRequestException('کاربر یافت نشد');
+
+      const hashed = await bcrypt.hash(newPassword, 12);
+
+      await tx.otpCode.update({ where: { id: otp.id }, data: { used: true } });
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashed,
+          hasSetPassword: true,
+          resetToken: null,
+          resetExpires: null,
+        },
+      });
+
+      return { message: 'رمز عبور با موفقیت تغییر کرد' };
+    });
+  }
+
+  // ---- وریفای ایمیل (کاربر لاگین‌شده) ----
+  async sendVerifyEmail(userId: string, lang = 'fa') {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, emailVerified: true },
+    });
+    if (!user) throw new BadRequestException('کاربر یافت نشد');
+    if (user.emailVerified) return { message: 'ایمیل قبلاً تأیید شده است' };
+
+    const normalized = user.email.toLowerCase().trim();
+    await this.otpRate.assertCanSend(normalized, 'verify');
+
+    const code = this.generateOTP();
+    await this.upsertOtp(normalized, 'verify', code);
+    await this.emailQueue.enqueueOtp({ to: normalized, code, purpose: 'verify', lang });
+    await this.otpRate.markSent(normalized, 'verify');
+
+    return { message: 'کد تأیید به ایمیل ارسال شد', expiresIn: 300 };
+  }
+
+  async confirmVerifyEmail(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, emailVerified: true },
+    });
+    if (!user) throw new BadRequestException('کاربر یافت نشد');
+    if (user.emailVerified) return { message: 'قبلاً تأیید شده' };
+
+    const normalized = user.email.toLowerCase().trim();
+
+    const otp = await this.prisma.otpCode.findFirst({
+      where: {
+        contact: normalized,
+        code,
+        purpose: 'verify',
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otp) {
+      await this.otpRate.registerFailedAttempt(normalized, 'verify');
+      throw new BadRequestException('کد نامعتبر یا منقضی شده است');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.otpCode.update({ where: { id: otp.id }, data: { used: true } }),
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true, isVerified: true },
+      }),
+    ]);
+    await this.otpRate.clearAttempts(normalized, 'verify');
+
+    return { message: 'ایمیل با موفقیت تأیید شد' };
+  }
+
   async register(dto: RegisterDto) {
     const existingUsername = await this.prisma.user.findUnique({
       where: { username: dto.username },
@@ -66,17 +231,11 @@ export class AuthService {
       },
     });
 
-    // Send welcome email
-    this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => { });
-
     const token = this.generateToken(user);
     const { password, ...userWithoutPassword } = user;
     return { user: userWithoutPassword, token };
   }
 
-  /**
-   * ورود کاربر با نام کاربری/ایمیل و رمز عبور
-   */
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto.login, dto.password);
     if (!user) {
@@ -127,27 +286,14 @@ export class AuthService {
   /**
    * ارسال کد OTP به ایمیل
    */
-  async sendEmailOTP(dto: SendEmailOtpDto, lang: string = 'fa') {
+  async sendEmailOTP(dto: SendEmailOtpDto, lang = 'fa') {
+    const normalized = dto.email.toLowerCase().trim();
+    await this.otpRate.assertCanSend(normalized, 'auth');
+
     const code = this.generateOTP();
-
-    // Delete any existing OTP for this contact
-    await this.prisma.otpCode.deleteMany({
-      where: { contact: dto.email, type: 'email' },
-    });
-
-    // Create new OTP
-    await this.prisma.otpCode.create({
-      data: {
-        contact: dto.email,
-        code,
-        type: 'email',
-        purpose: 'auth',
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 min
-      },
-    });
-
-    // Send email
-    await this.emailService.sendOTPEmail(dto.email, code, lang);
+    await this.upsertOtp(normalized, 'auth', code);
+    await this.emailQueue.enqueueOtp({ to: normalized, code, purpose: 'auth', lang });
+    await this.otpRate.markSent(normalized, 'auth');
 
     return { message: 'کد تأیید به ایمیل شما ارسال شد', expiresIn: 300 };
   }
@@ -241,7 +387,6 @@ export class AuthService {
           },
         });
         isNewUser = true;
-        this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => { });
       } else {
         // Explicit registration
         if (!dto.username || !dto.password) {
@@ -270,7 +415,6 @@ export class AuthService {
           },
         });
         isNewUser = true;
-        this.emailService.sendWelcomeEmail(user.email, user.username, 'fa').catch(() => { });
       }
     }
 
@@ -429,88 +573,6 @@ export class AuthService {
     });
 
     return user;
-  }
-
-  /**
-   * تغییر رمز عبور کاربر
-   */
-  async changePassword(userId: string, dto: ChangePasswordDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.password) {
-      throw new BadRequestException('حساب کاربری رمز عبور ندارد');
-    }
-
-    const isOldValid = await bcrypt.compare(dto.currentPassword, user.password);
-    if (!isOldValid) {
-      throw new BadRequestException('رمز عبور فعلی اشتباه است');
-    }
-
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(dto.newPassword, salt);
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword, hasSetPassword: true },
-    });
-
-    return { message: 'رمز عبور با موفقیت تغییر کرد' };
-  }
-
-  /**
-   * فراموشی رمز عبور - ارسال توکن به ایمیل
-   */
-  async forgotPassword(email: string, lang: string = 'fa') {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      // Don't reveal whether email exists (security best practice)
-      return { message: 'اگر این ایمیل در سیستم ثبت شده باشد، لینک بازنشانی ارسال خواهد شد' };
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 3600000);
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { resetToken, resetExpires },
-    });
-
-    // Send password reset email
-    const frontendUrl = this.configService.get('FRONTEND_URL', 'http://localhost:3001');
-    const resetLink = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
-    this.emailService.sendPasswordResetEmail(user.email, resetLink, user.username, lang).catch(() => { });
-
-    return { message: 'لینک بازنشانی رمز عبور به ایمیل شما ارسال شد' };
-  }
-
-  /**
-   * بازنشانی رمز عبور با توکن
-   */
-  async resetPassword(token: string, newPassword: string) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetExpires: { gt: new Date() },
-      },
-    });
-
-    if (!user) {
-      throw new BadRequestException('توکن نامعتبر یا منقضی شده است');
-    }
-
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetExpires: null,
-        hasSetPassword: true,
-      },
-    });
-
-    return { message: 'رمز عبور با موفقیت بازنشانی شد' };
   }
 
   /**

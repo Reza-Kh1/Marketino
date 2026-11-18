@@ -3,7 +3,7 @@
  */
 import { Controller, Get, Post, Put, Patch, Body, Param, Query, UseGuards, BadRequestException, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { CreateCheckoutDto, SearchCheckouts, SearchOrders, UpdateCheckoutDto, updateStoreOrderDto } from './dto/order.dto';
+import { AdminMarkPaymentDto, CreateCheckoutDto, SearchCheckouts, SearchOrders, UpdateCheckoutDto, updateStoreOrderDto } from './dto/order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -16,6 +16,29 @@ import { UserRole } from '@prisma/client';
 @Controller('orders')
 export class OrdersController {
     constructor(private readonly ordersService: OrdersService) { }
+    @Patch(':id')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'پرداخت آنلاین سفارش' })
+    async updatePayment(
+        @Param('id') checkoutId: string,
+        // اگر از درگاه callback می‌آید method و ref را هم بفرستید
+    ) {
+        return this.ordersService.updatePaymentCheckout(checkoutId, 'zarinpal');
+    }
+
+    @Patch('admin/mark-paid/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.superAdmin, UserRole.admin) // مطابق نقش‌های شما
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'ادمین: ثبت پرداخت حضوری یا کارت‌به‌کارت' })
+    async adminMarkPayment(
+        @Param('id') checkoutId: string,
+        @Body() body: AdminMarkPaymentDto,
+    ) {
+        return this.ordersService.adminMarkPayment(checkoutId, body);
+    }
+
 
     @Post()
     @UseGuards(JwtAuthGuard)
@@ -79,14 +102,6 @@ export class OrdersController {
     @ApiOperation({ summary: 'ویرایش سفارش توسط ادمین و کاربر' })
     async updateCheckout(@Param('id') idCheckout: string, @Body() body: UpdateCheckoutDto, @CurrentUser('role') role: UserRole,) {
         return this.ordersService.updateCheckout(idCheckout, body, role);
-    }
-
-    @Patch('/:id')
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    @ApiOperation({ summary: 'پرداخت سفارش' })
-    async updatePayment(@Param('id') chekoutId: string) {
-        return this.ordersService.updatePaymentCheckout(chekoutId);
     }
 
     @Delete('/:id')

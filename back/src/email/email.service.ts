@@ -1,17 +1,4 @@
-/**
- * EmailService - سرویس ارسال ایمیل با Nodemailer
- * پشتیبانی از SMTP سفارشی و fallback به console log در محیط development
- *
- * Supported email types:
- *   - OTP / Verification code
- *   - Welcome (new user registration)
- *   - Password reset
- *   - Order confirmation
- *   - Order status update
- *   - Shipping notification
- *   - Seller approval / rejection
- *   - Custom generic email
- */
+
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -137,20 +124,6 @@ export class EmailService {
       ? this.otpTemplateFa(email, code)
       : this.otpTemplateEn(email, code);
 
-    await this.send({ to: email, subject, html });
-  }
-
-  // -----------------------------------------------------------------------
-  // Welcome
-  // -----------------------------------------------------------------------
-
-  async sendWelcomeEmail(email: string, username: string, lang: string = 'fa'): Promise<void> {
-    const isPersian = lang === 'fa';
-    const subject = isPersian
-      ? 'به بازارچه آنلاین خوش آمدید! 🎉'
-      : 'Welcome to Bazarche Online! 🎉';
-
-    const html = this.welcomeTemplate(username, isPersian);
     await this.send({ to: email, subject, html });
   }
 
@@ -336,36 +309,6 @@ export class EmailService {
       <p style="color:#9ca3af;font-size:13px">If you didn't request this, ignore this email.</p>`;
 
     return this.wrapLayout('Verification Code', content, false);
-  }
-
-  // -- Welcome template ----------------------------------------------------
-
-  private welcomeTemplate(username: string, isPersian: boolean): string {
-    const content = isPersian
-      ? `
-        <p style="color:#6b7280;line-height:1.8">سلام <strong>${username}</strong> عزیز،</p>
-        <p style="color:#6b7280;line-height:1.8">از ثبت‌نام شما در بازارچه آنلاین بسیار خوشحالیم. اکنون می‌توانید از امکانات زیر استفاده کنید:</p>
-        <ul style="color:#6b7280;line-height:2;padding-${isPersian ? 'right' : 'left'}:20px">
-          <li>خرید از فروشگاه‌های متنوع</li>
-          <li>ایجاد فروشگاه شخصی و فروش محصولات</li>
-          <li>مقایسه محصولات و استفاده از کدهای تخفیف</li>
-        </ul>
-        <p style="color:#6b7280;line-height:1.8">امیدواریم تجربه خرید خوبی داشته باشید!</p>`
-      : `
-        <p style="color:#6b7280;line-height:1.8">Hi <strong>${username}</strong>,</p>
-        <p style="color:#6b7280;line-height:1.8">Welcome to Bazarche Online! Explore what you can do:</p>
-        <ul style="color:#6b7280;line-height:2;padding-left:20px">
-          <li>Shop from a variety of stores</li>
-          <li>Set up your own shop and sell products</li>
-          <li>Compare products and use discount codes</li>
-        </ul>
-        <p style="color:#6b7280;line-height:1.8">We hope you have a great shopping experience!</p>`;
-
-    return this.wrapLayout(
-      isPersian ? 'خوش آمدید!' : 'Welcome!',
-      content,
-      isPersian,
-    );
   }
 
   // -- Password reset template ---------------------------------------------

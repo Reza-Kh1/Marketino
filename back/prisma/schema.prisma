@@ -473,6 +473,7 @@ model Checkout {
   payments Payment[]
 
   @@index([userId])
+  @@index([paymentStatus, status, createdAt])
   @@map("checkouts")
 }
 
@@ -966,6 +967,7 @@ model OtpCode {
 
   @@index([contact])
   @@index([expiresAt])
+  @@index([contact, purpose, used, expiresAt])
   @@map("otp_codes")
 }
 
@@ -1089,6 +1091,7 @@ enum OtpType {
 enum OtpPurpose {
   auth
   reset
+  verify
 }
 
 enum InvoiceStatus {

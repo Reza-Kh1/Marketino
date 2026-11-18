@@ -349,3 +349,23 @@ export class updateStoreOrderDto {
   @IsString()
   storeId!: string;
 }
+
+export class AdminMarkPaymentDto {
+  @ApiProperty({
+    description: 'روش پرداخت آفلاین',
+    enum: PaymentMethod,
+    example: PaymentMethod.card,
+  })
+  @IsIn(['card', 'wallet', 'cod', 'zarinpal'])
+  method!: 'cod';
+
+  @ApiPropertyOptional({ description: 'شماره پیگیری / توضیح کارت‌به‌کارت' })
+  @IsOptional()
+  @IsString()
+  paymentRef?: string;
+
+  @ApiPropertyOptional({ description: 'یادداشت ادمین' })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}

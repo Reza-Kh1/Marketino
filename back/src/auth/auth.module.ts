@@ -10,9 +10,15 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { EmailModule } from '@/email/email.module';
+import { EmailQueueModule } from '@/queues/email/email-queue.module';
+import { OtpRateService } from '@/queues/email/otp-rate.service';
+import { RedisModule } from '@/redis/redis.module';
 
 @Module({
   imports: [
+    EmailQueueModule, // 👈 EmailQueueService را export می‌کند
+    EmailModule, RedisModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'super-secret-jwt-key',
@@ -22,7 +28,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy, OtpRateService],
   exports: [AuthService, JwtModule],
 })
-export class AuthModule {}
+export class AuthModule { }

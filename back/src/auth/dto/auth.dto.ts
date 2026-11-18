@@ -3,7 +3,7 @@
  */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { IsString, IsEmail, IsOptional, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsString, IsEmail, IsOptional, MinLength, MaxLength, Matches, length } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ description: 'نام کاربری', example: 'rezakhani', minLength: 3, maxLength: 50 })
@@ -50,40 +50,12 @@ export class LoginDto {
 }
 
 /**
- * ChangePasswordDto - DTO تغییر رمز عبور
- */
-export class ChangePasswordDto {
-  @ApiProperty({ description: 'رمز عبور فعلی' })
-  @IsString()
-  currentPassword: string;
-
-  @ApiProperty({ description: 'رمز عبور جدید', minLength: 6 })
-  @IsString()
-  @MinLength(6)
-  newPassword: string;
-}
-
-/**
  * ForgotPasswordDto - DTO فراموشی رمز عبور
  */
 export class ForgotPasswordDto {
   @ApiProperty({ description: 'ایمیل حساب کاربری' })
   @IsEmail()
-  email: string;
-}
-
-/**
- * ResetPasswordDto - DTO بازنشانی رمز عبور
- */
-export class ResetPasswordDto {
-  @ApiProperty({ description: 'توکن بازنشانی (ارسال شده به ایمیل)' })
-  @IsString()
-  token: string;
-
-  @ApiProperty({ description: 'رمز عبور جدید', minLength: 6 })
-  @IsString()
-  @MinLength(6)
-  newPassword: string;
+  email!: string;
 }
 
 /**
@@ -251,4 +223,37 @@ export class RegisterSellerOtpDto {
   @ApiProperty({ description: 'نوع کسب‌وکار' })
   @IsString()
   businessType: string;
+}
+
+
+
+export class VerifyResetCodeDto {
+  @ApiProperty({ example: 'user@example.com', description: 'ایمیل کاربر' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456', description: 'کد ۶ رقمی ارسال شده' })
+  @IsString()
+  code: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ example: 'user@example.com', description: 'ایمیل کاربر' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456', description: 'کد ۶ رقمی ارسال شده' })
+  @IsString()
+  code: string;
+
+  @ApiProperty({ example: 'NewStrongPass123!', description: 'رمز عبور جدید' })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+
+export class VerifyEmailDto {
+  @ApiProperty({ example: '123456', description: 'کد ۶ رقمی تأیید ایمیل' })
+  @IsString()
+  code: string;
 }
